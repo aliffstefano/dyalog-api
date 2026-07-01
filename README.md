@@ -319,13 +319,13 @@ Todas as rotas da API usam o prefixo `/api/v1`.
 Base URL local/dominio:
 
 ```text
-https://apilocal.dyalog.com.br/api/v1
+https://dyalog-api.dyalog.com.br/api/v1
 ```
 
 Exemplo de rota completa:
 
 ```text
-POST https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto
+POST https://dyalog-api.dyalog.com.br/api/v1/batepapo/enviar/texto
 ```
 
 Header recomendado para n8n e integrações:
@@ -465,7 +465,7 @@ Payload util para automacao:
 Exemplo HTTP/cURL:
 
 ```bash
-curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto" \
+curl -X POST "https://dyalog-api.dyalog.com.br/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
@@ -477,7 +477,7 @@ curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto" \
 Exemplo com digitando por 3 segundos antes da mensagem:
 
 ```bash
-curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto" \
+curl -X POST "https://dyalog-api.dyalog.com.br/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
@@ -490,7 +490,7 @@ curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto" \
 Tambem e possivel controlar apenas a presenca:
 
 ```bash
-curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
+curl -X POST "https://dyalog-api.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
