@@ -1,0 +1,8 @@
+Portions of this VoIP implementation are adapted from WaCalls.
+
+Source: https://github.com/JotaDev66/WaCalls
+License: MIT
+Copyright (c) 2026 jotadev66
+
+The adapted code is kept under internal/voip and internal/wa to integrate
+WhatsApp call signaling and media transport with Dyalog API GO instances.

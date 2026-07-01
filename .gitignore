@@ -1,0 +1,40 @@
+# Ambiente local e segredos
+.env
+.env.*
+!.env.example
+
+# Dados de runtime
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Sessoes/dispositivos WhatsApp
+sessoes/
+sessions/
+
+# Binarios e builds locais
+api.exe
+dyalog-api-go.exe
+dyalog-api-go
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Cache local
+.gocache/
+.claude/
+
+# Arquivos temporarios
+tmp/
+temp/
+*.tmp
+*.log
+
+# Compose local com possiveis senhas
+docker-compose.yml
+docker-compose.override.yml
+!docker-compose.example.yml

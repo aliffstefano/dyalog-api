@@ -1,0 +1,14 @@
+.git
+.gitignore
+.claude
+.gocache
+.env
+data
+*.exe
+dyalog-api-go
+*.db
+*.db-shm
+*.db-wal
+bin
+tmp
+node_modules

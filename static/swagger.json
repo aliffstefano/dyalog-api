@@ -1,0 +1,647 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Dyalog API GO",
+    "description": "API REST para gerenciamento de instancias WhatsApp via whatsmeow. Para rotas protegidas, envie o token no header X-Access-Token. Todas as rotas usam o prefixo /api/v1.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "servers": [
+    { "url": "/api/v1", "description": "API v1" }
+  ],
+  "tags": [
+    { "name": "Sistema", "description": "Versao, saude e atualizacoes" },
+    { "name": "Instancias", "description": "Gerenciamento de instancias WhatsApp" },
+    { "name": "Mensagens", "description": "Envio de mensagens" }
+  ],
+  "paths": {
+    "/saude": {
+      "get": {
+        "tags": ["Sistema"],
+        "summary": "Health check",
+        "description": "Retorna saude basica da API, versao e status de atualizacao.",
+        "operationId": "saude",
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" }
+        }
+      }
+    },
+    "/sistema/versao": {
+      "get": {
+        "tags": ["Sistema"],
+        "summary": "Versao detalhada",
+        "description": "Retorna versao da aplicacao, commit, data de build e status do whatsmeow.",
+        "operationId": "versaoSistema",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "$ref": "#/components/schemas/VersaoSistema" } } }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sistema/atualizacoes": {
+      "get": {
+        "tags": ["Sistema"],
+        "summary": "Status de atualizacoes",
+        "description": "Retorna estado atual do monitoramento de dependencias (whatsmeow).",
+        "operationId": "atualizacoesSistema",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "$ref": "#/components/schemas/StatusDependencia" } } }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sistema/atualizacoes/verificar": {
+      "post": {
+        "tags": ["Sistema"],
+        "summary": "Forcar verificacao de atualizacao",
+        "description": "Dispara verificacao imediata da versao do whatsmeow no proxy Go.",
+        "operationId": "verificarAtualizacoesSistema",
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" }
+        }
+      }
+    },
+    "/sistema/atualizacoes/aplicar": {
+      "post": {
+        "tags": ["Sistema"],
+        "summary": "Gerar artefato de atualizacao",
+        "description": "Prepara artefato de atualizacao para deploy manual. Requer token de autorizacao.",
+        "operationId": "aplicarAtualizacaoSistema",
+        "security": [{ "TokenHeader": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" },
+          "401": { "$ref": "#/components/responses/ErroNaoAutorizado" }
+        }
+      }
+    },
+    "/instancias": {
+      "post": {
+        "tags": ["Instancias"],
+        "summary": "Criar instancia",
+        "description": "Cria uma nova instancia WhatsApp. Nao inicia conexao automaticamente.",
+        "operationId": "criarInstancia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CriarInstanciaRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instancia criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "$ref": "#/components/schemas/Instancia" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ErroValidacao" }
+        }
+      },
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "Listar instancias",
+        "description": "Retorna todas as instancias cadastradas.",
+        "operationId": "listarInstancias",
+        "responses": {
+          "200": {
+            "description": "Lista de instancias",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    {
+                      "properties": {
+                        "dados": {
+                          "type": "object",
+                          "properties": {
+                            "instancias": { "type": "array", "items": { "$ref": "#/components/schemas/Instancia" } },
+                            "total": { "type": "integer" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instancias/{id}": {
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "Buscar instancia",
+        "operationId": "buscarInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaInstancia" },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      },
+      "delete": {
+        "tags": ["Instancias"],
+        "summary": "Excluir instancia",
+        "description": "Remove a instancia e apaga os arquivos de sessao locais.",
+        "operationId": "excluirInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/status": {
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "Status consolidado",
+        "description": "Retorna status detalhado da instancia incluindo info de erro.",
+        "operationId": "statusInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "$ref": "#/components/schemas/StatusInstancia" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/conectar": {
+      "post": {
+        "tags": ["Instancias"],
+        "summary": "Conectar instancia",
+        "description": "Inicia o processo de conexao e gera QR code para pareamento.",
+        "operationId": "conectarInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/desconectar": {
+      "post": {
+        "tags": ["Instancias"],
+        "summary": "Desconectar instancia",
+        "operationId": "desconectarInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaSistema" },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/qrcode": {
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "QR code (dados)",
+        "description": "Retorna a string base do QR code gerado.",
+        "operationId": "qrcodeInstancia",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": {
+            "description": "QR code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "type": "object", "properties": { "qrcode": { "type": "string" } } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/qrcode/imagem": {
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "QR code (imagem PNG)",
+        "description": "Retorna o QR code renderizado como imagem PNG.",
+        "operationId": "qrcodeInstanciaImagem",
+        "parameters": [{ "$ref": "#/components/parameters/InstanciaID" }],
+        "responses": {
+          "200": {
+            "description": "Imagem PNG do QR code",
+            "content": { "image/png": { "schema": { "type": "string", "format": "binary" } } }
+          },
+          "404": { "$ref": "#/components/responses/ErroNaoEncontrado" }
+        }
+      }
+    },
+    "/instancias/{id}/mensagens": {
+      "get": {
+        "tags": ["Instancias"],
+        "summary": "Mensagens recebidas",
+        "description": "Lista mensagens recebidas pela instancia com paginacao.",
+        "operationId": "listarMensagensRecebidas",
+        "parameters": [
+          { "$ref": "#/components/parameters/InstanciaID" },
+          { "name": "limite", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    {
+                      "properties": {
+                        "dados": {
+                          "type": "object",
+                          "properties": {
+                            "mensagens": { "type": "array", "items": { "$ref": "#/components/schemas/MensagemRecebida" } },
+                            "total": { "type": "integer" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batepapo/enviar/texto": {
+      "post": {
+        "tags": ["Mensagens"],
+        "summary": "Enviar texto",
+        "description": "Envia mensagem de texto. Com token de instancia, o campo instancia pode ser omitido. Use delay para simular digitando antes do envio.",
+        "operationId": "enviarTexto",
+        "security": [{ "TokenHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EnvioTextoRequest" },
+              "example": {
+                "numero": "6799440667",
+                "mensagem": "Ola, tudo bem?",
+                "delay": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mensagem enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/RespostaSucesso" },
+                    { "properties": { "dados": { "$ref": "#/components/schemas/ResultadoEnvio" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ErroValidacao" }
+        }
+      }
+    },
+    "/batepapo/enviar/imagem": {
+      "post": {
+        "tags": ["Mensagens"],
+        "summary": "Enviar imagem",
+        "description": "Envia imagem por URL, base64 ou caminho local do servidor. Com token de instancia, o campo instancia pode ser omitido.",
+        "operationId": "enviarImagem",
+        "security": [{ "TokenHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
+              "example": {
+                "numero": "6799440667",
+                "arquivo_url": "https://exemplo.com/imagem.jpg",
+                "legenda": "Imagem enviada pela API"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaEnvio" },
+          "422": { "$ref": "#/components/responses/ErroValidacao" }
+        }
+      }
+    },
+    "/batepapo/enviar/audio": {
+      "post": {
+        "tags": ["Mensagens"],
+        "summary": "Enviar audio",
+        "description": "Envia audio por URL, base64 ou caminho local. Para enviar como gravado/voz, use ogg/opus com ptt=true.",
+        "operationId": "enviarAudio",
+        "security": [{ "TokenHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
+              "example": {
+                "numero": "6799440667",
+                "arquivo_url": "https://exemplo.com/audio.ogg",
+                "ptt": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaEnvio" },
+          "422": { "$ref": "#/components/responses/ErroValidacao" }
+        }
+      }
+    },
+    "/batepapo/enviar/documento": {
+      "post": {
+        "tags": ["Mensagens"],
+        "summary": "Enviar documento",
+        "description": "Envia documento por URL, base64 ou caminho local. Informe nome_arquivo para o WhatsApp exibir o nome correto.",
+        "operationId": "enviarDocumento",
+        "security": [{ "TokenHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
+              "example": {
+                "numero": "6799440667",
+                "arquivo_url": "https://exemplo.com/contrato.pdf",
+                "nome_arquivo": "contrato.pdf",
+                "legenda": "Segue o documento"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/RespostaEnvio" },
+          "422": { "$ref": "#/components/responses/ErroValidacao" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "TokenHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Access-Token"
+      }
+    },
+    "parameters": {
+      "InstanciaID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID da instancia",
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "schemas": {
+      "RespostaSucesso": {
+        "type": "object",
+        "properties": {
+          "sucesso": { "type": "boolean", "example": true },
+          "mensagem": { "type": "string" },
+          "dados": { "type": "object" }
+        }
+      },
+      "RespostaErro": {
+        "type": "object",
+        "properties": {
+          "sucesso": { "type": "boolean", "example": false },
+          "erro": { "type": "string", "description": "Codigo de erro" },
+          "mensagem": { "type": "string" }
+        }
+      },
+      "Instancia": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["nao_inicializada","desconectada","conectando","aguardando_qrcode","pareada","autenticando","sincronizando_historico","conectada"]
+          },
+          "criado_em": { "type": "string", "format": "date-time" },
+          "atualizado_em": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StatusInstancia": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "status": { "type": "string" },
+          "erro": { "type": "string" },
+          "atualizado_em": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CriarInstanciaRequest": {
+        "type": "object",
+        "required": ["nome"],
+        "properties": {
+          "nome": { "type": "string", "example": "Atendimento principal" }
+        }
+      },
+      "EnvioTextoRequest": {
+        "type": "object",
+        "required": ["numero", "mensagem"],
+        "properties": {
+          "instancia": { "type": "string", "format": "uuid", "description": "ID da instancia. Opcional quando usa token de instancia." },
+          "numero": { "type": "string", "description": "Numero no formato internacional sem +", "example": "5511999999999" },
+          "chat_jid": { "type": "string", "description": "JID do chat, quando preferir enviar pelo JID recebido no webhook." },
+          "grupo": { "type": "boolean", "description": "Use true para enviar para grupo." },
+          "mensagem": { "type": "string" },
+          "mensagem_id": { "type": "string", "description": "ID personalizado opcional" },
+          "resposta_mensagem_id": { "type": "string", "description": "ID da mensagem original para resposta citada." },
+          "resposta_participante": { "type": "string", "description": "JID do remetente original. Recomendado para reply." },
+          "resposta_conteudo": { "type": "string", "description": "Conteudo original exibido na resposta." },
+          "delay": { "type": "integer", "description": "Segundos de digitando antes do envio." }
+        }
+      },
+      "EnvioMidiaRequest": {
+        "type": "object",
+        "required": ["numero"],
+        "properties": {
+          "instancia": { "type": "string", "format": "uuid", "description": "ID da instancia. Opcional quando usa token de instancia." },
+          "numero": { "type": "string", "example": "5511999999999" },
+          "chat_jid": { "type": "string" },
+          "grupo": { "type": "boolean" },
+          "arquivo_url": { "type": "string", "description": "URL publica do arquivo" },
+          "arquivo_base64": { "type": "string", "description": "Base64 puro ou data URI, exemplo data:image/png;base64,..." },
+          "caminho_local": { "type": "string", "description": "Caminho local no servidor" },
+          "legenda": { "type": "string" },
+          "nome_arquivo": { "type": "string" },
+          "mime_type": { "type": "string", "description": "Obrigatorio quando base64 puro nao informa o tipo." },
+          "duracao_segundos": { "type": "integer", "description": "Opcional para audio." },
+          "ptt": { "type": "boolean", "description": "Use true para audio gravado/voz em ogg/opus." },
+          "mensagem_id": { "type": "string" }
+        }
+      },
+      "ResultadoEnvio": {
+        "type": "object",
+        "properties": {
+          "instancia": { "type": "string" },
+          "numero": { "type": "string" },
+          "mensagem_id": { "type": "string" },
+          "status": { "type": "string" },
+          "tipo": { "type": "string" }
+        }
+      },
+      "MensagemRecebida": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "instancia_id": { "type": "string" },
+          "chat_jid": { "type": "string" },
+          "remetente": { "type": "string" },
+          "nome_remetente": { "type": "string" },
+          "conteudo": { "type": "string" },
+          "tipo": { "type": "string" },
+          "recebida_em": { "type": "string", "format": "date-time" }
+        }
+      },
+      "VersaoSistema": {
+        "type": "object",
+        "properties": {
+          "aplicacao_nome": { "type": "string" },
+          "aplicacao_versao": { "type": "string" },
+          "aplicacao_commit": { "type": "string" },
+          "aplicacao_build_date": { "type": "string" },
+          "whatsmeow_versao": { "type": "string" },
+          "ultima_verificacao_em": { "type": "string", "format": "date-time" },
+          "atualizacao_disponivel": { "type": "boolean" },
+          "status_atualizacao": { "type": "string" },
+          "modo_atualizacao": { "type": "string" },
+          "rebuild_necessario": { "type": "boolean" },
+          "reinicio_necessario": { "type": "boolean" },
+          "observacao_operacional": { "type": "string" }
+        }
+      },
+      "StatusDependencia": {
+        "type": "object",
+        "properties": {
+          "dependencia": { "type": "string" },
+          "versao_em_uso": { "type": "string" },
+          "ultima_versao_disponivel": { "type": "string" },
+          "atualizacao_disponivel": { "type": "boolean" },
+          "status_atualizacao": { "type": "string" },
+          "modo_operacao": { "type": "string" },
+          "ultima_verificacao_em": { "type": "string", "format": "date-time" },
+          "ultima_aplicacao_em": { "type": "string", "format": "date-time" },
+          "ultimo_erro": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "RespostaSistema": {
+        "description": "Sucesso",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/RespostaSucesso" }
+          }
+        }
+      },
+      "RespostaInstancia": {
+        "description": "Instancia",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/RespostaSucesso" },
+                { "properties": { "dados": { "$ref": "#/components/schemas/Instancia" } } }
+              ]
+            }
+          }
+        }
+      },
+      "RespostaEnvio": {
+        "description": "Envio concluido",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/RespostaSucesso" },
+                { "properties": { "dados": { "$ref": "#/components/schemas/ResultadoEnvio" } } }
+              ]
+            }
+          }
+        }
+      },
+      "ErroValidacao": {
+        "description": "Dados invalidos",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/RespostaErro" }
+          }
+        }
+      },
+      "ErroNaoEncontrado": {
+        "description": "Nao encontrado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/RespostaErro" }
+          }
+        }
+      },
+      "ErroNaoAutorizado": {
+        "description": "Nao autorizado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/RespostaErro" }
+          }
+        }
+      }
+    }
+  }
+}
