@@ -74,7 +74,7 @@ http://localhost:8080/api/v1
 Exemplo em producao/local com dominio:
 
 ```text
-https://apilocal.dyalog.com.br/api/v1
+https://SEU_DOMINIO/api/v1
 ```
 
 ## Endpoints canonicos
