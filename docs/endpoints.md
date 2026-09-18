@@ -54,7 +54,7 @@ Configuracao padrao do node:
 URL base:
 
 ```text
-https://wapi.dyalog.com.br/api/v1
+https://apilocal.dyalog.com.br/api/v1
 ```
 
 Se estiver em ambiente local ou dominio proprio, troque apenas o dominio:
@@ -98,7 +98,7 @@ JSON para n8n:
 cURL para importar no n8n:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/texto" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","mensagem":"Ola, tudo bem?","delay":3}'
@@ -160,7 +160,7 @@ JSON para n8n:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/editar/texto" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/editar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","mensagem":"Texto editado pela API"}'
@@ -226,7 +226,7 @@ JSON para reagir uma mensagem recebida por webhook:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/reagir" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/reagir" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","remetente_jid":"556799440667@s.whatsapp.net","emoji":"👍"}'
@@ -285,7 +285,7 @@ JSON com base64:
 cURL para importar no n8n:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/imagem" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/imagem" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/imagem.jpg","legenda":"Imagem enviada pela API"}'
@@ -322,7 +322,7 @@ JSON para n8n:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/figurinha" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/figurinha" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/figurinha.webp"}'
@@ -380,7 +380,7 @@ JSON com mp3 comum:
 cURL para importar no n8n:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/audio" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/audio" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/audio.ogg","ptt":true}'
@@ -431,7 +431,7 @@ JSON com base64:
 cURL para importar no n8n:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/documento" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/documento" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/contrato.pdf","nome_arquivo":"contrato.pdf","legenda":"Segue o documento"}'
@@ -466,7 +466,7 @@ JSON:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/chamadas/iniciar" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/chamadas/iniciar" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667"}'
@@ -525,7 +525,7 @@ JSON:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/chamadas/CALL_ID/webrtc" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/chamadas/CALL_ID/webrtc" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"sdp_offer":"v=0..."}'
@@ -534,28 +534,28 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/chamadas/CALL_ID/webrtc" \
 Aceitar chamada recebida:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/chamadas/CALL_ID/aceitar" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/chamadas/CALL_ID/aceitar" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
 Rejeitar chamada:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/chamadas/CALL_ID/rejeitar" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/chamadas/CALL_ID/rejeitar" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
 Encerrar chamada:
 
 ```bash
-curl -X DELETE "https://wapi.dyalog.com.br/api/v1/chamadas/CALL_ID" \
+curl -X DELETE "https://apilocal.dyalog.com.br/api/v1/chamadas/CALL_ID" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
 Listar chamadas ativas da instancia:
 
 ```bash
-curl -X GET "https://wapi.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/chamadas" \
+curl -X GET "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/chamadas" \
   -H "X-Access-Token: TOKEN_MASTER_OU_DA_INSTANCIA"
 ```
 
@@ -599,7 +599,7 @@ Exemplo de payload de webhook de chamada:
 Aceitar chamada recebida pelo n8n:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br{{ $json.body.dados.api.aceitar }}" \
+curl -X POST "https://apilocal.dyalog.com.br{{ $json.body.dados.api.aceitar }}" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
@@ -619,7 +619,7 @@ chamador usa token master ou controla varias instancias.
 Exemplo:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/chamadas/CALL_ID/aceitar" -H "X-Access-Token: TOKEN_MASTER_OU_DA_INSTANCIA"
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/chamadas/CALL_ID/aceitar" -H "X-Access-Token: TOKEN_MASTER_OU_DA_INSTANCIA"
 ```
 
 Observacoes:
@@ -672,7 +672,7 @@ JSON para n8n:
 cURL:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/marcar-lida" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/marcar-lida" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","mensagem_id":"3EB06F9067F80BAB89FF","participante":"225408540778703:54@lid"}'
@@ -1026,7 +1026,7 @@ Campos principais:
 Exemplo:
 
 ```bash
-curl -X GET "https://wapi.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/webhook-entregas?limite=60" \
+curl -X GET "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/webhook-entregas?limite=60" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
@@ -1352,7 +1352,7 @@ Exemplo para grupo:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","acao":"digitando"}'
@@ -1361,7 +1361,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
 Exemplo curl para deixar a instancia indisponivel:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"acao":"indisponivel"}'
@@ -1370,7 +1370,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/presenca" \
 Exemplo compatibilidade estilo WuzAPI:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/user/presence" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/user/presence" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"type":"unavailable"}'
@@ -1430,7 +1430,7 @@ Exemplo compatibilidade:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/marcar-lida" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/marcar-lida" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","mensagem_id":"3EB06F9067F80BAB89FF"}'
@@ -1509,7 +1509,7 @@ Exemplo compatibilidade WUZAPI template:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","mensagem":"Escolha uma opcao","botoes":[{"id":"sim","texto":"Sim"},{"id":"nao","texto":"Nao"}]}'
@@ -1518,7 +1518,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
 Exemplo curl com payload de compatibilidade WUZAPI:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"Phone":"5511999999999","Content":"Escolha uma opcao","Footer":"Dyalog","Buttons":[{"DisplayText":"Sim","Type":"quickreply"},{"DisplayText":"Nao","Type":"quickreply"}]}'
@@ -1527,7 +1527,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
 Fallback textual:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","mensagem":"Escolha uma opcao","modo":"texto","botoes":[{"id":"sim","texto":"Sim"},{"id":"nao","texto":"Nao"}]}'
@@ -1642,7 +1642,7 @@ Exemplo compatibilidade WUZAPI:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/lista" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","titulo":"Atendimento","descricao":"Escolha uma opcao","botao_texto":"Abrir lista","opcoes":[{"id":"financeiro","titulo":"Financeiro","descricao":"Boletos e pagamentos"},{"id":"suporte","titulo":"Suporte","descricao":"Ajuda tecnica"}]}'
@@ -1651,7 +1651,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
 Exemplo curl com payload de compatibilidade WUZAPI:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/lista" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"Phone":"5511999999999","TopText":"Atendimento","Desc":"Escolha uma opcao","ButtonText":"Abrir lista","List":[{"RowId":"financeiro","title":"Financeiro","desc":"Boletos e pagamentos"},{"RowId":"suporte","title":"Suporte","desc":"Ajuda tecnica"}]}'
@@ -1660,7 +1660,7 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
 Fallback textual:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/lista" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","descricao":"Escolha uma opcao","botao_texto":"Abrir lista","modo":"texto","opcoes":[{"id":"financeiro","titulo":"Financeiro"},{"id":"suporte","titulo":"Suporte"}]}'
@@ -1712,7 +1712,7 @@ Exemplo com selecao multipla:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/enquete" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/enquete" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","nome":"Qual plano voce prefere?","opcoes":["Basico","Pro","Enterprise"]}'
@@ -1770,7 +1770,7 @@ Exemplo (com valor):
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/cobranca-pix" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/cobranca-pix" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","chave_pix":"67999998888","tipo_chave":"telefone","nome_beneficiario":"Aliff Stefano"}'
@@ -1807,7 +1807,7 @@ Exemplo:
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/localizacao" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/localizacao" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","latitude":-23.55052,"longitude":-46.633308,"nome":"Av. Paulista"}'
@@ -1858,7 +1858,7 @@ Exemplo (varios contatos):
 Exemplo curl:
 
 ```bash
-curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/contato" \
+curl -X POST "https://apilocal.dyalog.com.br/api/v1/batepapo/enviar/contato" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","nome":"Suporte Dyalog","telefone":"5511988887777"}'

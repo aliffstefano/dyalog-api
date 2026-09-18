@@ -504,10 +504,26 @@ func estadoPresencaGlobal(presenca string) (types.Presence, error) {
 	}
 }
 
+// PossuiRuntime informa se este processo tem a sessao da instancia viva em memoria.
+// So o container dono mantem runtime, entao isso diz se o estado local vale alguma
+// coisa ou se quem manda e o status salvo no banco.
+func (g *GerenciadorInstancias) PossuiRuntime(instanciaID string) bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	_, existe := g.runtimes[instanciaID]
+	return existe
+}
+
 func (g *GerenciadorInstancias) RestaurarSessao(ctx context.Context, instanciaID string) (bool, error) {
 	runtime, err := g.obterOuCriarRuntime(ctx, instanciaID)
 	if err != nil {
-		g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", err.Error())
+		// Quando a instancia pertence a outra replica, o estado local nao pode ser
+		// marcado como desconectado: quem tem a sessao viva e o outro container, e
+		// esse "desconectada" ficaria preso na memoria daqui para sempre, vazando
+		// depois para o banco pela listagem de instancias.
+		if !errors.Is(err, ErrInstanciaPertenceOutroNode) {
+			g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", err.Error())
+		}
 		return false, err
 	}
 	if runtime.client.Store.ID == nil {

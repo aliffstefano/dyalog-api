@@ -61,3 +61,19 @@ func TestBloquearEliberarReconexao(t *testing.T) {
 		t.Fatal("duracao zero nao deveria bloquear reconexao")
 	}
 }
+
+func TestPossuiRuntime(t *testing.T) {
+	g := &GerenciadorInstancias{
+		estados:            map[string]estadoRuntime{},
+		runtimes:           map[string]*runtimeInstancia{"dona": {}},
+		reconexaoBloqueada: map[string]time.Time{},
+	}
+	if !g.PossuiRuntime("dona") {
+		t.Fatal("instancia com runtime local deveria ser reconhecida como propria")
+	}
+	// Sem runtime local o container nao e dono: o status em memoria nao vale e
+	// quem manda e o banco, mantido pelo container dono.
+	if g.PossuiRuntime("de-outra-replica") {
+		t.Fatal("instancia sem runtime local nao pode ser tratada como propria")
+	}
+}

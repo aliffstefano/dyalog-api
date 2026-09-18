@@ -188,6 +188,14 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 		return nil, err
 	}
 	for i := range instancias {
+		// Sem runtime local, este container nao e dono da instancia e o estado em
+		// memoria aqui nao vale nada. Quem mantem o status correto e o container dono,
+		// pelo banco. Sem essa guarda, replicas nao-donas sobrescreviam o status certo
+		// e o dashboard piscava entre conectada e desconectada conforme o balanceador
+		// alternava qual replica respondia a listagem.
+		if !s.gerenciador.PossuiRuntime(instancias[i].ID) {
+			continue
+		}
 		info, err := s.gerenciador.Info(ctx, instancias[i].ID)
 		if err != nil || info.Status == "" {
 			continue
@@ -426,7 +434,9 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 		return nil, fmt.Errorf("erro ao consultar status: %w", err)
 	}
 	status := instancia.Status
-	if info.Status != "" && info.Status != models.StatusInstanciaNaoInicializada {
+	// Mesma regra da listagem: so o container dono da instancia pode corrigir o
+	// status salvo.
+	if s.gerenciador.PossuiRuntime(id) && info.Status != "" && info.Status != models.StatusInstanciaNaoInicializada {
 		status = info.Status
 		_, _ = s.store.AtualizarStatus(ctx, id, status)
 	}
