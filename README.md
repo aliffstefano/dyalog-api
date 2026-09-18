@@ -149,7 +149,7 @@ curl -X POST "http://localhost:8080/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
-    "numero": "556799440667",
+    "numero": "5511999999999",
     "mensagem": "Mensagem enviada pela Dyalog API"
   }'
 ```
@@ -164,8 +164,8 @@ curl -X POST "http://localhost:8080/api/v1/batepapo/enviar/texto" \
   "dados": {
     "tipo": "texto",
     "conteudo": "Oi",
-    "chat_numero": "556799440667",
-    "remetente_numero": "556799440667",
+    "chat_numero": "5511999999999",
+    "remetente_numero": "5511999999999",
     "grupo": false,
     "direcao": "entrada",
     "enviado_por_mim": false,
@@ -494,7 +494,7 @@ curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
-    "numero": "556799440667",
+    "numero": "5511999999999",
     "mensagem": "Teste pela API"
   }'
 ```
@@ -506,7 +506,7 @@ curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
-    "numero": "556799440667",
+    "numero": "5511999999999",
     "mensagem": "Teste com digitando",
     "delay": 3
   }'
@@ -519,7 +519,7 @@ curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/presenca" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
-    "numero": "556799440667",
+    "numero": "5511999999999",
     "acao": "digitando",
     "delay": 3
   }'
@@ -572,10 +572,10 @@ Grupo:
 
 ```json
 {
-  "chat_jid": "120363409010682790@g.us",
+  "chat_jid": "120363000000000000@g.us",
   "grupo": true,
   "mensagem_id": "3EB06F9067F80BAB89FF",
-  "participante": "225408540778703:54@lid"
+  "participante": "225400000000000:54@lid"
 }
 ```
 

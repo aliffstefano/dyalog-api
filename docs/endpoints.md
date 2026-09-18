@@ -91,7 +91,7 @@ JSON para n8n:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem": "Ola, tudo bem?",
   "delay": 3
 }
@@ -103,7 +103,7 @@ cURL para importar no n8n:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","mensagem":"Ola, tudo bem?","delay":3}'
+  -d '{"numero":"11999999999","mensagem":"Ola, tudo bem?","delay":3}'
 ```
 
 Texto respondendo/citando mensagem recebida:
@@ -123,7 +123,7 @@ Envio para grupo:
 
 ```json
 {
-  "numero": "120363409010682790",
+  "numero": "120363000000000000",
   "grupo": true,
   "mensagem": "Ola grupo"
 }
@@ -153,7 +153,7 @@ JSON para n8n:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem_id": "3EB0D174A6979E7104AD8F",
   "mensagem": "Texto editado pela API"
 }
@@ -165,7 +165,7 @@ cURL:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/editar/texto" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","mensagem":"Texto editado pela API"}'
+  -d '{"numero":"11999999999","mensagem_id":"3EB0D174A6979E7104AD8F","mensagem":"Texto editado pela API"}'
 ```
 
 ### Apagar mensagem
@@ -190,7 +190,7 @@ JSON:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem_id": "3EB0D174A6979E7104AD8F"
 }
 ```
@@ -231,16 +231,16 @@ cURL:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/reagir" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","remetente_jid":"556799440667@s.whatsapp.net","emoji":"👍"}'
+  -d '{"numero":"11999999999","mensagem_id":"3EB0D174A6979E7104AD8F","remetente_jid":"5511999999999@s.whatsapp.net","emoji":"👍"}'
 ```
 
 Remover reacao:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem_id": "3EB0D174A6979E7104AD8F",
-  "remetente_jid": "556799440667@s.whatsapp.net",
+  "remetente_jid": "5511999999999@s.whatsapp.net",
   "emoji": ""
 }
 ```
@@ -268,7 +268,7 @@ JSON com URL:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/imagem.jpg",
   "legenda": "Imagem enviada pela API"
 }
@@ -278,7 +278,7 @@ JSON com base64:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...",
   "legenda": "Imagem enviada em base64"
 }
@@ -290,7 +290,7 @@ cURL para importar no n8n:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/imagem" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/imagem.jpg","legenda":"Imagem enviada pela API"}'
+  -d '{"numero":"11999999999","arquivo_url":"https://exemplo.com/imagem.jpg","legenda":"Imagem enviada pela API"}'
 ```
 
 ### Figurinha
@@ -316,7 +316,7 @@ JSON para n8n:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:image/webp;base64,SEU_BASE64"
 }
 ```
@@ -327,7 +327,7 @@ cURL:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/figurinha" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/figurinha.webp"}'
+  -d '{"numero":"11999999999","arquivo_url":"https://exemplo.com/figurinha.webp"}'
 ```
 
 ### Audio
@@ -362,7 +362,7 @@ JSON com audio gravado base64:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:audio/ogg;base64,T2dnUwACAAAAAAAAA...",
   "ptt": true
 }
@@ -372,7 +372,7 @@ JSON com mp3 comum:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/audio.mp3",
   "mime_type": "audio/mpeg",
   "nome_arquivo": "audio.mp3"
@@ -385,7 +385,7 @@ cURL para importar no n8n:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/audio" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/audio.ogg","ptt":true}'
+  -d '{"numero":"11999999999","arquivo_url":"https://exemplo.com/audio.ogg","ptt":true}'
 ```
 
 ### Documento
@@ -412,7 +412,7 @@ JSON com URL:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/contrato.pdf",
   "nome_arquivo": "contrato.pdf",
   "legenda": "Segue o documento"
@@ -423,7 +423,7 @@ JSON com base64:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
   "nome_arquivo": "contrato.pdf",
   "legenda": "Segue o documento"
@@ -436,7 +436,7 @@ cURL para importar no n8n:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/documento" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/contrato.pdf","nome_arquivo":"contrato.pdf","legenda":"Segue o documento"}'
+  -d '{"numero":"11999999999","arquivo_url":"https://exemplo.com/contrato.pdf","nome_arquivo":"contrato.pdf","legenda":"Segue o documento"}'
 ```
 
 ### Chamadas de voz
@@ -461,7 +461,7 @@ JSON:
 
 ```json
 {
-  "numero": "6799440667"
+  "numero": "11999999999"
 }
 ```
 
@@ -471,7 +471,7 @@ cURL:
 curl -X POST "https://SEU_DOMINIO/api/v1/chamadas/iniciar" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667"}'
+  -d '{"numero":"11999999999"}'
 ```
 
 PowerShell:
@@ -480,7 +480,7 @@ PowerShell:
 curl.exe -X POST "http://localhost:8080/api/v1/chamadas/iniciar" `
   -H "Content-Type: application/json" `
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" `
-  -d '{"numero":"6799440667"}'
+  -d '{"numero":"11999999999"}'
 ```
 
 Se preferir usar aspas duplas no PowerShell, escape com crase:
@@ -489,7 +489,7 @@ Se preferir usar aspas duplas no PowerShell, escape com crase:
 curl.exe -X POST "http://localhost:8080/api/v1/chamadas/iniciar" `
   -H "Content-Type: application/json" `
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" `
-  -d "{`"numero`":`"6799440667`"}"
+  -d "{`"numero`":`"11999999999`"}"
 ```
 
 Resposta:
@@ -501,8 +501,8 @@ Resposta:
   "dados": {
     "instancia": "ID_DA_INSTANCIA",
     "chamada_id": "CALL_ID",
-    "peer_jid": "556799440667@s.whatsapp.net",
-    "numero": "556799440667",
+    "peer_jid": "5511999999999@s.whatsapp.net",
+    "numero": "5511999999999",
     "direcao": "outgoing",
     "estado": "ringing",
     "tipo": "audio"
@@ -583,8 +583,8 @@ Exemplo de payload de webhook de chamada:
   "dados": {
     "acao": "recebida",
     "chamada_id": "CALL_ID",
-    "peer_jid": "556799440667@s.whatsapp.net",
-    "numero": "556799440667",
+    "peer_jid": "5511999999999@s.whatsapp.net",
+    "numero": "5511999999999",
     "direcao": "incoming",
     "estado": "incoming_ringing",
     "tipo": "audio",
@@ -677,7 +677,7 @@ cURL:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/marcar-lida" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"6799440667","mensagem_id":"3EB06F9067F80BAB89FF","participante":"225408540778703:54@lid"}'
+  -d '{"numero":"11999999999","mensagem_id":"3EB06F9067F80BAB89FF","participante":"225400000000000:54@lid"}'
 ```
 
 ### Regra para numero, grupo e chat_jid
@@ -818,7 +818,7 @@ Gera um Pairing Code para novo pareamento por numero.
 
 ```json
 {
-  "numero": "556799440667"
+  "numero": "5511999999999"
 }
 ```
 
@@ -843,8 +843,8 @@ Consulta a foto/avatar de um contato ou grupo usando a instancia informada.
 
 Query params:
 
-- `numero`: numero do contato. Ex.: `556799440667`
-- `chat_jid`: JID direto do chat, quando disponivel. Ex.: `556799440667@s.whatsapp.net`
+- `numero`: numero do contato. Ex.: `5511999999999`
+- `chat_jid`: JID direto do chat, quando disponivel. Ex.: `5511999999999@s.whatsapp.net`
 - `grupo`: use `true` para consultar avatar de grupo pelo ID do grupo
 - `formato`: `json`, `base64` ou `arquivo`. Padrao: `json`
 
@@ -856,8 +856,8 @@ Resposta padrao (`formato=json`):
   "mensagem": "Avatar consultado com sucesso",
   "dados": {
     "instancia": "ID_DA_INSTANCIA",
-    "numero": "556799440667",
-    "chat_jid": "556799440667@s.whatsapp.net",
+    "numero": "5511999999999",
+    "chat_jid": "5511999999999@s.whatsapp.net",
     "grupo": false,
     "tem_avatar": true,
     "avatar_id": "abc123",
@@ -870,14 +870,14 @@ Resposta padrao (`formato=json`):
 Exemplo `curl` com URL:
 
 ```bash
-curl -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667" \
+curl -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=5511999999999" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
 Exemplo `curl` retornando base64:
 
 ```bash
-curl -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667&formato=base64" \
+curl -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=5511999999999&formato=base64" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
@@ -895,7 +895,7 @@ No formato `base64`, a resposta inclui:
 No formato `arquivo`, a API redireciona para a URL temporaria da foto no WhatsApp:
 
 ```bash
-curl -L -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667&formato=arquivo" \
+curl -L -X GET "https://SEU_DOMINIO/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=5511999999999&formato=arquivo" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   --output avatar.jpg
 ```
@@ -1176,8 +1176,8 @@ Exemplo:
     "mensagens_id": ["3EB06F9067F80BAB89FF"],
     "status": "lida",
     "tipo_recibo": "read",
-    "chat_jid": "556799440667@s.whatsapp.net",
-    "chat_numero": "556799440667",
+    "chat_jid": "5511999999999@s.whatsapp.net",
+    "chat_numero": "5511999999999",
     "grupo": false,
     "enviado_por_mim": false,
     "direcao": "entrada",
@@ -1233,7 +1233,7 @@ Use o ID do grupo em `numero` e envie `grupo: true`.
 ```json
 {
   "instancia": "id-da-instancia",
-  "numero": "120363409010682790",
+  "numero": "120363000000000000",
   "grupo": true,
   "mensagem": "Ola grupo"
 }
@@ -1247,7 +1247,7 @@ Use o ID do grupo em `numero` e envie `grupo: true`.
   "numero": "5511999999999",
   "mensagem": "Resposta pela API",
   "resposta_mensagem_id": "ID_DA_MSG_ORIGINAL",
-  "resposta_participante": "556799440667@lid",
+  "resposta_participante": "5511999999999@lid",
   "resposta_conteudo": "texto original"
 }
 ```
@@ -1256,12 +1256,12 @@ Formato legado compatível com WUZAPI:
 
 ```json
 {
-  "Phone": "5521971532700",
+  "Phone": "5511988887777",
   "Body": "How you doin",
   "Id": "ABCDABCD1234",
   "ContextInfo": {
     "StanzaId": "3EB06F9067F80BAB89FF",
-    "Participant": "5491155553935@s.whatsapp.net"
+    "Participant": "5511977776666@s.whatsapp.net"
   }
 }
 ```
@@ -1279,11 +1279,11 @@ Mapeamento:
 ```json
 {
   "instancia": "id-da-instancia",
-  "numero": "120363409010682790",
+  "numero": "120363000000000000",
   "grupo": true,
   "mensagem": "Resposta pela API",
   "resposta_mensagem_id": "ID_DA_MSG_ORIGINAL",
-  "resposta_participante": "225408540778703:54@lid",
+  "resposta_participante": "225400000000000:54@lid",
   "resposta_conteudo": "texto original"
 }
 ```
@@ -1345,7 +1345,7 @@ Exemplo para grupo:
 
 ```json
 {
-  "numero": "120363409010682790",
+  "numero": "120363000000000000",
   "grupo": true,
   "acao": "gravando_audio"
 }
@@ -1413,10 +1413,10 @@ Exemplo grupo:
 
 ```json
 {
-  "chat_jid": "120363409010682790@g.us",
+  "chat_jid": "120363000000000000@g.us",
   "grupo": true,
   "mensagem_id": "3EB06F9067F80BAB89FF",
-  "participante": "225408540778703:54@lid"
+  "participante": "225400000000000:54@lid"
 }
 ```
 
@@ -1750,9 +1750,9 @@ Exemplo (sem valor definido):
 ```json
 {
   "numero": "5511999999999",
-  "chave_pix": "67999998888",
+  "chave_pix": "11999998888",
   "tipo_chave": "telefone",
-  "nome_beneficiario": "Aliff Stefano"
+  "nome_beneficiario": "Nome do Beneficiario"
 }
 ```
 
@@ -1775,7 +1775,7 @@ Exemplo curl:
 curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/cobranca-pix" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
-  -d '{"numero":"5511999999999","chave_pix":"67999998888","tipo_chave":"telefone","nome_beneficiario":"Aliff Stefano"}'
+  -d '{"numero":"5511999999999","chave_pix":"11999998888","tipo_chave":"telefone","nome_beneficiario":"Nome do Beneficiario"}'
 ```
 
 ### `POST /api/v1/batepapo/enviar/localizacao`

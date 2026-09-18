@@ -324,7 +324,7 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/EnvioTextoRequest" },
               "example": {
-                "numero": "6799440667",
+                "numero": "11999999999",
                 "mensagem": "Ola, tudo bem?",
                 "delay": 3
               }
@@ -362,7 +362,7 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
               "example": {
-                "numero": "6799440667",
+                "numero": "11999999999",
                 "arquivo_url": "https://exemplo.com/imagem.jpg",
                 "legenda": "Imagem enviada pela API"
               }
@@ -388,7 +388,7 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
               "example": {
-                "numero": "6799440667",
+                "numero": "11999999999",
                 "arquivo_url": "https://exemplo.com/audio.ogg",
                 "ptt": true
               }
@@ -414,7 +414,7 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/EnvioMidiaRequest" },
               "example": {
-                "numero": "6799440667",
+                "numero": "11999999999",
                 "arquivo_url": "https://exemplo.com/contrato.pdf",
                 "nome_arquivo": "contrato.pdf",
                 "legenda": "Segue o documento"

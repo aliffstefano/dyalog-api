@@ -267,10 +267,10 @@ Campos comuns em `dados`:
   "direcao": "entrada",
   "enviado_por_mim": false,
   "grupo": false,
-  "chat_jid": "556799440667@s.whatsapp.net",
-  "chat_numero": "556799440667",
-  "remetente_jid": "556799440667:54@s.whatsapp.net",
-  "remetente_numero": "556799440667",
+  "chat_jid": "5511999999999@s.whatsapp.net",
+  "chat_numero": "5511999999999",
+  "remetente_jid": "5511999999999:54@s.whatsapp.net",
+  "remetente_numero": "5511999999999",
   "nome_remetente": "Contato",
   "recebida_em": "2026-06-26T10:00:00Z",
   "historico": false,
@@ -306,10 +306,10 @@ Campos esperados:
 {
   "mensagem_id": "3EB0...",
   "status": "lida",
-  "chat_jid": "556799440667@s.whatsapp.net",
-  "chat_numero": "556799440667",
-  "remetente_jid": "556799440667@s.whatsapp.net",
-  "remetente_numero": "556799440667",
+  "chat_jid": "5511999999999@s.whatsapp.net",
+  "chat_numero": "5511999999999",
+  "remetente_jid": "5511999999999@s.whatsapp.net",
+  "remetente_numero": "5511999999999",
   "grupo": false
 }
 ```
@@ -333,11 +333,11 @@ Campos esperados:
   "acao": "recebida",
   "id": "CALL_ID",
   "chamada_id": "CALL_ID",
-  "peer_jid": "556799440667@s.whatsapp.net",
-  "peer_numero": "556799440667",
-  "numero": "556799440667",
-  "caller_pn": "556799440667",
-  "call_creator": "556799440667@s.whatsapp.net",
+  "peer_jid": "5511999999999@s.whatsapp.net",
+  "peer_numero": "5511999999999",
+  "numero": "5511999999999",
+  "caller_pn": "5511999999999",
+  "call_creator": "5511999999999@s.whatsapp.net",
   "direcao": "incoming",
   "estado": "incoming_ringing",
   "tipo": "audio",
@@ -364,7 +364,7 @@ Regras:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem": "Resposta pela API",
   "delay": 3
 }
@@ -374,10 +374,10 @@ Resposta citando mensagem:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem": "Resposta pela API",
   "resposta_mensagem_id": "3EB0...",
-  "resposta_participante": "556799440667:54@s.whatsapp.net",
+  "resposta_participante": "5511999999999:54@s.whatsapp.net",
   "resposta_conteudo": "Mensagem original"
 }
 ```
@@ -386,7 +386,7 @@ Grupo:
 
 ```json
 {
-  "numero": "120363409010682790",
+  "numero": "120363000000000000",
   "grupo": true,
   "mensagem": "Mensagem no grupo"
 }
@@ -396,7 +396,7 @@ Grupo:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/imagem.jpg",
   "legenda": "Legenda"
 }
@@ -406,7 +406,7 @@ Base64:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:image/png;base64,iVBORw0KGgo...",
   "legenda": "Imagem por base64"
 }
@@ -416,7 +416,7 @@ Base64:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/arquivo.pdf",
   "nome_arquivo": "contrato.pdf",
   "mime_type": "application/pdf"
@@ -429,7 +429,7 @@ Audio comum:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_url": "https://exemplo.com/audio.mp3",
   "mime_type": "audio/mpeg"
 }
@@ -439,7 +439,7 @@ Audio como gravado/PTT:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "arquivo_base64": "data:audio/ogg;base64,T2dnUwAC...",
   "mime_type": "audio/ogg; codecs=opus",
   "ptt": true
@@ -457,7 +457,7 @@ Digitando:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "acao": "digitando",
   "delay": 3
 }
@@ -467,7 +467,7 @@ Gravando audio:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "acao": "gravando_audio",
   "delay": 3
 }
@@ -477,7 +477,7 @@ Pausado:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "acao": "pausado"
 }
 ```
@@ -486,7 +486,7 @@ Compatibilidade:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "type": "unavailable"
 }
 ```
@@ -495,9 +495,9 @@ Compatibilidade:
 
 ```json
 {
-  "numero": "6799440667",
+  "numero": "11999999999",
   "mensagem_id": "3EB0...",
-  "participante": "556799440667:54@s.whatsapp.net"
+  "participante": "5511999999999:54@s.whatsapp.net"
 }
 ```
 
@@ -505,9 +505,9 @@ Compatibilidade:
 
 ```json
 {
-  "Phone": "6799440667",
+  "Phone": "11999999999",
   "Id": "3EB0...",
-  "Participant": "556799440667:54@s.whatsapp.net"
+  "Participant": "5511999999999:54@s.whatsapp.net"
 }
 ```
 
@@ -537,7 +537,7 @@ Outros campos:
 
 ### Fluxo de chamada de saida
 
-1. `POST /api/v1/chamadas/iniciar` com `{"numero":"6799440667"}` ou `{"chat_jid":"...@s.whatsapp.net"}`.
+1. `POST /api/v1/chamadas/iniciar` com `{"numero":"11999999999"}` ou `{"chat_jid":"...@s.whatsapp.net"}`.
    Campo opcional `video: true`. A resposta traz `chamada_id` e `estado: ringing`.
 2. A aplicacao cria uma `RTCPeerConnection` com uma track de audio e gera o offer.
 3. `POST /api/v1/chamadas/{chamadaId}/webrtc` com `{"sdp_offer":"v=0..."}`.
