@@ -11,7 +11,7 @@ func TestMontarMensagemCobrancaPixSemValorReplicaFormatoReal(t *testing.T) {
 	req := models.EnvioCobrancaPixRequest{
 		ChavePix:         "67999440667",
 		TipoChave:        "telefone",
-		NomeBeneficiario: "Aliff Stefano",
+		NomeBeneficiario: "Nome do Beneficiario",
 	}
 
 	msg, err := montarMensagemCobrancaPix(req)
@@ -68,8 +68,8 @@ func TestMontarMensagemCobrancaPixSemValorReplicaFormatoReal(t *testing.T) {
 	if pix["key_type"] != "PHONE" {
 		t.Fatalf("key_type = %v, esperado PHONE", pix["key_type"])
 	}
-	if pix["merchant_name"] != "Aliff Stefano" {
-		t.Fatalf("merchant_name = %v, esperado Aliff Stefano", pix["merchant_name"])
+	if pix["merchant_name"] != "Nome do Beneficiario" {
+		t.Fatalf("merchant_name = %v, esperado Nome do Beneficiario", pix["merchant_name"])
 	}
 
 	order := params["order"].(map[string]interface{})
