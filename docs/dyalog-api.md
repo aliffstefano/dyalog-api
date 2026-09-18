@@ -1,8 +1,8 @@
 ---
 id: dyalog-api-go
 loadWhen: cfg.channels.dyalog_api?.enabled || cfg.channels.whatsapp_dyalog?.enabled
-tokensEstimate: 3500
-verifiedAt: 2026-06-26
+tokensEstimate: 5200
+verifiedAt: 2026-09-16
 ---
 
 # Dyalog API GO - Runbook operacional
@@ -12,7 +12,7 @@ Use este documento como referencia rapida para agentes, automacoes e integracoes
 
 ## Quando carregar
 
-Carregue este contexto quando o sistema mencionar Dyalog API, WhatsApp via whatsmeow, webhooks Dyalog, n8n, envio de mensagens, midias, instancias, QR code, pairing code, recibos ou presenca.
+Carregue este contexto quando o sistema mencionar Dyalog API, WhatsApp via whatsmeow, webhooks Dyalog, n8n, envio de mensagens, midias, instancias, QR code, pairing code, recibos, presenca ou chamadas de voz (VoIP/WebRTC).
 
 ## O que este runbook garante
 
@@ -22,6 +22,7 @@ Carregue este contexto quando o sistema mencionar Dyalog API, WhatsApp via whats
 - Separar token master de token de instancia.
 - Tratar webhook como canal de entrada de eventos, nao como retorno de API.
 - Lembrar que atualizacao de `whatsmeow` exige rebuild e novo deploy.
+- Tratar chamadas como estado em memoria: sem WebRTC negociado nao ha audio.
 - Evitar prometer hot reload, envio garantido de botoes interativos ou historico ilimitado.
 
 ## Arquitetura resumida
@@ -144,6 +145,33 @@ https://apilocal.dyalog.com.br/api/v1
 | POST | `/api/v1/user/presence` | Compatibilidade para presenca |
 | POST | `/api/v1/batepapo/marcar-lida` | Marca mensagem como lida |
 
+### Chamadas (VoIP)
+
+Rotas canonicas (a instancia vem do `X-Access-Token`):
+
+| Metodo | Rota | Uso |
+| --- | --- | --- |
+| POST | `/api/v1/chamadas/iniciar` | Inicia chamada para `numero` ou `chat_jid` |
+| POST | `/api/v1/chamadas/{chamadaId}/webrtc` | Negocia audio: envia `sdp_offer`, recebe `sdp_answer` |
+| POST | `/api/v1/chamadas/{chamadaId}/aceitar` | Aceita chamada recebida |
+| POST | `/api/v1/chamadas/{chamadaId}/rejeitar` | Rejeita chamada recebida |
+| DELETE | `/api/v1/chamadas/{chamadaId}` | Encerra chamada em andamento |
+
+Rotas equivalentes com instancia explicita na URL (aceitam token master):
+
+| Metodo | Rota | Uso |
+| --- | --- | --- |
+| GET | `/api/v1/instancias/{id}/chamadas` | Lista chamadas ativas da instancia |
+| POST | `/api/v1/instancias/{id}/chamadas/{chamadaId}/webrtc` | Negocia audio da chamada |
+| POST | `/api/v1/instancias/{id}/chamadas/{chamadaId}/aceitar` | Aceita chamada recebida |
+| POST | `/api/v1/instancias/{id}/chamadas/{chamadaId}/rejeitar` | Rejeita chamada recebida |
+| DELETE | `/api/v1/instancias/{id}/chamadas/{chamadaId}` | Encerra chamada em andamento |
+
+As duas formas caem nos mesmos handlers. Use a forma com `/instancias/{id}` quando o
+chamador usa token master ou controla varias instancias; use a forma curta quando o
+token ja identifica a instancia. Nao existe `POST /api/v1/instancias/{id}/chamadas/iniciar`:
+para iniciar, use `/api/v1/chamadas/iniciar` com o campo `instancia` no corpo.
+
 ## Estados de instancia
 
 Estados conhecidos:
@@ -163,7 +191,35 @@ Observacoes:
 - `aguardando_qrcode` deve exibir `/qrcode/imagem`.
 - `aguardando_codigo` deve exibir o pairing code.
 - Ao reiniciar a API, instancias com sessao valida devem autenticar novamente sem novo QR.
+- Instancias com sessao valida que caem durante a execucao voltam sozinhas; veja Reconexao automatica.
 - Para forcar novo QR, desconectar removendo a sessao/dispositivo e conectar de novo.
+
+## Reconexao automatica
+
+A API reconecta sozinha as instancias que caem, desde que a sessao ainda seja valida.
+Duas camadas cobrem isso:
+
+1. O auto-reconnect do proprio whatsmeow, que trata a maior parte das quedas de rede.
+2. Um supervisor da API que roda a cada `INSTANCE_RECONNECT_INTERVAL_SECONDS` e pega os
+   casos em que o whatsmeow desiste: sessao assumida por outra conexao (`stream replaced`),
+   falha de conexao nao reconhecida e erro de stream. Nesses casos a instancia ficava
+   parada ate alguem clicar em conectar, e nesse meio tempo nenhuma mensagem chegava.
+
+O supervisor so reconecta instancia que tem dispositivo salvo no store, ou seja, que volta
+sem pedir QR code.
+
+Nunca sao reconectadas sozinhas:
+
+- `aguardando_qrcode` e `aguardando_codigo`: dependem de alguem ler o QR ou digitar o codigo.
+- `nao_inicializada`: sem dispositivo salvo. Cai aqui quem foi desconectado manualmente pela
+  API ou deslogado pelo celular (`events.LoggedOut`), inclusive quando o WhatsApp exige login novo.
+- instancia em banimento temporario, ate o prazo informado pelo WhatsApp expirar.
+- instancia com cliente desatualizado (erro 405), por 1 hora. O que resolve e atualizar o whatsmeow.
+- instancia cujo status salvo no banco e `nao_inicializada`, `aguardando_qrcode` ou `aguardando_codigo`.
+- instancia que pertence a outra replica: quem reconecta e o container dono.
+
+O status salvo no banco tem a palavra final. Desconectar pela API faz logout, apaga o
+dispositivo e marca `nao_inicializada`, entao a instancia nao volta sozinha.
 
 ## Webhooks
 
@@ -175,6 +231,7 @@ status
 digitando
 gravando_audio
 recibos
+chamadas
 ```
 
 Regras importantes:
@@ -256,6 +313,50 @@ Campos esperados:
   "grupo": false
 }
 ```
+
+### Evento chamadas
+
+Disparado quando a instancia esta inscrita no evento `chamadas`.
+
+Acoes possiveis em `dados.acao`:
+
+```text
+recebida
+estado
+encerrada
+```
+
+Campos esperados:
+
+```json
+{
+  "acao": "recebida",
+  "id": "CALL_ID",
+  "chamada_id": "CALL_ID",
+  "peer_jid": "556799440667@s.whatsapp.net",
+  "peer_numero": "556799440667",
+  "numero": "556799440667",
+  "caller_pn": "556799440667",
+  "call_creator": "556799440667@s.whatsapp.net",
+  "direcao": "incoming",
+  "estado": "incoming_ringing",
+  "tipo": "audio",
+  "criada_em": "2026-06-26T10:00:00Z",
+  "api": {
+    "aceitar": "/api/v1/chamadas/CALL_ID/aceitar",
+    "rejeitar": "/api/v1/chamadas/CALL_ID/rejeitar",
+    "encerrar": "/api/v1/chamadas/CALL_ID",
+    "webrtc": "/api/v1/chamadas/CALL_ID/webrtc"
+  }
+}
+```
+
+Regras:
+
+- `api` traz caminhos relativos ja com o `chamada_id` preenchido; prefixe com `API_BASE_URL`.
+- `id` e `chamada_id` sao o mesmo valor, mantidos por compatibilidade.
+- `numero` vem de `caller_pn` quando disponivel; senao e derivado do `peer_jid`.
+- Nenhum audio trafega no webhook; ele so avisa. O audio exige negociar WebRTC.
 
 ## Payloads de envio
 
@@ -410,6 +511,93 @@ Compatibilidade:
 }
 ```
 
+## Chamadas (VoIP)
+
+Chamadas de audio WhatsApp sao suportadas de ponta a ponta: sinalizacao via whatsmeow e
+audio via WebRTC entre a API e a aplicacao (CRM/navegador).
+
+### Estados da chamada
+
+```text
+initiating
+ringing
+incoming_ringing
+connecting
+active
+on_hold
+ended
+```
+
+Outros campos:
+
+- `direcao`: `outgoing` ou `incoming`.
+- `tipo`: `audio` ou `video`.
+- motivos de encerramento internos: `user_ended`, `declined`, `timeout`, `busy`,
+  `cancelled`, `failed`, `do_not_disturb`, `unknown`.
+
+### Fluxo de chamada de saida
+
+1. `POST /api/v1/chamadas/iniciar` com `{"numero":"6799440667"}` ou `{"chat_jid":"...@s.whatsapp.net"}`.
+   Campo opcional `video: true`. A resposta traz `chamada_id` e `estado: ringing`.
+2. A aplicacao cria uma `RTCPeerConnection` com uma track de audio e gera o offer.
+3. `POST /api/v1/chamadas/{chamadaId}/webrtc` com `{"sdp_offer":"v=0..."}`.
+   A resposta traz `sdp_answer`, que a aplicacao aplica como remote description.
+4. Quando o outro lado atende, o webhook envia `acao: estado` com `estado: active`.
+5. `DELETE /api/v1/chamadas/{chamadaId}` encerra.
+
+### Fluxo de chamada recebida
+
+1. Webhook `chamadas` chega com `acao: recebida` e `estado: incoming_ringing`.
+2. A aplicacao chama `api.aceitar` (ou `api.rejeitar`).
+3. A aplicacao negocia o audio em `api.webrtc`, igual ao passo 3 do fluxo de saida.
+4. `api.encerrar` (DELETE) finaliza.
+
+Chamadas recebidas nao sao atendidas sozinhas: sem chamar `aceitar`, a chamada toca ate expirar.
+
+### Audio
+
+Resposta de `/webrtc`:
+
+```json
+{
+  "instancia": "ID_DA_INSTANCIA",
+  "id": "CALL_ID",
+  "chamada_id": "CALL_ID",
+  "sdp_answer": "v=0...",
+  "transporte": "media_track",
+  "audio_envio": "opus_track_browser_para_api",
+  "audio_retorno": "pcmu_track_api_para_browser"
+}
+```
+
+- Modo recomendado: `MediaStreamTrack` padrao do navegador.
+- Aplicacao para API: track Opus.
+- API para aplicacao: track PCMU.
+- Fallback legado: DataChannel WebRTC chamado `pcm`, PCM mono 16 kHz, Int16 little-endian, nos dois sentidos.
+
+### Rejeicao automatica
+
+Em `PUT /api/v1/instancias/{id}/avancado`:
+
+- `rejeitar_chamadas`: padrao `false`; quando `true`, toda chamada recebida e rejeitada automaticamente.
+- `mensagem_rejeitar_chamadas`: opcional; enviada ao contato apos a rejeicao.
+
+Com `rejeitar_chamadas` ligado nao existe chamada ativa para aceitar, e o webhook
+`chamadas` nao recebe `acao: recebida` para essas chamadas.
+
+### Limites e falhas conhecidas
+
+- A instancia precisa estar conectada e logada; senao a resposta e `instancia nao conectada`.
+- `chamada_id` so existe enquanto a chamada esta ativa em memoria; apos encerrar,
+  qualquer acao retorna `chamada nao encontrada` com a lista de ids ativos no erro.
+- Chamadas sao estado em memoria do container dono da instancia. Em multi-container o
+  middleware de proxy encaminha a requisicao para a replica dona (pelo `:id` da URL, pelo
+  campo `instancia` do corpo ou pelo token), entao as rotas de chamada funcionam em
+  qualquer replica; a midia WebRTC, porem, e negociada com a replica dona, que precisa
+  estar alcancavel pela aplicacao.
+- Reiniciar a API derruba as chamadas ativas.
+- `video: true` e aceito na sinalizacao, mas a ponte de midia trata audio.
+
 ## Regras para n8n
 
 Configuracao recomendada do node HTTP Request:
@@ -457,6 +645,49 @@ Expressao segura em campo proprio do n8n:
 | Status/newsletter chegando como mensagem | Build antigo ou filtro faltando | Atualizar imagem e validar filtro |
 | `database is locked` | Processo duplicado/SQLite concorrente | Parar duplicado ou usar Postgres |
 | Aparece "Outro dispositivo" | Tipo/nome do device ja pareado | Ajustar env e parear de novo |
+
+## Recuperacao de janela offline
+
+`WEBHOOK_RECOVERY_ENABLED=true` cobre duas falhas:
+
+- API desligada: detectada pelo heartbeat persistente `sistema_runtime`.
+- Internet/WhatsApp fora com API ligada: detectada por `Disconnected` ou timeout de keepalive do whatsmeow.
+
+Ao voltar, a API registra uma janela com `WEBHOOK_RECOVERY_MARGIN_SECONDS` antes/depois. A recuperacao e on-demand: a proxima mensagem de cada chat vira ancora para solicitar `WEBHOOK_RECOVERY_HISTORY_COUNT` mensagens daquele chat via `HistorySync`, e a API filtra somente o periodo da janela.
+
+## Store WhatsApp em Postgres
+
+Por padrao, o store interno do whatsmeow usa SQLite por instancia em `SESSION_STORAGE_DIR/<instancia>/whatsmeow.db`.
+
+Para centralizar esse store no Postgres:
+
+```env
+WHATSAPP_STORE_DRIVER=postgres
+```
+
+Se `WHATSAPP_STORE_DSN` estiver vazio, a API reutiliza o Postgres da aplicacao (`DATABASE_DSN` ou `DB_*`). O vinculo entre instancia e device fica em `whatsapp_devices`, evitando que uma instancia carregue o device de outra em um store compartilhado.
+
+## Multi-container
+
+Multi-container e seguro quando o Postgres esta ativo e o ownership por instancia esta habilitado. A API usa a tabela `instancia_runtime_locks` para garantir que uma instancia WhatsApp tenha somente um container dono por vez.
+
+Variaveis:
+
+- `RUNTIME_NODE_ID`: identificador unico do container. Se vazio, usa hostname.
+- `RUNTIME_LOCK_TTL_SECONDS`: tempo para failover quando o dono para de renovar. Padrao `90`.
+- `RUNTIME_HEARTBEAT_INTERVAL_SECONDS`: intervalo de renovacao. Deve ser menor que o TTL.
+- `INSTANCE_RECONNECT_INTERVAL_SECONDS`: intervalo da reconexao automatica de instancias. Padrao `30`.
+
+Comportamento:
+
+- so o dono conecta o WebSocket da instancia
+- se o dono cair, outro container pode assumir apos o TTL
+- entregas de webhook usam claim atomico para evitar duplicidade
+- se uma chamada de envio cair em uma replica que nao e dona da instancia, a API retorna `409 instancia_em_outro_container`
+
+Para escala horizontal completa, adicione roteamento interno para encaminhar comandos WhatsApp ao container dono. Sem isso, multiplas replicas aumentam disponibilidade/failover e capacidade HTTP geral, mas nao garantem que todo request de envio caia no owner correto.
+
+Ao trocar de SQLite para Postgres, sessoes antigas em `whatsmeow.db` nao sao migradas automaticamente; as instancias precisam ser pareadas novamente ou migradas por rotina propria.
 
 ## Atualizacao do whatsmeow
 

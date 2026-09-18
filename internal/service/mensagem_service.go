@@ -35,6 +35,54 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 	return s.gerenciador.EnviarTexto(ctx, req)
 }
 
+func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
+	req = normalizarEditarTextoCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.Mensagem) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
+	}
+	return s.gerenciador.EditarTexto(ctx, req)
+}
+
+func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
+	req = normalizarApagarMensagemCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
+	}
+	return s.gerenciador.ApagarMensagem(ctx, req)
+}
+
+func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
+	req = normalizarReagirMensagemCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
+	}
+	if req.Grupo && strings.TrimSpace(req.RemetenteJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe remetente_jid ou participante para reagir mensagem de grupo", ErrEntradaInvalida)
+	}
+	return s.gerenciador.ReagirMensagem(ctx, req)
+}
+
 func normalizarTextoCompat(req models.EnvioTextoRequest) models.EnvioTextoRequest {
 	if strings.TrimSpace(req.Numero) == "" {
 		req.Numero = strings.TrimSpace(req.Phone)
@@ -52,6 +100,54 @@ func normalizarTextoCompat(req models.EnvioTextoRequest) models.EnvioTextoReques
 		if strings.TrimSpace(req.RespostaParticipante) == "" {
 			req.RespostaParticipante = strings.TrimSpace(req.ContextInfo.Participant)
 		}
+	}
+	return req
+}
+
+func normalizarEditarTextoCompat(req models.EditarTextoRequest) models.EditarTextoRequest {
+	if strings.TrimSpace(req.Numero) == "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.Mensagem) == "" {
+		req.Mensagem = strings.TrimSpace(req.Body)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	return req
+}
+
+func normalizarReagirMensagemCompat(req models.ReagirMensagemRequest) models.ReagirMensagemRequest {
+	if strings.TrimSpace(req.Numero) == "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if strings.TrimSpace(req.Emoji) == "" && strings.TrimSpace(req.Reaction) != "" {
+		req.Emoji = strings.TrimSpace(req.Reaction)
+	}
+	if strings.TrimSpace(req.RemetenteJID) == "" {
+		req.RemetenteJID = strings.TrimSpace(req.Participante)
+	}
+	if strings.TrimSpace(req.RemetenteJID) == "" {
+		req.RemetenteJID = strings.TrimSpace(req.Participant)
+	}
+	return req
+}
+
+func normalizarApagarMensagemCompat(req models.ApagarMensagemRequest) models.ApagarMensagemRequest {
+	if strings.TrimSpace(req.Numero) == "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if strings.TrimSpace(req.RemetenteJID) == "" {
+		req.RemetenteJID = strings.TrimSpace(req.Participante)
+	}
+	if strings.TrimSpace(req.RemetenteJID) == "" {
+		req.RemetenteJID = strings.TrimSpace(req.Participant)
 	}
 	return req
 }
@@ -201,6 +297,113 @@ func (s *MensagemService) MarcarLida(ctx context.Context, req models.MarcarLidaR
 	return s.gerenciador.MarcarLida(ctx, req)
 }
 
+func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.EnvioLocalizacaoRequest) (models.ResultadoEnvio, error) {
+	req = normalizarLocalizacaoCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if req.Latitude < -90 || req.Latitude > 90 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: latitude deve estar entre -90 e 90", ErrEntradaInvalida)
+	}
+	if req.Longitude < -180 || req.Longitude > 180 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: longitude deve estar entre -180 e 180", ErrEntradaInvalida)
+	}
+	if req.Latitude == 0 && req.Longitude == 0 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe latitude e longitude", ErrEntradaInvalida)
+	}
+	return s.gerenciador.EnviarLocalizacao(ctx, req)
+}
+
+func normalizarLocalizacaoCompat(req models.EnvioLocalizacaoRequest) models.EnvioLocalizacaoRequest {
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.Phone) != "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if req.Latitude == 0 && req.LatitudeCompat != 0 {
+		req.Latitude = req.LatitudeCompat
+	}
+	if req.Longitude == 0 && req.LongitudeCompat != 0 {
+		req.Longitude = req.LongitudeCompat
+	}
+	if strings.TrimSpace(req.Nome) == "" && strings.TrimSpace(req.Name) != "" {
+		req.Nome = strings.TrimSpace(req.Name)
+	}
+	if strings.TrimSpace(req.Endereco) == "" && strings.TrimSpace(req.Address) != "" {
+		req.Endereco = strings.TrimSpace(req.Address)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" && strings.TrimSpace(req.ID) != "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if req.ContextInfo != nil {
+		if strings.TrimSpace(req.RespostaMensagemID) == "" {
+			req.RespostaMensagemID = strings.TrimSpace(req.ContextInfo.StanzaID)
+		}
+		if strings.TrimSpace(req.RespostaParticipante) == "" {
+			req.RespostaParticipante = strings.TrimSpace(req.ContextInfo.Participant)
+		}
+	}
+	return req
+}
+
+func (s *MensagemService) EnviarContato(ctx context.Context, req models.EnvioContatoRequest) (models.ResultadoEnvio, error) {
+	req = normalizarContatoCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if len(req.Contatos) == 0 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe nome e telefone (ou vcard), ou a lista contatos", ErrEntradaInvalida)
+	}
+	for i, contato := range req.Contatos {
+		if strings.TrimSpace(contato.VCard) != "" {
+			continue
+		}
+		if strings.TrimSpace(contato.Nome) == "" || strings.TrimSpace(contato.Telefone) == "" {
+			return models.ResultadoEnvio{}, fmt.Errorf("%w: contato %d precisa de nome e telefone, ou vcard", ErrEntradaInvalida, i+1)
+		}
+	}
+	return s.gerenciador.EnviarContato(ctx, req)
+}
+
+func normalizarContatoCompat(req models.EnvioContatoRequest) models.EnvioContatoRequest {
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.Phone) != "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.Nome) == "" && strings.TrimSpace(req.Name) != "" {
+		req.Nome = strings.TrimSpace(req.Name)
+	}
+	if strings.TrimSpace(req.VCard) == "" && strings.TrimSpace(req.Vcard) != "" {
+		req.VCard = strings.TrimSpace(req.Vcard)
+	}
+	if len(req.Contatos) == 0 && len(req.Contacts) > 0 {
+		req.Contatos = req.Contacts
+	}
+	if len(req.Contatos) == 0 && (strings.TrimSpace(req.Nome) != "" || strings.TrimSpace(req.VCard) != "") {
+		req.Contatos = []models.ContatoEnvioRequest{{
+			Nome:        req.Nome,
+			Telefone:    req.Telefone,
+			Organizacao: req.Organizacao,
+			VCard:       req.VCard,
+		}}
+	}
+	if strings.TrimSpace(req.MensagemID) == "" && strings.TrimSpace(req.ID) != "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if req.ContextInfo != nil {
+		if strings.TrimSpace(req.RespostaMensagemID) == "" {
+			req.RespostaMensagemID = strings.TrimSpace(req.ContextInfo.StanzaID)
+		}
+		if strings.TrimSpace(req.RespostaParticipante) == "" {
+			req.RespostaParticipante = strings.TrimSpace(req.ContextInfo.Participant)
+		}
+	}
+	return req
+}
+
 func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBotoesRequest) (models.ResultadoEnvio, error) {
 	req = normalizarBotoesCompat(req)
 	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
@@ -287,11 +490,135 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista deve ter entre 1 e 10 linhas no total", ErrEntradaInvalida)
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
-	case "", "lista", "list", "texto", "text", "fallback_texto":
+	case "", "auto", "native_flow", "single_select", "nativeflow", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto":
 	default:
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser lista, texto ou auto", ErrEntradaInvalida)
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
 	}
 	return s.gerenciador.EnviarLista(ctx, req)
+}
+
+var tiposChavePixValidos = map[string]string{
+	"telefone":  "PHONE",
+	"phone":     "PHONE",
+	"email":     "EMAIL",
+	"e-mail":    "EMAIL",
+	"cpf":       "CPF",
+	"cnpj":      "CNPJ",
+	"aleatoria": "EVP",
+	"aleatória": "EVP",
+	"evp":       "EVP",
+	"random":    "EVP",
+}
+
+func normalizarTipoChavePix(tipo string) (string, error) {
+	chave := strings.ToLower(strings.TrimSpace(tipo))
+	if valor, ok := tiposChavePixValidos[chave]; ok {
+		return valor, nil
+	}
+	return "", fmt.Errorf("%w: tipo_chave deve ser telefone, email, cpf, cnpj ou aleatoria", ErrEntradaInvalida)
+}
+
+func (s *MensagemService) EnviarCobrancaPix(ctx context.Context, req models.EnvioCobrancaPixRequest) (models.ResultadoEnvio, error) {
+	req = normalizarCobrancaPixCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.ChavePix) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe chave_pix", ErrEntradaInvalida)
+	}
+	if _, err := normalizarTipoChavePix(req.TipoChave); err != nil {
+		return models.ResultadoEnvio{}, err
+	}
+	if strings.TrimSpace(req.NomeBeneficiario) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe nome_beneficiario", ErrEntradaInvalida)
+	}
+	if req.Valor < 0 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: valor nao pode ser negativo", ErrEntradaInvalida)
+	}
+	return s.gerenciador.EnviarCobrancaPix(ctx, req)
+}
+
+func normalizarCobrancaPixCompat(req models.EnvioCobrancaPixRequest) models.EnvioCobrancaPixRequest {
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.Phone) != "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.MensagemID) == "" && strings.TrimSpace(req.ID) != "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if req.ContextInfo != nil {
+		if strings.TrimSpace(req.RespostaMensagemID) == "" {
+			req.RespostaMensagemID = strings.TrimSpace(req.ContextInfo.StanzaID)
+		}
+		if strings.TrimSpace(req.RespostaParticipante) == "" {
+			req.RespostaParticipante = strings.TrimSpace(req.ContextInfo.Participant)
+		}
+	}
+	return req
+}
+
+func (s *MensagemService) EnviarEnquete(ctx context.Context, req models.EnvioEnqueteRequest) (models.ResultadoEnvio, error) {
+	req = normalizarEnqueteCompat(req)
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	if strings.TrimSpace(req.Nome) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe nome ou pergunta", ErrEntradaInvalida)
+	}
+	if len(req.Opcoes) < 2 || len(req.Opcoes) > 12 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe de 2 a 12 opcoes", ErrEntradaInvalida)
+	}
+	vistos := make(map[string]bool, len(req.Opcoes))
+	for _, opcao := range req.Opcoes {
+		texto := strings.TrimSpace(opcao)
+		if texto == "" {
+			return models.ResultadoEnvio{}, fmt.Errorf("%w: cada opcao precisa de texto", ErrEntradaInvalida)
+		}
+		chave := strings.ToLower(texto)
+		if vistos[chave] {
+			return models.ResultadoEnvio{}, fmt.Errorf("%w: as opcoes da enquete devem ser unicas", ErrEntradaInvalida)
+		}
+		vistos[chave] = true
+	}
+	if req.OpcoesSelecionaveis < 0 || req.OpcoesSelecionaveis > len(req.Opcoes) {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: opcoes_selecionaveis deve estar entre 1 e a quantidade de opcoes", ErrEntradaInvalida)
+	}
+	return s.gerenciador.EnviarEnquete(ctx, req)
+}
+
+func normalizarEnqueteCompat(req models.EnvioEnqueteRequest) models.EnvioEnqueteRequest {
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.Phone) != "" {
+		req.Numero = strings.TrimSpace(req.Phone)
+	}
+	if strings.TrimSpace(req.Nome) == "" && strings.TrimSpace(req.Pergunta) != "" {
+		req.Nome = strings.TrimSpace(req.Pergunta)
+	}
+	if strings.TrimSpace(req.Nome) == "" && strings.TrimSpace(req.Name) != "" {
+		req.Nome = strings.TrimSpace(req.Name)
+	}
+	if len(req.Opcoes) == 0 && len(req.Options) > 0 {
+		req.Opcoes = req.Options
+	}
+	if strings.TrimSpace(req.MensagemID) == "" && strings.TrimSpace(req.ID) != "" {
+		req.MensagemID = strings.TrimSpace(req.ID)
+	}
+	if req.ContextInfo != nil {
+		if strings.TrimSpace(req.RespostaMensagemID) == "" {
+			req.RespostaMensagemID = strings.TrimSpace(req.ContextInfo.StanzaID)
+		}
+		if strings.TrimSpace(req.RespostaParticipante) == "" {
+			req.RespostaParticipante = strings.TrimSpace(req.ContextInfo.Participant)
+		}
+	}
+	if req.OpcoesSelecionaveis == 0 && !req.SelecaoMultipla {
+		req.OpcoesSelecionaveis = 1
+	}
+	return req
 }
 
 func normalizarBotoesCompat(req models.EnvioBotoesRequest) models.EnvioBotoesRequest {
@@ -479,6 +806,10 @@ func (s *MensagemService) EnviarAudio(ctx context.Context, req models.EnvioMidia
 
 func (s *MensagemService) EnviarDocumento(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
 	return s.enviarMidia(ctx, req, s.gerenciador.EnviarDocumento)
+}
+
+func (s *MensagemService) EnviarFigurinha(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
+	return s.enviarMidia(ctx, req, s.gerenciador.EnviarFigurinha)
 }
 
 func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidiaRequest, fn func(context.Context, models.EnvioMidiaRequest) (models.ResultadoEnvio, error)) (models.ResultadoEnvio, error) {

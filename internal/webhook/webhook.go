@@ -201,7 +201,8 @@ func (d *Dispatcher) processarPendentes(ctx context.Context) {
 			defer wg.Done()
 			defer func() { <-sem }()
 			agora := time.Now().UTC()
-			if err := d.entregaStore.MarcarWebhookEntregaEnviando(ctx, entrega.ID, agora); err != nil {
+			assumida, err := d.entregaStore.MarcarWebhookEntregaEnviando(ctx, entrega.ID, agora)
+			if err != nil || !assumida {
 				return
 			}
 			d.enviarEntrega(ctx, entrega)

@@ -105,6 +105,7 @@ func (g *GerenciadorInstancias) SinalizarWebRTC(ctx context.Context, req models.
 	ativa.bridge = bridge
 	return models.ResultadoWebRTC{
 		Instancia:    req.Instancia,
+		ID:           req.ChamadaID,
 		ChamadaID:    req.ChamadaID,
 		SDPAnswer:    resposta,
 		Transporte:   "media_track",
@@ -233,9 +234,20 @@ func (g *GerenciadorInstancias) obterChamadaAtiva(ctx context.Context, instancia
 	ativa := runtime.chamadas[chamadaID]
 	g.mu.RUnlock()
 	if ativa == nil {
-		return nil, nil, fmt.Errorf("chamada nao encontrada")
+		return nil, nil, fmt.Errorf("chamada nao encontrada: id=%s chamadas_ativas=%s", chamadaID, strings.Join(g.idsChamadasAtivas(runtime), ","))
 	}
 	return runtime, ativa, nil
+}
+
+func (g *GerenciadorInstancias) idsChamadasAtivas(runtime *runtimeInstancia) []string {
+	if runtime == nil || runtime.chamadas == nil {
+		return nil
+	}
+	ids := make([]string, 0, len(runtime.chamadas))
+	for id := range runtime.chamadas {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 func (g *GerenciadorInstancias) adicionarChamada(runtime *runtimeInstancia, chamadaID string, ativa *chamadaAtiva) {
@@ -277,6 +289,7 @@ func (g *GerenciadorInstancias) dispararEventoChamada(instanciaID, acao string, 
 	numero := g.numeroChamadaPreferencial(info)
 	g.dispatcher.DispararEvento(context.Background(), instanciaID, models.EventoWebhookChamadas, map[string]interface{}{
 		"acao":         acao,
+		"id":           info.CallID,
 		"chamada_id":   info.CallID,
 		"peer_jid":     info.PeerJid,
 		"peer_numero":  numero,
@@ -303,6 +316,7 @@ func (g *GerenciadorInstancias) resultadoChamada(instanciaID string, info *call.
 	}
 	return models.ResultadoChamada{
 		Instancia: instanciaID,
+		ID:        info.CallID,
 		ChamadaID: info.CallID,
 		PeerJID:   info.PeerJid,
 		Numero:    g.numeroChamadaPreferencial(info),

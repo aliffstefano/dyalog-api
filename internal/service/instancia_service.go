@@ -29,22 +29,135 @@ func NovoInstanciaService(instanciaStore store.InstanciaStore, gerenciador *what
 func (s *InstanciaService) RestaurarSessoes(ctx context.Context) {
 	instancias, err := s.store.Listar(ctx)
 	if err != nil {
+		fmt.Printf("erro ao listar instancias para restaurar sessoes: %v\n", err)
 		return
 	}
 	for _, instancia := range instancias {
+		if !deveRestaurarSessaoNoStartup(instancia.Status) {
+			continue
+		}
 		instanciaID := instancia.ID
 		historicoDias := instancia.HistoricoDias
+		statusAnterior := instancia.Status
 		go func() {
-			s.gerenciador.ConfigurarHistorico(instanciaID, historicoDias)
-			restaurada, err := s.gerenciador.RestaurarSessao(context.Background(), instanciaID)
-			if err != nil {
-				_, _ = s.store.AtualizarStatus(context.Background(), instanciaID, models.StatusInstanciaDesconectada)
-				return
-			}
-			if restaurada {
-				_, _ = s.store.AtualizarStatus(context.Background(), instanciaID, "sincronizando_historico")
-			}
+			s.restaurarSessaoComRetry(context.Background(), instanciaID, historicoDias, statusAnterior)
 		}()
+	}
+}
+
+func (s *InstanciaService) restaurarSessaoComRetry(ctx context.Context, instanciaID string, historicoDias int, statusAnterior string) {
+	const (
+		intervaloTentativa = 10 * time.Second
+		janelaTentativas   = 4 * time.Minute
+		timeoutTentativa   = 45 * time.Second
+	)
+	deadline := time.Now().Add(janelaTentativas)
+	tentativa := 1
+	for {
+		s.gerenciador.ConfigurarHistorico(instanciaID, historicoDias)
+		tentativaCtx, cancel := context.WithTimeout(ctx, timeoutTentativa)
+		restaurada, err := s.gerenciador.RestaurarSessao(tentativaCtx, instanciaID)
+		cancel()
+		if err == nil {
+			if restaurada {
+				_, _ = s.store.AtualizarStatus(ctx, instanciaID, "sincronizando_historico")
+				fmt.Printf("sessao restaurada automaticamente: instancia %s\n", instanciaID)
+			} else {
+				_, _ = s.store.AtualizarStatus(ctx, instanciaID, models.StatusInstanciaNaoInicializada)
+				fmt.Printf("sessao nao restaurada: instancia %s nao possui dispositivo salvo\n", instanciaID)
+			}
+			return
+		}
+
+		if errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode) && time.Now().Before(deadline) {
+			if tentativa == 1 || tentativa%6 == 0 {
+				fmt.Printf("restauracao aguardando lock antigo: instancia %s tentativa %d erro: %v\n", instanciaID, tentativa, err)
+			}
+			tentativa++
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(intervaloTentativa):
+				continue
+			}
+		}
+
+		// Quando a instancia pertence a outra replica, quem manda no status e o
+		// container dono: ele esta com a sessao viva e atualizando o estado. Marcar
+		// "desconectada" aqui sobrescreveria um status correto por um errado.
+		if errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode) {
+			fmt.Printf("restauracao encerrada: instancia %s pertence a outro container e sera gerida por ele\n", instanciaID)
+			return
+		}
+
+		_, _ = s.store.AtualizarStatus(ctx, instanciaID, models.StatusInstanciaDesconectada)
+		fmt.Printf("erro ao restaurar sessao da instancia %s status_anterior=%s: %v\n", instanciaID, statusAnterior, err)
+		return
+	}
+}
+
+// SupervisionarSessoes vigia, de tempos em tempos, as instancias que cairam e
+// reconecta as que ainda tem sessao valida.
+//
+// O auto-reconnect do whatsmeow cobre a maior parte das quedas, mas desiste em
+// varios casos em que a sessao continua boa: sessao assumida por outra conexao
+// (stream replaced), falha de conexao nao reconhecida e erro de stream. Nesses
+// casos a instancia ficava parada ate alguem clicar em conectar, e nesse meio
+// tempo nenhuma mensagem chegava.
+//
+// Instancias que dependem de QR code, de codigo de pareamento ou que perderam o
+// dispositivo nunca entram aqui: quem decide o que fazer com elas e o usuario.
+func (s *InstanciaService) SupervisionarSessoes(ctx context.Context, intervalo time.Duration) {
+	if intervalo < 10*time.Second {
+		intervalo = 30 * time.Second
+	}
+	go func() {
+		ticker := time.NewTicker(intervalo)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.reconectarSessoesCaidas(ctx)
+			}
+		}
+	}()
+}
+
+func (s *InstanciaService) reconectarSessoesCaidas(ctx context.Context) {
+	const timeoutTentativa = 45 * time.Second
+	for _, instanciaID := range s.gerenciador.InstanciasReconectaveis() {
+		// O estado salvo manda: se o usuario desconectou a instancia no banco, a API
+		// nao pode trazer ela de volta sozinha.
+		instancia, err := s.store.BuscarPorID(ctx, instanciaID)
+		if err != nil {
+			continue
+		}
+		if !deveRestaurarSessaoNoStartup(instancia.Status) {
+			continue
+		}
+		tentativaCtx, cancel := context.WithTimeout(ctx, timeoutTentativa)
+		restaurada, err := s.gerenciador.RestaurarSessao(tentativaCtx, instanciaID)
+		cancel()
+		switch {
+		case err != nil && errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode):
+			// Outra replica e dona da sessao e vai cuidar dela.
+		case err != nil:
+			fmt.Printf("reconexao automatica falhou: instancia %s: %v\n", instanciaID, err)
+		case restaurada:
+			_, _ = s.store.AtualizarStatus(ctx, instanciaID, "sincronizando_historico")
+			fmt.Printf("reconexao automatica concluida: instancia %s\n", instanciaID)
+		}
+	}
+}
+
+func deveRestaurarSessaoNoStartup(status string) bool {
+	switch status {
+	case models.StatusInstanciaNaoInicializada, models.StatusInstanciaAguardandoQR, models.StatusInstanciaAguardandoCodigo:
+		return false
+	default:
+		return true
 	}
 }
 
@@ -357,6 +470,26 @@ func (s *InstanciaService) QRCode(ctx context.Context, id string) (map[string]in
 		status = info.Status
 	}
 	return map[string]interface{}{"id": instancia.ID, "nome": instancia.Nome, "token": instancia.Token, "qrcode": info.QRCode, "pairing_code": info.PairingCode, "pairing_phone": info.PairingPhone, "status": status, "erro": info.UltimoErro, "atualizado_em": info.AtualizadoEm}, nil
+}
+
+func (s *InstanciaService) ConsultarAvatar(ctx context.Context, req models.ConsultaAvatarRequest) (models.AvatarContato, error) {
+	req.Instancia = strings.TrimSpace(req.Instancia)
+	req.Numero = strings.TrimSpace(req.Numero)
+	req.ChatJID = strings.TrimSpace(req.ChatJID)
+	if req.Instancia == "" || (req.Numero == "" && req.ChatJID == "") {
+		return models.AvatarContato{}, ErrEntradaInvalida
+	}
+	if _, err := s.store.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.AvatarContato{}, s.mapearErro(err)
+	}
+	avatar, err := s.gerenciador.ConsultarAvatar(ctx, req)
+	if err != nil {
+		if errors.Is(err, whatsapp.ErrAvatarNaoEncontrado) {
+			return models.AvatarContato{}, ErrAvatarNaoEncontrado
+		}
+		return models.AvatarContato{}, err
+	}
+	return avatar, nil
 }
 
 func statusBloqueiaHistorico(status string) bool {

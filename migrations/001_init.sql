@@ -67,6 +67,18 @@ CREATE TABLE IF NOT EXISTS sistema_runtime (
     atualizado_em DATETIME NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS instancia_runtime_locks (
+    instancia_id TEXT PRIMARY KEY,
+    node_id TEXT NOT NULL,
+    endereco TEXT NOT NULL DEFAULT '',
+    heartbeat_em DATETIME NOT NULL,
+    expira_em DATETIME NOT NULL,
+    criado_em DATETIME NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_instancia_runtime_locks_expira ON instancia_runtime_locks(expira_em);
+
 CREATE TABLE IF NOT EXISTS mensagens_processadas (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL,
@@ -81,6 +93,14 @@ CREATE TABLE IF NOT EXISTS mensagens_processadas (
     FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_mensagens_processadas_instancia_chat ON mensagens_processadas(instancia_id, chat_jid, recebida_em DESC);
+
+CREATE TABLE IF NOT EXISTS whatsapp_devices (
+    instancia_id TEXT PRIMARY KEY,
+    device_jid TEXT NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_devices_jid ON whatsapp_devices(device_jid);
 
 CREATE TABLE IF NOT EXISTS sistema_dependencias (
     dependencia TEXT PRIMARY KEY,

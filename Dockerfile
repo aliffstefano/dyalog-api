@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache build-base
 
@@ -12,7 +12,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o /bin/dyalog-api-go ./cmd/api
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates libstdc++ sqlite-libs
+RUN apk add --no-cache ca-certificates libstdc++ sqlite-libs tzdata
 
 WORKDIR /app
 

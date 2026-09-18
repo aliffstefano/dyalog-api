@@ -12,17 +12,20 @@ type IniciarChamadaRequest struct {
 type SinalizacaoWebRTCRequest struct {
 	Instancia string `json:"instancia,omitempty"`
 	ChamadaID string `json:"chamada_id,omitempty"`
+	ID        string `json:"id,omitempty"`
 	SDPOffer  string `json:"sdp_offer" binding:"required"`
 }
 
 type AcaoChamadaRequest struct {
 	Instancia string `json:"instancia,omitempty"`
 	ChamadaID string `json:"chamada_id,omitempty"`
+	ID        string `json:"id,omitempty"`
 	Motivo    string `json:"motivo,omitempty"`
 }
 
 type ResultadoChamada struct {
 	Instancia string    `json:"instancia"`
+	ID        string    `json:"id,omitempty"`
 	ChamadaID string    `json:"chamada_id"`
 	PeerJID   string    `json:"peer_jid,omitempty"`
 	Numero    string    `json:"numero,omitempty"`
@@ -34,6 +37,7 @@ type ResultadoChamada struct {
 
 type ResultadoWebRTC struct {
 	Instancia    string `json:"instancia"`
+	ID           string `json:"id,omitempty"`
 	ChamadaID    string `json:"chamada_id"`
 	SDPAnswer    string `json:"sdp_answer"`
 	Transporte   string `json:"transporte,omitempty"`

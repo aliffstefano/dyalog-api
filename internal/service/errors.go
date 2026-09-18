@@ -8,6 +8,7 @@ var (
 	ErrDependenciaNaoEncontrada = errors.New("dependencia nao encontrada")
 	ErrWebhookNaoEncontrado     = errors.New("webhook nao encontrado")
 	ErrMidiaNaoEncontrada       = errors.New("midia nao encontrada")
+	ErrAvatarNaoEncontrado      = errors.New("avatar nao encontrado")
 	ErrAtualizacaoBloqueada     = errors.New("atualizacao bloqueada")
 	ErrHistoricoBloqueado       = errors.New("historico bloqueado")
 	ErrNenhumaAtualizacao       = errors.New("nenhuma atualizacao disponivel")

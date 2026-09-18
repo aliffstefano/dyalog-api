@@ -127,6 +127,122 @@ Envio para grupo:
 }
 ```
 
+### Editar texto
+
+Endpoint:
+
+```text
+POST /batepapo/editar/texto
+```
+
+Campos obrigatorios:
+
+- `numero` ou `chat_jid`
+- `mensagem_id`: ID da mensagem enviada pela API/instancia
+- `mensagem`: novo texto
+
+Observacoes:
+
+- A edicao so funciona para mensagens enviadas pela propria instancia.
+- O WhatsApp limita a janela de edicao. No whatsmeow essa janela e de aproximadamente 20 minutos.
+- Para grupo, envie `grupo: true` quando usar o ID numerico do grupo em `numero`.
+
+JSON para n8n:
+
+```json
+{
+  "numero": "6799440667",
+  "mensagem_id": "3EB0D174A6979E7104AD8F",
+  "mensagem": "Texto editado pela API"
+}
+```
+
+cURL:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/editar/texto" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","mensagem":"Texto editado pela API"}'
+```
+
+### Apagar mensagem
+
+Endpoint:
+
+```text
+POST /batepapo/apagar
+```
+
+Campos obrigatorios:
+
+- `numero` ou `chat_jid`
+- `mensagem_id`: ID da mensagem que deve ser apagada
+
+Campos opcionais:
+
+- `grupo`: use `true` quando `numero` for ID numerico de grupo
+- `remetente_jid` ou `participante`: necessario para apagar mensagem de outra pessoa em grupo quando a instancia for admin
+
+JSON:
+
+```json
+{
+  "numero": "6799440667",
+  "mensagem_id": "3EB0D174A6979E7104AD8F"
+}
+```
+
+### Reagir mensagem
+
+Endpoint:
+
+```text
+POST /batepapo/reagir
+```
+
+Campos obrigatorios:
+
+- `numero` ou `chat_jid`
+- `mensagem_id`: ID da mensagem que recebera a reacao
+- `emoji`: emoji da reacao. Envie vazio para remover a reacao.
+
+Campos importantes:
+
+- `remetente_jid`: JID de quem enviou a mensagem original. Recomendado sempre e obrigatorio para grupos.
+- `grupo`: `true` quando o destino for grupo usando ID numerico.
+
+JSON para reagir uma mensagem recebida por webhook:
+
+```json
+{
+  "numero": "{{ $json.body.dados.chat_numero }}",
+  "mensagem_id": "{{ $json.body.dados.mensagem.id }}",
+  "remetente_jid": "{{ $json.body.dados.remetente_jid }}",
+  "emoji": "👍"
+}
+```
+
+cURL:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/reagir" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"6799440667","mensagem_id":"3EB0D174A6979E7104AD8F","remetente_jid":"556799440667@s.whatsapp.net","emoji":"👍"}'
+```
+
+Remover reacao:
+
+```json
+{
+  "numero": "6799440667",
+  "mensagem_id": "3EB0D174A6979E7104AD8F",
+  "remetente_jid": "556799440667@s.whatsapp.net",
+  "emoji": ""
+}
+```
+
 ### Imagem
 
 Endpoint:
@@ -173,6 +289,43 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/imagem" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/imagem.jpg","legenda":"Imagem enviada pela API"}'
+```
+
+### Figurinha
+
+Endpoint:
+
+```text
+POST /batepapo/enviar/figurinha
+```
+
+Campos obrigatorios:
+
+- `numero` ou `chat_jid`
+- um destes campos: `arquivo_url`, `arquivo_base64` ou `caminho_local`
+
+Regras:
+
+- A figurinha precisa estar em `image/webp`.
+- Se usar base64, prefira data URI: `data:image/webp;base64,...`
+- Conversao de PNG/JPG para WebP ainda nao e feita automaticamente pela API.
+
+JSON para n8n:
+
+```json
+{
+  "numero": "6799440667",
+  "arquivo_base64": "data:image/webp;base64,SEU_BASE64"
+}
+```
+
+cURL:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/figurinha" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"6799440667","arquivo_url":"https://exemplo.com/figurinha.webp"}'
 ```
 
 ### Audio
@@ -450,6 +603,54 @@ curl -X POST "https://wapi.dyalog.com.br{{ $json.body.dados.api.aceitar }}" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA"
 ```
 
+Rotas equivalentes com a instancia na URL:
+
+Toda acao de chamada tambem existe no prefixo `/instancias/{id}`. Use essa forma quando o
+chamador usa token master ou controla varias instancias.
+
+| Metodo | Rota curta (token da instancia) | Rota com instancia na URL |
+| --- | --- | --- |
+| POST | `/chamadas/{chamadaId}/aceitar` | `/instancias/{id}/chamadas/{chamadaId}/aceitar` |
+| POST | `/chamadas/{chamadaId}/rejeitar` | `/instancias/{id}/chamadas/{chamadaId}/rejeitar` |
+| DELETE | `/chamadas/{chamadaId}` | `/instancias/{id}/chamadas/{chamadaId}` |
+| POST | `/chamadas/{chamadaId}/webrtc` | `/instancias/{id}/chamadas/{chamadaId}/webrtc` |
+| GET | (nao existe) | `/instancias/{id}/chamadas` |
+
+Exemplo:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/chamadas/CALL_ID/aceitar" -H "X-Access-Token: TOKEN_MASTER_OU_DA_INSTANCIA"
+```
+
+Observacoes:
+
+- `iniciar` nao tem variante com instancia na URL. Use `POST /chamadas/iniciar` e mande
+  `instancia` no corpo quando o token nao identificar a instancia.
+- `aceitar`, `rejeitar` e `encerrar` aceitam corpo vazio. Quando enviado, o corpo pode
+  trazer `instancia`, `chamada_id` (ou `id`) e `motivo`.
+- `chamada_id` e `id` sao intercambiaveis no corpo; os textos `undefined` e `null` sao
+  ignorados e a API cai para o `chamadaId` da URL.
+
+Estados possiveis em `estado`:
+
+```text
+initiating
+ringing
+incoming_ringing
+connecting
+active
+on_hold
+ended
+```
+
+Erros comuns em chamadas:
+
+- `instancia nao conectada`: a instancia precisa estar conectada e logada
+- `chamada nao encontrada: id=... chamadas_ativas=...`: o `chamada_id` ja encerrou ou
+  nunca existiu; o proprio erro lista os ids ativos
+- `informe chamada_id`: a acao foi chamada sem id na URL nem no corpo
+- `informe sdp_offer`: o endpoint `/webrtc` exige o campo `sdp_offer`
+
 ### Marcar mensagem como lida
 
 Endpoint correto:
@@ -634,6 +835,69 @@ Faz logout real da sessao. No proximo conectar, a instancia volta a exigir QR co
 
 Consulta status consolidado da instancia. Inclui `pairing_code`, `pairing_phone`, `pairing_code_pronto`, `metodo_pareamento`, `historico_dias`, `historico_max_dias`, `historico_configurado`, `historico_bloqueado`, `historico_observacao`, `proxy_modo`, `proxy_url`, `proxy_configurado` e `proxy_observacao`.
 
+### `GET /api/v1/instancias/:id/contatos/avatar`
+
+Consulta a foto/avatar de um contato ou grupo usando a instancia informada.
+
+Query params:
+
+- `numero`: numero do contato. Ex.: `556799440667`
+- `chat_jid`: JID direto do chat, quando disponivel. Ex.: `556799440667@s.whatsapp.net`
+- `grupo`: use `true` para consultar avatar de grupo pelo ID do grupo
+- `formato`: `json`, `base64` ou `arquivo`. Padrao: `json`
+
+Resposta padrao (`formato=json`):
+
+```json
+{
+  "sucesso": true,
+  "mensagem": "Avatar consultado com sucesso",
+  "dados": {
+    "instancia": "ID_DA_INSTANCIA",
+    "numero": "556799440667",
+    "chat_jid": "556799440667@s.whatsapp.net",
+    "grupo": false,
+    "tem_avatar": true,
+    "avatar_id": "abc123",
+    "avatar_url": "https://mmg.whatsapp.net/...",
+    "tipo": "image"
+  }
+}
+```
+
+Exemplo `curl` com URL:
+
+```bash
+curl -X GET "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA"
+```
+
+Exemplo `curl` retornando base64:
+
+```bash
+curl -X GET "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667&formato=base64" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA"
+```
+
+No formato `base64`, a resposta inclui:
+
+```json
+{
+  "avatar_base64": "...",
+  "avatar_data_uri": "data:image/jpeg;base64,...",
+  "mime_type": "image/jpeg",
+  "tamanho_bytes": 12345
+}
+```
+
+No formato `arquivo`, a API redireciona para a URL temporaria da foto no WhatsApp:
+
+```bash
+curl -L -X GET "https://apilocal.dyalog.com.br/api/v1/instancias/ID_DA_INSTANCIA/contatos/avatar?numero=556799440667&formato=arquivo" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  --output avatar.jpg
+```
+
 ### `PUT /api/v1/instancias/:id/historico`
 
 Define quantos dias de historico inicial a API deve importar quando o WhatsApp entregar `HistorySync`. Precisa ser configurado antes de conectar. Use `0` para desativar.
@@ -783,6 +1047,7 @@ Campos planos mantidos:
 - `chat_numero`
 - `grupo`
 - `mensagem_id`
+- `acao`: `recebida`, `editada` ou `apagada`
 - `direcao`
 - `enviado_por_mim`
 - `remetente_jid`
@@ -793,6 +1058,10 @@ Campos planos mantidos:
 - `botao_id` quando `tipo=botao`
 - `botao_texto` quando `tipo=botao`
 - `botao_tipo` quando `tipo=botao`
+- `resposta_mensagem_id` quando a mensagem recebida cita/responde outra mensagem
+- `resposta_participante` quando a mensagem recebida cita/responde outra mensagem
+- `resposta_conteudo` quando a mensagem recebida cita/responde outra mensagem
+- `resposta_tipo` quando a mensagem recebida cita/responde outra mensagem
 
 Campos organizados adicionais:
 
@@ -804,15 +1073,19 @@ Campos organizados adicionais:
 - `autor.nome`
 - `mensagem.id`
 - `mensagem.tipo`
+- `mensagem.acao`
 - `mensagem.conteudo`
 - `mensagem.direcao`
 - `mensagem.enviado_por_mim`
 - `mensagem.duracao_segundos` quando `tipo=audio`
 - `mensagem.ptt` quando `tipo=audio`
 - `mensagem.botao.id`, `mensagem.botao.texto`, `mensagem.botao.tipo` quando `tipo=botao`
+- `mensagem.resposta.mensagem_id`, `mensagem.resposta.participante`, `mensagem.resposta.conteudo` e `mensagem.resposta.tipo` quando a mensagem recebida cita/responde outra mensagem (o WhatsApp so envia `conteudo`/`tipo` da mensagem original quando o app do remetente os embute na citacao; se vier vazio, use `resposta_mensagem_id` para buscar a mensagem original no seu proprio historico)
 - `mensagem.mime_type` quando houver midia
 - `mensagem.midia.id`, `mensagem.midia.mensagem_id`, `mensagem.midia.tipo`, `mensagem.midia.mime_type`, `mensagem.midia.nome_arquivo`, `mensagem.midia.tamanho_bytes`, `mensagem.midia.sha256`, `mensagem.midia.download_path` e `mensagem.midia.download_url` quando a midia recebida for baixada com sucesso
 - `mensagem.midia.storage_provider`, `mensagem.midia.storage_path` e `mensagem.midia.storage_url` quando storage externo estiver configurado
+
+Em edicoes, o webhook continua chegando no evento `mensagens`, mas com `dados.acao="editada"` e `dados.conteudo` contendo o texto novo. Em apagamentos, chega com `dados.acao="apagada"`, `dados.tipo="apagada"` e `dados.mensagem_id` apontando para a mensagem apagada.
 
 Campos de compatibilidade para midia recebida:
 
@@ -1264,6 +1537,22 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/botoes" \
 
 Envia mensagem com lista interativa de selecao unica.
 
+> **Nao funciona mais como menu interativo.** O WhatsApp recusa os formatos de
+> menu (`ack error 405`) quando o remetente e uma conta comum conectada via
+> multi-device, que e o caso das instancias da Dyalog. So remetentes da API
+> oficial do WhatsApp Business conseguem enviar. Isso foi verificado replicando
+> byte a byte o stanza de uma empresa cujo menu renderiza normalmente - o
+> servidor recusou do mesmo jeito, entao a restricao e no tipo de remetente, nao
+> no formato da mensagem.
+>
+> Na pratica o endpoint continua util: ao ser recusado, ele envia as opcoes
+> **como texto numerado** automaticamente, e a resposta traz `modo: "texto"` com
+> uma `observacao` explicando. Para um menu que o cliente possa **clicar**, use:
+>
+> - [`enviar/enquete`](#post-apiv1batepapoenviarenquete) - ate 12 opcoes, e o
+>   voto volta ja resolvido para o texto da opcao
+> - [`enviar/botoes`](#post-apiv1batepapoenviarbotoes) - ate 3 opcoes
+
 Campos:
 
 - obrigatorio: `descricao` ou `mensagem`
@@ -1375,6 +1664,204 @@ curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/lista" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","descricao":"Escolha uma opcao","botao_texto":"Abrir lista","modo":"texto","opcoes":[{"id":"financeiro","titulo":"Financeiro"},{"id":"suporte","titulo":"Suporte"}]}'
+```
+
+### `POST /api/v1/batepapo/enviar/enquete`
+
+Envia uma enquete (poll) nativa do WhatsApp. Diferente de botoes e lista, a enquete e renderizada de forma consistente em todos os clientes/contas e nao costuma ser filtrada pelo WhatsApp, por isso e uma alternativa recomendada para oferecer opcoes selecionaveis quando `enviar/botoes` ou `enviar/lista` forem rejeitados ou nao renderizarem.
+
+Campos:
+
+- obrigatorio: `nome` ou `pergunta`
+- obrigatorio: `opcoes` (lista de textos, de 2 a 12, sem duplicatas)
+- obrigatorio: `numero` ou `chat_jid`
+- opcional: `instancia`
+- opcional: `grupo`
+- opcional: `selecao_multipla` (permite escolher mais de uma opcao; padrao e selecao unica)
+- opcional: `opcoes_selecionaveis` (quantidade maxima de opcoes que o destinatario pode marcar; se omitido, usa 1 para selecao unica ou todas quando `selecao_multipla` for `true`)
+- opcional: `resposta_mensagem_id`, `resposta_participante` (responder a uma mensagem especifica)
+- compatibilidade WUZAPI: `Phone`, `Name`, `Options`, `Id`, `ContextInfo`
+
+Regras:
+
+- quando usar token de instancia, `instancia` pode ser omitida
+- a API guarda em memoria o texto de cada opcao para poder resolver o voto do destinatario; se a instancia reiniciar entre o envio da enquete e o voto, o webhook do voto volta apenas com os dados criptografados
+- quando o destinatario vota, o webhook chega como `tipo="enquete_voto"` com o `conteudo` preenchido com o texto da(s) opcao(oes) escolhida(s), `extras.enquete_voto_opcoes` (lista de textos) e `mensagem.enquete_voto.opcoes_selecionadas`
+
+Exemplo:
+
+```json
+{
+  "numero": "5511999999999",
+  "nome": "Qual plano voce prefere?",
+  "opcoes": ["Basico", "Pro", "Enterprise"]
+}
+```
+
+Exemplo com selecao multipla:
+
+```json
+{
+  "numero": "5511999999999",
+  "nome": "Quais recursos voce usa?",
+  "opcoes": ["Chat", "Chamadas", "Automacoes"],
+  "selecao_multipla": true
+}
+```
+
+Exemplo curl:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/enquete" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"5511999999999","nome":"Qual plano voce prefere?","opcoes":["Basico","Pro","Enterprise"]}'
+```
+
+### `POST /api/v1/batepapo/enviar/cobranca-pix`
+
+Envia o botao nativo de pagamento do WhatsApp ("Cobrar via Pix"), o mesmo recurso que o app oficial usa quando a conta tem Pagamentos habilitado pela Meta. **Isso e diferente de botao comum**: e um recurso de pagamento real controlado pela Meta, normalmente atrelado a contas com esse recurso ja habilitado (o mesmo numero precisa conseguir usar "Cobrar" no app pra essa API ter chance de funcionar). O formato do payload foi construido a partir de uma cobranca real capturada via webhook desta propria API.
+
+Campos:
+
+- obrigatorio: `chave_pix`
+- obrigatorio: `tipo_chave` (`telefone`, `email`, `cpf`, `cnpj` ou `aleatoria`)
+- obrigatorio: `nome_beneficiario`
+- obrigatorio: `numero` ou `chat_jid`
+- opcional: `instancia`
+- opcional: `grupo`
+- opcional: `valor` (em reais; se omitido ou 0, a cobranca e enviada "sem valor definido", igual ao exemplo real que validamos)
+- opcional: `referencia` (gerada automaticamente se omitida)
+- opcional: `descricao` (vira o texto/corpo da mensagem e o nome do item cobrado)
+- opcional: `fallback_texto` (força enviar como texto simples com os dados da chave em vez do botao nativo)
+- opcional: `resposta_mensagem_id`, `resposta_participante`
+- compatibilidade WUZAPI: `Phone`, `Id`, `ContextInfo`
+
+Regras:
+
+- se `valor` for informado (maior que 0), a cobranca e criada com o valor especificado (`order_type: "ORDER"`); esse caminho ainda nao foi validado contra um exemplo real do app oficial, so o caminho "sem valor" foi confirmado byte-a-byte
+- se o servidor do WhatsApp responder `405`, a API faz fallback automatico para texto (chave, beneficiario e valor) e retorna isso no campo `observacao`
+- mesmo quando o WhatsApp aceita a mensagem, so a conta ter Pagamentos habilitado pela Meta garante que o botao realmente renderize e funcione — teste antes de depender disso em producao
+
+Exemplo (sem valor definido):
+
+```json
+{
+  "numero": "5511999999999",
+  "chave_pix": "67999998888",
+  "tipo_chave": "telefone",
+  "nome_beneficiario": "Aliff Stefano"
+}
+```
+
+Exemplo (com valor):
+
+```json
+{
+  "numero": "5511999999999",
+  "chave_pix": "financeiro@empresa.com",
+  "tipo_chave": "email",
+  "nome_beneficiario": "Empresa LTDA",
+  "valor": 149.90,
+  "descricao": "Mensalidade agosto"
+}
+```
+
+Exemplo curl:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/cobranca-pix" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"5511999999999","chave_pix":"67999998888","tipo_chave":"telefone","nome_beneficiario":"Aliff Stefano"}'
+```
+
+### `POST /api/v1/batepapo/enviar/localizacao`
+
+Envia uma localizacao estatica (pino no mapa).
+
+Campos:
+
+- obrigatorio: `latitude` (-90 a 90)
+- obrigatorio: `longitude` (-180 a 180)
+- obrigatorio: `numero` ou `chat_jid`
+- opcional: `instancia`
+- opcional: `grupo`
+- opcional: `nome` (nome do local)
+- opcional: `endereco`
+- opcional: `resposta_mensagem_id`, `resposta_participante`
+- compatibilidade WUZAPI: `Phone`, `Latitude`, `Longitude`, `Name`, `Address`, `Id`, `ContextInfo`
+
+Exemplo:
+
+```json
+{
+  "numero": "5511999999999",
+  "latitude": -23.55052,
+  "longitude": -46.633308,
+  "nome": "Av. Paulista",
+  "endereco": "Sao Paulo - SP"
+}
+```
+
+Exemplo curl:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/localizacao" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"5511999999999","latitude":-23.55052,"longitude":-46.633308,"nome":"Av. Paulista"}'
+```
+
+### `POST /api/v1/batepapo/enviar/contato`
+
+Envia um cartao de contato (vCard). Pode enviar um unico contato ou uma lista.
+
+Campos:
+
+- obrigatorio: `numero` ou `chat_jid`
+- obrigatorio (contato unico): `nome` e `telefone`, ou `vcard` pronto
+- obrigatorio (varios contatos): `contatos` (lista de `{ "nome", "telefone", "organizacao", "vcard" }`, cada item precisa de `nome`+`telefone` ou `vcard`)
+- opcional: `instancia`
+- opcional: `grupo`
+- opcional: `organizacao`
+- opcional: `resposta_mensagem_id`, `resposta_participante`
+- compatibilidade WUZAPI: `Phone`, `Name`, `Vcard`, `Contacts`, `Id`, `ContextInfo`
+
+Regras:
+
+- se `vcard` nao for informado, a API monta um vCard 3.0 basico a partir de `nome`/`telefone`/`organizacao`
+- quando enviar mais de um contato, o webhook de recebimento no destinatario aparece como `tipo="contatos"`; um unico contato aparece como `tipo="contato"`
+
+Exemplo (contato unico):
+
+```json
+{
+  "numero": "5511999999999",
+  "nome": "Suporte Dyalog",
+  "telefone": "5511988887777"
+}
+```
+
+Exemplo (varios contatos):
+
+```json
+{
+  "numero": "5511999999999",
+  "contatos": [
+    { "nome": "Financeiro", "telefone": "5511988887777" },
+    { "nome": "Suporte", "telefone": "5511977776666" }
+  ]
+}
+```
+
+Exemplo curl:
+
+```bash
+curl -X POST "https://wapi.dyalog.com.br/api/v1/batepapo/enviar/contato" \
+  -H "Content-Type: application/json" \
+  -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
+  -d '{"numero":"5511999999999","nome":"Suporte Dyalog","telefone":"5511988887777"}'
 ```
 
 ### `POST /api/v1/batepapo/enviar/imagem`

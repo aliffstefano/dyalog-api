@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -16,6 +17,8 @@ type Config struct {
 	Porta                         string
 	BancoDriver                   string
 	BancoDSN                      string
+	WhatsAppStoreDriver           string
+	WhatsAppStoreDSN              string
 	WebhookURL                    string
 	DiretorioSessoes              string
 	NomeDispositivoSessao         string
@@ -49,7 +52,12 @@ type Config struct {
 	WebhookLoteProcessamento      int
 	WebhookTimeoutSegundos        int
 	WebhookConcorrencia           int
+	WebhookEntregaRetencaoDias    int
+	RuntimeNodeID                 string
+	RuntimeNodeEndereco           string
+	RuntimeLockTTLSeconds         int
 	HeartbeatIntervaloSegundos    int
+	ReconexaoIntervaloSegundos    int
 	RecuperacaoWebhookHabilitada  bool
 	RecuperacaoMargemSegundos     int
 	RecuperacaoHistoricoMensagens int
@@ -64,10 +72,16 @@ func Carregar() (*Config, error) {
 	_ = godotenv.Load()
 
 	bancoDriver, bancoDSN := configurarBanco()
+	whatsAppStoreDriver, whatsAppStoreDSN, err := configurarStoreWhatsApp(bancoDriver, bancoDSN)
+	if err != nil {
+		return nil, err
+	}
 	cfg := &Config{
 		Porta:                         obter("APP_PORT", "8080"),
 		BancoDriver:                   bancoDriver,
 		BancoDSN:                      bancoDSN,
+		WhatsAppStoreDriver:           whatsAppStoreDriver,
+		WhatsAppStoreDSN:              whatsAppStoreDSN,
 		WebhookURL:                    os.Getenv("WEBHOOK_URL"),
 		DiretorioSessoes:              obter("SESSION_STORAGE_DIR", "./data/sessoes"),
 		NomeDispositivoSessao:         obter("SESSION_DEVICE_NAME", "DyalogAPI"),
@@ -101,7 +115,12 @@ func Carregar() (*Config, error) {
 		WebhookLoteProcessamento:      obterInt("WEBHOOK_WORKER_BATCH_SIZE", 25),
 		WebhookTimeoutSegundos:        obterInt("WEBHOOK_TIMEOUT_SECONDS", 5),
 		WebhookConcorrencia:           obterInt("WEBHOOK_WORKER_CONCURRENCY", 5),
+		WebhookEntregaRetencaoDias:    obterInt("WEBHOOK_ENTREGA_RETENTION_DAYS", 30),
+		RuntimeNodeID:                 obterRuntimeNodeID(),
+		RuntimeNodeEndereco:           obterRuntimeNodeEndereco(obterInt("APP_PORT", 8080)),
+		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),
 		HeartbeatIntervaloSegundos:    obterInt("RUNTIME_HEARTBEAT_INTERVAL_SECONDS", 30),
+		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),
 		RecuperacaoWebhookHabilitada:  obterBool("WEBHOOK_RECOVERY_ENABLED", true),
 		RecuperacaoMargemSegundos:     obterInt("WEBHOOK_RECOVERY_MARGIN_SECONDS", 120),
 		RecuperacaoHistoricoMensagens: obterInt("WEBHOOK_RECOVERY_HISTORY_COUNT", 50),
@@ -135,8 +154,20 @@ func Carregar() (*Config, error) {
 	if cfg.WebhookConcorrencia < 1 {
 		cfg.WebhookConcorrencia = 5
 	}
+	if cfg.WebhookEntregaRetencaoDias < 1 {
+		cfg.WebhookEntregaRetencaoDias = 30
+	}
+	if cfg.RuntimeLockTTLSeconds < 15 {
+		cfg.RuntimeLockTTLSeconds = 90
+	}
 	if cfg.HeartbeatIntervaloSegundos < 5 {
 		cfg.HeartbeatIntervaloSegundos = 30
+	}
+	if cfg.ReconexaoIntervaloSegundos < 10 {
+		cfg.ReconexaoIntervaloSegundos = 30
+	}
+	if cfg.RuntimeLockTTLSeconds <= cfg.HeartbeatIntervaloSegundos {
+		cfg.RuntimeLockTTLSeconds = cfg.HeartbeatIntervaloSegundos * 3
 	}
 	if cfg.RecuperacaoMargemSegundos < 0 {
 		cfg.RecuperacaoMargemSegundos = 120
@@ -161,6 +192,69 @@ func Carregar() (*Config, error) {
 	return cfg, nil
 }
 
+func obterRuntimeNodeID() string {
+	if valor := strings.TrimSpace(os.Getenv("RUNTIME_NODE_ID")); valor != "" {
+		return valor
+	}
+	if hostname, err := os.Hostname(); err == nil && strings.TrimSpace(hostname) != "" {
+		return strings.TrimSpace(hostname)
+	}
+	return "node-" + buildinfo.Commit
+}
+
+// obterRuntimeNodeEndereco descobre a URL pela qual as outras replicas conseguem
+// falar com este container. Em Docker Swarm cada replica tem um IP proprio na rede
+// overlay; e esse IP (e nao o VIP do servico, que balancearia de volta) que precisa
+// ser registrado no lock para o encaminhamento entre replicas funcionar.
+func obterRuntimeNodeEndereco(porta int) string {
+	if valor := strings.TrimSpace(os.Getenv("RUNTIME_NODE_ADDRESS")); valor != "" {
+		return strings.TrimRight(valor, "/")
+	}
+	if porta <= 0 {
+		porta = 8080
+	}
+	if ip := detectarIPLocal(); ip != "" {
+		return fmt.Sprintf("http://%s:%d", ip, porta)
+	}
+	return ""
+}
+
+func detectarIPLocal() string {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	var fallback string
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		enderecos, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, endereco := range enderecos {
+			rede, ok := endereco.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			ip := rede.IP.To4()
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			// Redes overlay do Swarm usam 10.0.0.0/8; a docker_gwbridge usa 172.x.
+			// Preferimos a overlay porque e a que conecta as replicas entre si.
+			if ip[0] == 10 {
+				return ip.String()
+			}
+			if fallback == "" {
+				fallback = ip.String()
+			}
+		}
+	}
+	return fallback
+}
+
 func configurarBanco() (string, string) {
 	driver := strings.ToLower(strings.TrimSpace(os.Getenv("DATABASE_DRIVER")))
 	dsn := strings.TrimSpace(os.Getenv("DATABASE_DSN"))
@@ -177,6 +271,31 @@ func configurarBanco() (string, string) {
 		driver = "sqlite"
 	}
 	return driver, "./data/dyalog.db"
+}
+
+func configurarStoreWhatsApp(bancoDriver, bancoDSN string) (string, string, error) {
+	driver := strings.ToLower(strings.TrimSpace(os.Getenv("WHATSAPP_STORE_DRIVER")))
+	dsn := strings.TrimSpace(os.Getenv("WHATSAPP_STORE_DSN"))
+	if driver == "" && dsn != "" {
+		driver = inferirDriverPorDSN(dsn)
+	}
+	if driver == "" {
+		driver = "sqlite"
+	}
+	switch driver {
+	case "sqlite", "sqlite3":
+		return "sqlite", "", nil
+	case "postgres", "postgresql", "pgx", "supabase":
+		if dsn == "" && bancoDriver == "postgres" {
+			dsn = bancoDSN
+		}
+		if dsn == "" {
+			return "", "", fmt.Errorf("WHATSAPP_STORE_DSN e obrigatorio quando WHATSAPP_STORE_DRIVER=postgres sem DATABASE_DRIVER=postgres")
+		}
+		return "postgres", dsn, nil
+	default:
+		return "", "", fmt.Errorf("WHATSAPP_STORE_DRIVER invalido: use sqlite ou postgres")
+	}
 }
 
 func inferirDriverPorDSN(dsn string) string {

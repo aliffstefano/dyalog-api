@@ -205,7 +205,8 @@ Observacoes:
 
 - `DATABASE_DSN` tem prioridade sobre `DB_*`.
 - Supabase usa `DATABASE_DRIVER=postgres`.
-- Sessoes do WhatsApp ficam em `SESSION_STORAGE_DIR`.
+- Por padrao, sessoes do WhatsApp ficam em `SESSION_STORAGE_DIR`.
+- Para salvar o store interno do whatsmeow no Postgres, use `WHATSAPP_STORE_DRIVER=postgres`. Se `WHATSAPP_STORE_DSN` estiver vazio, a API reutiliza o Postgres da aplicacao.
 - Em Docker, mantenha volume persistente em `/app/data`.
 
 ## Atualizacao do whatsmeow
@@ -223,6 +224,20 @@ go run ./cmd/api
 ```
 
 Em producao com Docker, gere nova imagem e faca rolling update com rollback preparado.
+
+### Tags da imagem
+
+Cada publicacao gera duas tags no Docker Hub:
+
+- `latest`: sempre a versao mais recente. E o padrao do `docker-compose.yml`.
+- `AAAA-MM-DD`: tag imutavel da data da publicacao, preservada para rollback.
+
+Como `latest` e sobrescrita a cada push, a tag datada e o unico caminho de volta.
+Para voltar a uma versao anterior, defina `DYALOG_IMAGE_TAG` no `.env`:
+
+```bash
+DYALOG_IMAGE_TAG=2026-09-18 docker compose up -d
+```
 
 ## O que ja funciona de verdade
 
@@ -276,6 +291,8 @@ Regras:
 - `DATABASE_DRIVER`: `sqlite` ou `postgres`
 - `DATABASE_DSN`: caminho SQLite ou DSN Postgres/Supabase da aplicacao
 - `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT`, `DB_SSLMODE`: alternativa para montar DSN Postgres quando `DATABASE_DSN` nao estiver preenchido
+- `WHATSAPP_STORE_DRIVER`: `sqlite` ou `postgres`. Padrao `sqlite`; com `postgres`, o store interno do whatsmeow usa tabela compartilhada e vinculo por instancia.
+- `WHATSAPP_STORE_DSN`: DSN Postgres opcional para o whatsmeow. Se vazio e a aplicacao usa Postgres, reutiliza o mesmo DSN.
 - `SESSION_STORAGE_DIR`: diretorio de sessoes do `whatsmeow`
 - `SESSION_DEVICE_NAME`: nome exibido como dispositivo/sistema no pareamento do WhatsApp quando suportado pelo WhatsApp
 - `SESSION_CLIENT_TYPE`: tipo/icone conhecido usado no pareamento. Aceita `chrome`, `edge`, `firefox`, `safari`, `windows`, `macos`, `android`, `opera`, `electron`; `web` e tratado como `chrome`
@@ -289,9 +306,12 @@ Regras:
 - `WEBHOOK_WORKER_BATCH_SIZE`: tamanho do lote processado pela fila de webhooks
 - `WEBHOOK_TIMEOUT_SECONDS`: tempo maximo de espera por resposta de cada endpoint de webhook. Padrao `5`.
 - `WEBHOOK_WORKER_CONCURRENCY`: quantidade de entregas de webhook processadas em paralelo. Padrao `5`.
+- `RUNTIME_NODE_ID`: identificador unico do container para ownership de instancias. Se vazio, usa o hostname do container.
+- `RUNTIME_LOCK_TTL_SECONDS`: tempo para outro container poder assumir uma instancia se o dono parar de renovar o lock. Padrao `90`.
 - `RUNTIME_HEARTBEAT_INTERVAL_SECONDS`: frequencia do heartbeat persistente da API. Padrao `30`.
-- `WEBHOOK_RECOVERY_ENABLED`: habilita deteccao de janela offline e recuperacao por historico on-demand. Padrao `true`.
-- `WEBHOOK_RECOVERY_MARGIN_SECONDS`: margem adicionada antes/depois da janela offline para recuperar mensagens. Padrao `120`.
+- `INSTANCE_RECONNECT_INTERVAL_SECONDS`: frequencia com que a API procura instancias caidas e reconecta as que ainda tem sessao valida. Instancias aguardando QR code, aguardando codigo de pareamento ou sem dispositivo salvo nunca sao reconectadas sozinhas. Minimo `10`, padrao `30`.
+- `WEBHOOK_RECOVERY_ENABLED`: habilita deteccao de janela offline e recuperacao por historico on-demand. Cobre API desligada e queda de conexao WhatsApp detectada por disconnect/keepalive. Padrao `true`.
+- `WEBHOOK_RECOVERY_MARGIN_SECONDS`: margem adicionada antes/depois da janela offline ou da queda de conexao WhatsApp para recuperar mensagens. Padrao `120`.
 - `WEBHOOK_RECOVERY_HISTORY_COUNT`: quantidade de mensagens solicitadas por conversa quando uma nova mensagem servir de ancora. Padrao `50`.
 - `MEDIA_STORAGE_DRIVER`: `local` ou `supabase`
 - `MEDIA_STORAGE_SUPABASE_URL`: URL do projeto Supabase quando `MEDIA_STORAGE_DRIVER=supabase`
@@ -399,6 +419,8 @@ Fluxos de pareamento:
 Bate-papo:
 
 - `POST /api/v1/batepapo/enviar/texto`
+- `POST /api/v1/batepapo/editar/texto`
+- `POST /api/v1/batepapo/apagar`
 - `POST /api/v1/batepapo/enviar/presenca`
 - `POST /api/v1/user/presence` compatibilidade para `{"type":"unavailable"}`
 - `POST /api/v1/batepapo/marcar-lida`
@@ -423,8 +445,11 @@ Payload util para automacao:
 - `body.dados.chat_numero`
 - `body.dados.grupo`
 - `body.dados.mensagem_id`
+- `body.dados.acao` (`recebida`, `editada` ou `apagada`)
 - `body.dados.remetente_jid`
 - `body.dados.conteudo`
+
+Edicoes e apagamentos tambem chegam no evento `mensagens`; filtre por `body.dados.acao` quando precisar separar o fluxo.
 
 ### 2. Resposta privada via API
 
@@ -659,6 +684,29 @@ A quantidade de dias de historico deve ser definida antes de conectar a instanci
 - o `whatsmeow` recebe o `HistorySync` do WhatsApp e a API filtra as mensagens pelo periodo configurado
 - o WhatsApp/whatsmeow nao expoe um maximo garantido em dias nesse fluxo; o limite do projeto e operacional para evitar carga excessiva
 - mensagens de historico enviadas ao webhook de `mensagens` chegam com `historico=true` e `origem="historico"`
+
+## Recuperacao de janela offline
+
+Quando `WEBHOOK_RECOVERY_ENABLED=true`, a API agenda uma janela de recuperacao em dois cenarios:
+
+- o processo ficou desligado e o heartbeat persistente parou de atualizar
+- a instancia perdeu conexao com o WhatsApp enquanto o processo continuou ligado, detectado por `Disconnected` ou timeout de keepalive do proprio whatsmeow
+
+Ao reconectar, a API nao varre todos os chats imediatamente. Ela espera a proxima mensagem de cada conversa servir como ancora e solicita ate `WEBHOOK_RECOVERY_HISTORY_COUNT` mensagens daquele chat, filtrando pela janela com margem `WEBHOOK_RECOVERY_MARGIN_SECONDS`. Isso evita ping extra e reduz carga em producao.
+
+## Multi-container
+
+Para rodar mais de uma replica com seguranca, use Postgres para a aplicacao e para o store do WhatsApp:
+
+```env
+DATABASE_DRIVER=postgres
+WHATSAPP_STORE_DRIVER=postgres
+RUNTIME_LOCK_TTL_SECONDS=90
+```
+
+Cada instancia WhatsApp tem ownership em `instancia_runtime_locks`. Apenas o container dono pode manter o WebSocket daquela instancia; se ele parar de renovar o lock, outra replica pode assumir apos o TTL. A fila de webhooks tambem faz claim atomico das entregas para evitar envio duplicado.
+
+Sem roteamento para o container dono, uma requisicao de envio pode cair em uma replica que nao possui aquela instancia e retornar `409 instancia_em_outro_container`. Isso e intencional para preservar a sessao; a etapa seguinte para escala plena e adicionar roteamento/proxy interno por owner.
 
 ## Proxy por instancia e proxy global
 

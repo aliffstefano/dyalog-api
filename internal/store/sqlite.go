@@ -45,13 +45,29 @@ type WebhookEntregaStore interface {
 	EnfileirarWebhookEntrega(ctx context.Context, entrega models.WebhookEntrega) (models.WebhookEntrega, error)
 	ListarWebhookEntregas(ctx context.Context, instanciaID string, limite int) ([]models.WebhookEntrega, error)
 	BuscarWebhookEntregasPendentes(ctx context.Context, limite int, agora time.Time) ([]models.WebhookEntrega, error)
-	MarcarWebhookEntregaEnviando(ctx context.Context, entregaID string, agora time.Time) error
+	MarcarWebhookEntregaEnviando(ctx context.Context, entregaID string, agora time.Time) (bool, error)
 	RegistrarResultadoWebhookEntrega(ctx context.Context, entregaID, status string, tentativas int, proximaTentativaEm *time.Time, statusHTTP int, ultimoErro string, agora time.Time) error
+	LimparWebhookEntregasAntigas(ctx context.Context, antesDe time.Time) (int64, error)
+	CompactarWebhookEntregas(ctx context.Context) error
 }
 
 type RuntimeStore interface {
 	ObterHeartbeat(ctx context.Context, chave string) (time.Time, bool, error)
 	AtualizarHeartbeat(ctx context.Context, chave string, momento time.Time) error
+}
+
+type InstanciaRuntimeLockStore interface {
+	TentarAssumirInstancia(ctx context.Context, instanciaID, nodeID, endereco string, agora, expiraEm time.Time) (bool, error)
+	RenovarInstancia(ctx context.Context, instanciaID, nodeID, endereco string, agora, expiraEm time.Time) (bool, error)
+	LiberarInstancia(ctx context.Context, instanciaID, nodeID string) error
+	ObterDonoInstancia(ctx context.Context, instanciaID string) (DonoInstancia, bool, error)
+}
+
+// DonoInstancia descreve qual container detem o lock de uma instancia.
+type DonoInstancia struct {
+	NodeID   string
+	Endereco string
+	ExpiraEm time.Time
 }
 
 type MensagemProcessadaStore interface {
@@ -76,6 +92,12 @@ type ProxyStore interface {
 type ProxyConfigStore interface {
 	BuscarPorID(ctx context.Context, id string) (models.Instancia, error)
 	ObterProxyGlobal(ctx context.Context) (models.ProxyGlobal, error)
+}
+
+type WhatsAppDeviceStore interface {
+	ObterWhatsAppDeviceJID(ctx context.Context, instanciaID string) (string, bool, error)
+	SalvarWhatsAppDeviceJID(ctx context.Context, instanciaID, deviceJID string) error
+	ExcluirWhatsAppDeviceJID(ctx context.Context, instanciaID string) error
 }
 
 type SQLStore struct {
@@ -108,6 +130,17 @@ func NovoSQLStore(driver, dsn string) (*SQLStore, error) {
 	db, err := sql.Open(sqlDriver, dsnNormalizado)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao abrir banco %s: %w", dialeto, err)
+	}
+	// sql.Open nao conecta de verdade (e preguicoso); sem esse Ping com timeout
+	// explicito, um banco inalcancavel (rede caida, firewall, VPN desconectada)
+	// trava o processo em silencio por minutos no primeiro Exec, sem logar nada,
+	// ate o orquestrador matar o container por healthcheck. Com o Ping, falhamos
+	// rapido e com uma mensagem de erro clara.
+	pingCtx, cancelPing := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelPing()
+	if err := db.PingContext(pingCtx); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("erro ao conectar ao banco %s: %w", dialeto, err)
 	}
 	if dialeto == "sqlite" {
 		configurarSQLite(db)
@@ -241,6 +274,9 @@ func (s *SQLStore) prepararSchema() error {
 	if err := s.garantirColunasMidiasRecebidas(); err != nil {
 		return err
 	}
+	if err := s.garantirColunasRuntimeLocks(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -315,6 +351,18 @@ CREATE TABLE IF NOT EXISTS sistema_runtime (
     atualizado_em DATETIME NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS instancia_runtime_locks (
+    instancia_id TEXT PRIMARY KEY,
+    node_id TEXT NOT NULL,
+    endereco TEXT NOT NULL DEFAULT '',
+    heartbeat_em DATETIME NOT NULL,
+    expira_em DATETIME NOT NULL,
+    criado_em DATETIME NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_instancia_runtime_locks_expira ON instancia_runtime_locks(expira_em);
+
 CREATE TABLE IF NOT EXISTS mensagens_processadas (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL,
@@ -329,6 +377,14 @@ CREATE TABLE IF NOT EXISTS mensagens_processadas (
     FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_mensagens_processadas_instancia_chat ON mensagens_processadas(instancia_id, chat_jid, recebida_em DESC);
+
+CREATE TABLE IF NOT EXISTS whatsapp_devices (
+    instancia_id TEXT PRIMARY KEY,
+    device_jid TEXT NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_devices_jid ON whatsapp_devices(device_jid);
 
 CREATE TABLE IF NOT EXISTS sistema_dependencias (
     dependencia TEXT PRIMARY KEY,
@@ -440,6 +496,17 @@ CREATE TABLE IF NOT EXISTS sistema_runtime (
     atualizado_em TIMESTAMPTZ NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS instancia_runtime_locks (
+    instancia_id TEXT PRIMARY KEY REFERENCES instancias(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    endereco TEXT NOT NULL DEFAULT '',
+    heartbeat_em TIMESTAMPTZ NOT NULL,
+    expira_em TIMESTAMPTZ NOT NULL,
+    criado_em TIMESTAMPTZ NOT NULL,
+    atualizado_em TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_instancia_runtime_locks_expira ON instancia_runtime_locks(expira_em);
+
 CREATE TABLE IF NOT EXISTS mensagens_processadas (
     instancia_id TEXT NOT NULL REFERENCES instancias(id) ON DELETE CASCADE,
     chat_jid TEXT NOT NULL,
@@ -453,6 +520,12 @@ CREATE TABLE IF NOT EXISTS mensagens_processadas (
     PRIMARY KEY (instancia_id, chat_jid, mensagem_id)
 );
 CREATE INDEX IF NOT EXISTS idx_mensagens_processadas_instancia_chat ON mensagens_processadas(instancia_id, chat_jid, recebida_em DESC);
+
+CREATE TABLE IF NOT EXISTS whatsapp_devices (
+    instancia_id TEXT PRIMARY KEY REFERENCES instancias(id) ON DELETE CASCADE,
+    device_jid TEXT NOT NULL UNIQUE,
+    atualizado_em TIMESTAMPTZ NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS sistema_dependencias (
     dependencia TEXT PRIMARY KEY,
@@ -727,6 +800,43 @@ func (s *SQLStore) Excluir(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *SQLStore) ObterWhatsAppDeviceJID(ctx context.Context, instanciaID string) (string, bool, error) {
+	var deviceJID string
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT device_jid FROM whatsapp_devices WHERE instancia_id = ?`), instanciaID).Scan(&deviceJID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("erro ao buscar device WhatsApp da instancia: %w", err)
+	}
+	return strings.TrimSpace(deviceJID), true, nil
+}
+
+func (s *SQLStore) SalvarWhatsAppDeviceJID(ctx context.Context, instanciaID, deviceJID string) error {
+	instanciaID = strings.TrimSpace(instanciaID)
+	deviceJID = strings.TrimSpace(deviceJID)
+	if instanciaID == "" || deviceJID == "" {
+		return fmt.Errorf("instancia_id e device_jid sao obrigatorios")
+	}
+	agora := time.Now().UTC()
+	query := `INSERT INTO whatsapp_devices (instancia_id, device_jid, atualizado_em)
+VALUES (?, ?, ?)
+ON CONFLICT(instancia_id) DO UPDATE SET
+    device_jid = excluded.device_jid,
+    atualizado_em = excluded.atualizado_em`
+	if _, err := s.db.ExecContext(ctx, s.q(query), instanciaID, deviceJID, agora); err != nil {
+		return fmt.Errorf("erro ao salvar device WhatsApp da instancia: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) ExcluirWhatsAppDeviceJID(ctx context.Context, instanciaID string) error {
+	if _, err := s.db.ExecContext(ctx, s.q(`DELETE FROM whatsapp_devices WHERE instancia_id = ?`), strings.TrimSpace(instanciaID)); err != nil {
+		return fmt.Errorf("erro ao excluir device WhatsApp da instancia: %w", err)
+	}
+	return nil
+}
+
 func (s *SQLStore) ObterProxyGlobal(ctx context.Context) (models.ProxyGlobal, error) {
 	var proxy models.ProxyGlobal
 	var ativo interface{}
@@ -979,11 +1089,15 @@ LIMIT ?`),
 	return scanWebhookEntregas(rows)
 }
 
-func (s *SQLStore) MarcarWebhookEntregaEnviando(ctx context.Context, entregaID string, agora time.Time) error {
+func (s *SQLStore) MarcarWebhookEntregaEnviando(ctx context.Context, entregaID string, agora time.Time) (bool, error) {
+	travadasAntesDe := agora.Add(-5 * time.Minute)
 	result, err := s.db.ExecContext(ctx, s.q(`
 UPDATE webhook_entregas
 SET status = ?, ultima_tentativa_em = ?, atualizado_em = ?
-WHERE id = ? AND status IN (?, ?, ?)`),
+WHERE id = ? AND (
+    status IN (?, ?)
+    OR (status = ? AND atualizado_em <= ?)
+)`),
 		models.WebhookEntregaEnviando,
 		agora.UTC(),
 		agora.UTC(),
@@ -991,18 +1105,19 @@ WHERE id = ? AND status IN (?, ?, ?)`),
 		models.WebhookEntregaPendente,
 		models.WebhookEntregaFalha,
 		models.WebhookEntregaEnviando,
+		travadasAntesDe.UTC(),
 	)
 	if err != nil {
-		return fmt.Errorf("erro ao marcar webhook como enviando: %w", err)
+		return false, fmt.Errorf("erro ao marcar webhook como enviando: %w", err)
 	}
 	afetadas, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("erro ao validar entrega de webhook: %w", err)
+		return false, fmt.Errorf("erro ao validar entrega de webhook: %w", err)
 	}
 	if afetadas == 0 {
-		return ErrWebhookNaoEncontrado
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func (s *SQLStore) RegistrarResultadoWebhookEntrega(ctx context.Context, entregaID, status string, tentativas int, proximaTentativaEm *time.Time, statusHTTP int, ultimoErro string, agora time.Time) error {
@@ -1024,6 +1139,43 @@ WHERE id = ?`),
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao registrar resultado do webhook: %w", err)
+	}
+	return nil
+}
+
+// LimparWebhookEntregasAntigas apaga entregas ja finalizadas (entregues ou
+// esgotadas) atualizadas antes de antesDe. Entregas pendentes, em retry ("falha"
+// com tentativas restantes) ou em andamento ("enviando") nunca sao apagadas aqui,
+// mesmo que antigas, para nao perder itens que a fila ainda pode reprocessar.
+func (s *SQLStore) LimparWebhookEntregasAntigas(ctx context.Context, antesDe time.Time) (int64, error) {
+	result, err := s.db.ExecContext(ctx, s.q(`
+DELETE FROM webhook_entregas
+WHERE status IN (?, ?) AND atualizado_em < ?`),
+		models.WebhookEntregaEntregue, models.WebhookEntregaEsgotada, antesDe.UTC(),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("erro ao limpar entregas antigas de webhook: %w", err)
+	}
+	afetadas, _ := result.RowsAffected()
+	return afetadas, nil
+}
+
+// CompactarWebhookEntregas devolve ao sistema operacional o espaco em disco
+// liberado pelos DELETEs de LimparWebhookEntregasAntigas. Um DELETE comum so
+// marca as linhas como reutilizaveis internamente pelo Postgres; sem o VACUUM
+// FULL o arquivo da tabela no disco nao encolhe. So se aplica ao Postgres (SQLite
+// nao tem esse problema de inchaco por MVCC da mesma forma, e o VACUUM do SQLite
+// reconstroi o banco inteiro, nao so uma tabela).
+//
+// VACUUM FULL toma um ACCESS EXCLUSIVE LOCK na tabela (bloqueia leitura e
+// escrita) enquanto reescreve o arquivo inteiro. Rodar em horario de baixo
+// movimento (ex: madrugada) evita impacto perceptivel.
+func (s *SQLStore) CompactarWebhookEntregas(ctx context.Context) error {
+	if s.dialeto != "postgres" {
+		return nil
+	}
+	if _, err := s.db.ExecContext(ctx, `VACUUM FULL webhook_entregas`); err != nil {
+		return fmt.Errorf("erro ao compactar (VACUUM FULL) webhook_entregas: %w", err)
 	}
 	return nil
 }
@@ -1064,6 +1216,101 @@ ON CONFLICT(chave) DO UPDATE SET
 		return fmt.Errorf("erro ao atualizar heartbeat: %w", err)
 	}
 	return nil
+}
+
+func (s *SQLStore) TentarAssumirInstancia(ctx context.Context, instanciaID, nodeID, endereco string, agora, expiraEm time.Time) (bool, error) {
+	instanciaID = strings.TrimSpace(instanciaID)
+	nodeID = strings.TrimSpace(nodeID)
+	endereco = strings.TrimSpace(endereco)
+	if instanciaID == "" || nodeID == "" {
+		return false, nil
+	}
+	agora = agora.UTC()
+	expiraEm = expiraEm.UTC()
+	if s.dialeto == "postgres" {
+		result, err := s.db.ExecContext(ctx, s.q(`
+INSERT INTO instancia_runtime_locks (instancia_id, node_id, endereco, heartbeat_em, expira_em, criado_em, atualizado_em)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (instancia_id) DO UPDATE SET
+    node_id = excluded.node_id,
+    endereco = excluded.endereco,
+    heartbeat_em = excluded.heartbeat_em,
+    expira_em = excluded.expira_em,
+    atualizado_em = excluded.atualizado_em
+WHERE instancia_runtime_locks.node_id = excluded.node_id
+   OR instancia_runtime_locks.expira_em <= ?`),
+			instanciaID, nodeID, endereco, agora, expiraEm, agora, agora, agora)
+		if err != nil {
+			return false, fmt.Errorf("erro ao assumir lock da instancia: %w", err)
+		}
+		afetadas, _ := result.RowsAffected()
+		return afetadas > 0, nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("erro ao iniciar transacao do lock: %w", err)
+	}
+	defer tx.Rollback()
+	var dono string
+	var expiraAtual time.Time
+	err = tx.QueryRowContext(ctx, s.q(`SELECT node_id, expira_em FROM instancia_runtime_locks WHERE instancia_id = ?`), instanciaID).Scan(&dono, &expiraAtual)
+	if errors.Is(err, sql.ErrNoRows) {
+		_, err = tx.ExecContext(ctx, s.q(`
+INSERT INTO instancia_runtime_locks (instancia_id, node_id, endereco, heartbeat_em, expira_em, criado_em, atualizado_em)
+VALUES (?, ?, ?, ?, ?, ?, ?)`), instanciaID, nodeID, endereco, agora, expiraEm, agora, agora)
+		if err != nil {
+			return false, fmt.Errorf("erro ao criar lock da instancia: %w", err)
+		}
+		return true, tx.Commit()
+	}
+	if err != nil {
+		return false, fmt.Errorf("erro ao consultar lock da instancia: %w", err)
+	}
+	if dono != nodeID && expiraAtual.After(agora) {
+		return false, nil
+	}
+	_, err = tx.ExecContext(ctx, s.q(`
+UPDATE instancia_runtime_locks
+SET node_id = ?, endereco = ?, heartbeat_em = ?, expira_em = ?, atualizado_em = ?
+WHERE instancia_id = ?`), nodeID, endereco, agora, expiraEm, agora, instanciaID)
+	if err != nil {
+		return false, fmt.Errorf("erro ao atualizar lock da instancia: %w", err)
+	}
+	return true, tx.Commit()
+}
+
+func (s *SQLStore) RenovarInstancia(ctx context.Context, instanciaID, nodeID, endereco string, agora, expiraEm time.Time) (bool, error) {
+	result, err := s.db.ExecContext(ctx, s.q(`
+UPDATE instancia_runtime_locks
+SET endereco = ?, heartbeat_em = ?, expira_em = ?, atualizado_em = ?
+WHERE instancia_id = ? AND node_id = ?`),
+		strings.TrimSpace(endereco), agora.UTC(), expiraEm.UTC(), agora.UTC(), strings.TrimSpace(instanciaID), strings.TrimSpace(nodeID))
+	if err != nil {
+		return false, fmt.Errorf("erro ao renovar lock da instancia: %w", err)
+	}
+	afetadas, _ := result.RowsAffected()
+	return afetadas > 0, nil
+}
+
+func (s *SQLStore) LiberarInstancia(ctx context.Context, instanciaID, nodeID string) error {
+	_, err := s.db.ExecContext(ctx, s.q(`DELETE FROM instancia_runtime_locks WHERE instancia_id = ? AND node_id = ?`), strings.TrimSpace(instanciaID), strings.TrimSpace(nodeID))
+	if err != nil {
+		return fmt.Errorf("erro ao liberar lock da instancia: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) ObterDonoInstancia(ctx context.Context, instanciaID string) (DonoInstancia, bool, error) {
+	var dono DonoInstancia
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT node_id, endereco, expira_em FROM instancia_runtime_locks WHERE instancia_id = ?`), strings.TrimSpace(instanciaID)).Scan(&dono.NodeID, &dono.Endereco, &dono.ExpiraEm)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DonoInstancia{}, false, nil
+	}
+	if err != nil {
+		return DonoInstancia{}, false, fmt.Errorf("erro ao consultar dono da instancia: %w", err)
+	}
+	dono.ExpiraEm = dono.ExpiraEm.UTC()
+	return dono, true, nil
 }
 
 func (s *SQLStore) RegistrarMensagemProcessada(ctx context.Context, mensagem models.MensagemProcessada) (bool, error) {
@@ -1352,6 +1599,21 @@ func (s *SQLStore) garantirColunasMidiasRecebidas() error {
 	for _, coluna := range colunas {
 		if _, err := s.db.Exec(coluna.query); err != nil && !erroColunaDuplicada(err) {
 			return fmt.Errorf("erro ao garantir coluna %s da midia recebida: %w", coluna.nome, err)
+		}
+	}
+	return nil
+}
+
+func (s *SQLStore) garantirColunasRuntimeLocks() error {
+	colunas := []struct {
+		nome  string
+		query string
+	}{
+		{nome: "endereco", query: `ALTER TABLE instancia_runtime_locks ADD COLUMN endereco TEXT NOT NULL DEFAULT ''`},
+	}
+	for _, coluna := range colunas {
+		if _, err := s.db.Exec(coluna.query); err != nil && !erroColunaDuplicada(err) {
+			return fmt.Errorf("erro ao garantir coluna %s do lock de runtime: %w", coluna.nome, err)
 		}
 	}
 	return nil

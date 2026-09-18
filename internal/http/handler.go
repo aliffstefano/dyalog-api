@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,10 +12,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"dyalog-api-go/internal/config"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/service"
+	"dyalog-api-go/internal/whatsapp"
 
 	"github.com/gin-gonic/gin"
 	qrcode "github.com/skip2/go-qrcode"
@@ -509,6 +512,77 @@ func (h *APIHandler) QRCodeInstanciaImagem(c *gin.Context) {
 	c.Data(nethttp.StatusOK, "image/png", png)
 }
 
+func (h *APIHandler) AvatarContato(c *gin.Context) {
+	instanciaID := c.Param("id")
+	if !h.garantirInstancia(c, instanciaID) {
+		return
+	}
+	avatar, err := h.instanciaService.ConsultarAvatar(c.Request.Context(), models.ConsultaAvatarRequest{
+		Instancia: instanciaID,
+		Numero:    c.Query("numero"),
+		ChatJID:   c.Query("chat_jid"),
+		Grupo:     strings.EqualFold(c.Query("grupo"), "true") || c.Query("grupo") == "1",
+	})
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+
+	switch strings.ToLower(strings.TrimSpace(c.DefaultQuery("formato", "json"))) {
+	case "", "json", "url":
+		c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Avatar consultado com sucesso", avatar))
+	case "arquivo", "file", "download":
+		c.Redirect(nethttp.StatusFound, avatar.AvatarURL)
+	case "base64":
+		h.responderAvatarBase64(c, avatar)
+	default:
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Formato invalido: use json, base64 ou arquivo")
+	}
+}
+
+func (h *APIHandler) responderAvatarBase64(c *gin.Context, avatar models.AvatarContato) {
+	req, err := nethttp.NewRequestWithContext(c.Request.Context(), nethttp.MethodGet, avatar.AvatarURL, nil)
+	if err != nil {
+		h.responderErro(c, nethttp.StatusInternalServerError, "erro_avatar", "Nao foi possivel preparar download do avatar")
+		return
+	}
+	client := &nethttp.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		h.responderErro(c, nethttp.StatusBadGateway, "erro_avatar", "Nao foi possivel baixar o avatar do WhatsApp")
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		h.responderErro(c, nethttp.StatusBadGateway, "erro_avatar", "WhatsApp nao liberou o download do avatar")
+		return
+	}
+	dados, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
+	if err != nil {
+		h.responderErro(c, nethttp.StatusInternalServerError, "erro_avatar", "Nao foi possivel ler o avatar")
+		return
+	}
+	mimeType := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if mimeType == "" {
+		mimeType = "image/jpeg"
+	}
+	base64Avatar := base64.StdEncoding.EncodeToString(dados)
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Avatar consultado com sucesso", gin.H{
+		"instancia":       avatar.Instancia,
+		"numero":          avatar.Numero,
+		"chat_jid":        avatar.ChatJID,
+		"grupo":           avatar.Grupo,
+		"tem_avatar":      avatar.TemAvatar,
+		"avatar_id":       avatar.AvatarID,
+		"avatar_url":      avatar.AvatarURL,
+		"tipo":            avatar.Tipo,
+		"mime_type":       mimeType,
+		"tamanho_bytes":   len(dados),
+		"avatar_base64":   base64Avatar,
+		"avatar_data_uri": "data:" + mimeType + ";base64," + base64Avatar,
+	}))
+}
+
 func (h *APIHandler) BaixarMidiaRecebida(c *gin.Context) {
 	if !h.garantirInstancia(c, c.Param("id")) {
 		return
@@ -628,6 +702,40 @@ func (h *APIHandler) EnviarTexto(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Envio de texto preparado com sucesso", resultado))
 }
 
+func (h *APIHandler) EditarTexto(c *gin.Context) {
+	var req models.EditarTextoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id, mensagem e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.EditarTexto(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Mensagem editada com sucesso", resultado))
+}
+
+func (h *APIHandler) ApagarMensagem(c *gin.Context) {
+	var req models.ApagarMensagemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.ApagarMensagem(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Mensagem apagada com sucesso", resultado))
+}
+
 func (h *APIHandler) EnviarPresenca(c *gin.Context) {
 	var req models.EnvioPresencaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -708,9 +816,88 @@ func (h *APIHandler) EnviarLista(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
 }
 
+func (h *APIHandler) EnviarEnquete(c *gin.Context) {
+	var req models.EnvioEnqueteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: nome ou pergunta, opcoes (2 a 12) e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarEnquete(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	mensagem := "Enquete enviada com sucesso"
+	if resultado.Status == "aceita_pelo_servidor" {
+		mensagem = "Enquete aceita pelo servidor do WhatsApp"
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
+}
+
+func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
+	var req models.EnvioCobrancaPixRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarCobrancaPix(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	mensagem := "Cobranca Pix enviada com sucesso"
+	if resultado.Modo == "texto" {
+		mensagem = "Cobranca Pix enviada como texto"
+	} else if resultado.Status == "aceita_pelo_servidor" {
+		mensagem = "Botao de cobranca Pix aceito pelo servidor do WhatsApp"
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
+}
+
+func (h *APIHandler) EnviarLocalizacao(c *gin.Context) {
+	var req models.EnvioLocalizacaoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: latitude, longitude e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarLocalizacao(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Localizacao enviada com sucesso", resultado))
+}
+
+func (h *APIHandler) EnviarContato(c *gin.Context) {
+	var req models.EnvioContatoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: nome e telefone (ou vcard, ou lista contatos), e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarContato(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Contato enviado com sucesso", resultado))
+}
+
 func (h *APIHandler) EnviarImagem(c *gin.Context)    { h.enviarMidia(c, "imagem") }
 func (h *APIHandler) EnviarAudio(c *gin.Context)     { h.enviarMidia(c, "audio") }
 func (h *APIHandler) EnviarDocumento(c *gin.Context) { h.enviarMidia(c, "documento") }
+func (h *APIHandler) EnviarFigurinha(c *gin.Context) { h.enviarMidia(c, "figurinha") }
 
 func (h *APIHandler) ListarChamadas(c *gin.Context) {
 	instanciaID := c.Param("id")
@@ -810,6 +997,23 @@ func (h *APIHandler) SinalizarWebRTCChamada(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Sinalizacao WebRTC preparada com sucesso", resultado))
 }
 
+func (h *APIHandler) ReagirMensagem(c *gin.Context) {
+	var req models.ReagirMensagemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id, emoji e numero ou chat_jid")
+		return
+	}
+	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+		return
+	}
+	resultado, err := h.mensagemService.ReagirMensagem(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Reacao enviada com sucesso", resultado))
+}
+
 func (h *APIHandler) enviarMidia(c *gin.Context, tipo string) {
 	var req models.EnvioMidiaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -832,6 +1036,8 @@ func (h *APIHandler) enviarMidia(c *gin.Context, tipo string) {
 		resultado, err = h.mensagemService.EnviarAudio(c.Request.Context(), req)
 	case "documento":
 		resultado, err = h.mensagemService.EnviarDocumento(c.Request.Context(), req)
+	case "figurinha":
+		resultado, err = h.mensagemService.EnviarFigurinha(c.Request.Context(), req)
 	}
 
 	if err != nil {
@@ -881,6 +1087,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusNotFound, "webhook_nao_encontrado", "Webhook nao encontrado")
 	case errors.Is(err, service.ErrMidiaNaoEncontrada):
 		h.responderErro(c, nethttp.StatusNotFound, "midia_nao_encontrada", "Midia nao encontrada")
+	case errors.Is(err, service.ErrAvatarNaoEncontrado):
+		h.responderErro(c, nethttp.StatusNotFound, "avatar_nao_encontrado", "Avatar nao encontrado ou sem permissao para visualizar")
 	case errors.Is(err, service.ErrEntradaInvalida):
 		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", mensagemEntradaInvalida(err))
 	case errors.Is(err, service.ErrDependenciaNaoEncontrada):
@@ -889,6 +1097,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusForbidden, "nao_autorizado", "Aplicacao de atualizacao exige token valido")
 	case errors.Is(err, service.ErrHistoricoBloqueado):
 		h.responderErro(c, nethttp.StatusConflict, "historico_bloqueado", "Defina a importacao de historico antes de conectar a instancia. Desconecte e gere nova conexao para mudar essa configuracao.")
+	case errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode):
+		h.responderErro(c, nethttp.StatusConflict, "instancia_em_outro_container", err.Error())
 	case errors.Is(err, service.ErrAtualizacaoBloqueada):
 		h.responderErro(c, nethttp.StatusForbidden, "atualizacao_bloqueada", "Atualizacao bloqueada por configuracao de seguranca")
 	case errors.Is(err, service.ErrNenhumaAtualizacao):

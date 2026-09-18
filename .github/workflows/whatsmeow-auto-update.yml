@@ -1,0 +1,117 @@
+name: Auto-update whatsmeow
+
+# Roda toda semana e sempre que alguem disparar manualmente pela aba Actions.
+# Fluxo: atualiza a dependencia whatsmeow -> compila -> testa -> so segue adiante
+# se tudo passar -> commita o bump -> builda imagem multi-arch -> publica no
+# Docker Hub -> atualiza o servico no Swarm. O rollback automatico em caso de
+# falha de saude do container e feito pelo proprio Swarm, usando o
+# update_config (failure_action: rollback) ja configurado no servico
+# dyalog-api_dyalog-api. Este workflow nao decide isso sozinho - so aciona a
+# atualizacao e deixa o Swarm reverter se o container novo nao ficar saudavel.
+on:
+  schedule:
+    # 07:00 UTC = 03:00 em America/Manaus (UTC-4, sem horario de verao).
+    - cron: "0 7 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whatsmeow-auto-update
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Atualizar whatsmeow para a ultima versao
+        id: bump
+        run: |
+          set -euo pipefail
+          antes=$(go list -m -f '{{.Version}}' go.mau.fi/whatsmeow)
+          go get -u go.mau.fi/whatsmeow@latest
+          go mod tidy
+          depois=$(go list -m -f '{{.Version}}' go.mau.fi/whatsmeow)
+          echo "versao_antes=$antes" >> "$GITHUB_OUTPUT"
+          echo "versao_depois=$depois" >> "$GITHUB_OUTPUT"
+          if [ "$antes" = "$depois" ]; then
+            echo "mudou=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "mudou=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compilar
+        if: steps.bump.outputs.mudou == 'true'
+        run: go build ./...
+
+      - name: Rodar testes
+        if: steps.bump.outputs.mudou == 'true'
+        run: go test ./...
+
+      - name: Commitar bump do whatsmeow
+        if: steps.bump.outputs.mudou == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "dyalog-bot"
+          git config user.email "bot@dyalog.com.br"
+          git add go.mod go.sum
+          git commit -m "chore: atualiza whatsmeow ${{ steps.bump.outputs.versao_antes }} -> ${{ steps.bump.outputs.versao_depois }}"
+          git push origin HEAD:main
+
+      - name: Configurar QEMU (para build arm64)
+        if: steps.bump.outputs.mudou == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Configurar Buildx
+        if: steps.bump.outputs.mudou == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no Docker Hub
+        if: steps.bump.outputs.mudou == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e push da imagem multi-arch
+        if: steps.bump.outputs.mudou == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            aliffstefano/dyalog-api:latest
+            aliffstefano/dyalog-api:whatsmeow-${{ steps.bump.outputs.versao_depois }}
+
+      - name: Atualizar servico no Swarm
+        if: steps.bump.outputs.mudou == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SWARM_SSH_HOST }}
+          username: ${{ secrets.SWARM_SSH_USER }}
+          key: ${{ secrets.SWARM_SSH_KEY }}
+          script: |
+            docker pull aliffstefano/dyalog-api:latest
+            docker service update --force --image aliffstefano/dyalog-api:latest --with-registry-auth dyalog-api_dyalog-api
+
+      - name: Resumo
+        if: always()
+        run: |
+          if [ "${{ steps.bump.outputs.mudou }}" = "true" ]; then
+            echo "### whatsmeow atualizado" >> "$GITHUB_STEP_SUMMARY"
+            echo "${{ steps.bump.outputs.versao_antes }} -> ${{ steps.bump.outputs.versao_depois }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Nenhuma atualizacao disponivel para whatsmeow" >> "$GITHUB_STEP_SUMMARY"
+          fi

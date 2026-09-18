@@ -30,6 +30,7 @@ func (s *ChamadaService) Iniciar(ctx context.Context, req models.IniciarChamadaR
 }
 
 func (s *ChamadaService) Aceitar(ctx context.Context, req models.AcaoChamadaRequest) (models.ResultadoChamada, error) {
+	req = normalizarAcaoChamadaCompat(req)
 	if err := s.validarAcao(ctx, req); err != nil {
 		return models.ResultadoChamada{}, err
 	}
@@ -37,6 +38,7 @@ func (s *ChamadaService) Aceitar(ctx context.Context, req models.AcaoChamadaRequ
 }
 
 func (s *ChamadaService) Rejeitar(ctx context.Context, req models.AcaoChamadaRequest) (models.ResultadoChamada, error) {
+	req = normalizarAcaoChamadaCompat(req)
 	if err := s.validarAcao(ctx, req); err != nil {
 		return models.ResultadoChamada{}, err
 	}
@@ -44,6 +46,7 @@ func (s *ChamadaService) Rejeitar(ctx context.Context, req models.AcaoChamadaReq
 }
 
 func (s *ChamadaService) Encerrar(ctx context.Context, req models.AcaoChamadaRequest) (models.ResultadoChamada, error) {
+	req = normalizarAcaoChamadaCompat(req)
 	if err := s.validarAcao(ctx, req); err != nil {
 		return models.ResultadoChamada{}, err
 	}
@@ -51,6 +54,7 @@ func (s *ChamadaService) Encerrar(ctx context.Context, req models.AcaoChamadaReq
 }
 
 func (s *ChamadaService) SinalizarWebRTC(ctx context.Context, req models.SinalizacaoWebRTCRequest) (models.ResultadoWebRTC, error) {
+	req = normalizarSinalizacaoWebRTCCompat(req)
 	if err := s.validarInstancia(ctx, req.Instancia); err != nil {
 		return models.ResultadoWebRTC{}, err
 	}
@@ -61,6 +65,29 @@ func (s *ChamadaService) SinalizarWebRTC(ctx context.Context, req models.Sinaliz
 		return models.ResultadoWebRTC{}, fmt.Errorf("%w: informe sdp_offer", ErrEntradaInvalida)
 	}
 	return s.gerenciador.SinalizarWebRTC(ctx, req)
+}
+
+func normalizarAcaoChamadaCompat(req models.AcaoChamadaRequest) models.AcaoChamadaRequest {
+	if chamadaIDAusente(req.ChamadaID) {
+		req.ChamadaID = strings.TrimSpace(req.ID)
+	}
+	return req
+}
+
+func normalizarSinalizacaoWebRTCCompat(req models.SinalizacaoWebRTCRequest) models.SinalizacaoWebRTCRequest {
+	if chamadaIDAusente(req.ChamadaID) {
+		req.ChamadaID = strings.TrimSpace(req.ID)
+	}
+	return req
+}
+
+func chamadaIDAusente(valor string) bool {
+	switch strings.ToLower(strings.TrimSpace(valor)) {
+	case "", "undefined", "null":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *ChamadaService) Listar(ctx context.Context, instanciaID string) ([]models.ResultadoChamada, error) {
