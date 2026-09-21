@@ -22,25 +22,51 @@ type MidiaUploader interface {
 	Enviar(ctx context.Context, objectPath, mimeType string, dados []byte) (ResultadoUpload, error)
 }
 
-func NovoMidiaUploader(driver, supabaseURL, supabaseKey, bucket, publicBaseURL string) (MidiaUploader, error) {
-	driver = strings.ToLower(strings.TrimSpace(driver))
-	if driver == "" || driver == "local" {
+// Config reune as opcoes de storage de midia. Virou struct porque o driver s3
+// sozinho traz cinco campos, e uma lista posicional de dez argumentos e um
+// convite a trocar dois de lugar sem o compilador reclamar.
+type Config struct {
+	Driver        string
+	PublicBaseURL string
+
+	SupabaseURL    string
+	SupabaseKey    string
+	SupabaseBucket string
+
+	S3Endpoint  string
+	S3AccessKey string
+	S3SecretKey string
+	S3Bucket    string
+	S3Region    string
+}
+
+func NovoMidiaUploader(cfg Config) (MidiaUploader, error) {
+	driver := strings.ToLower(strings.TrimSpace(cfg.Driver))
+	publicBaseURL := strings.TrimRight(strings.TrimSpace(cfg.PublicBaseURL), "/")
+	switch driver {
+	case "", "local":
 		return nil, nil
+	case "supabase":
+		return novoSupabaseUploader(cfg, publicBaseURL)
+	case "s3":
+		return novoS3Uploader(cfg, publicBaseURL)
+	default:
+		return nil, fmt.Errorf("MEDIA_STORAGE_DRIVER invalido: use local, supabase ou s3")
 	}
-	if driver != "supabase" {
-		return nil, fmt.Errorf("MEDIA_STORAGE_DRIVER invalido: use local ou supabase")
-	}
-	supabaseURL = strings.TrimRight(strings.TrimSpace(supabaseURL), "/")
-	supabaseKey = strings.TrimSpace(supabaseKey)
-	bucket = strings.TrimSpace(bucket)
+}
+
+func novoSupabaseUploader(cfg Config, publicBaseURL string) (MidiaUploader, error) {
+	supabaseURL := strings.TrimRight(strings.TrimSpace(cfg.SupabaseURL), "/")
+	supabaseKey := strings.TrimSpace(cfg.SupabaseKey)
+	bucket := strings.TrimSpace(cfg.SupabaseBucket)
 	if supabaseURL == "" || supabaseKey == "" || bucket == "" {
 		return nil, fmt.Errorf("MEDIA_STORAGE_SUPABASE_URL, MEDIA_STORAGE_SUPABASE_KEY e MEDIA_STORAGE_SUPABASE_BUCKET sao obrigatorios para storage supabase")
 	}
 	return &supabaseUploader{
-		baseURL:       strings.TrimRight(supabaseURL, "/"),
+		baseURL:       supabaseURL,
 		key:           supabaseKey,
 		bucket:        bucket,
-		publicBaseURL: strings.TrimRight(strings.TrimSpace(publicBaseURL), "/"),
+		publicBaseURL: publicBaseURL,
 		client:        &http.Client{Timeout: 60 * time.Second},
 	}, nil
 }

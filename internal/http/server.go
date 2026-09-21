@@ -45,13 +45,18 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 		cfg.WebhookConcorrencia,
 		cfg.WebhookLoteProcessamento,
 	)
-	midiaUploader, err := mediastorage.NovoMidiaUploader(
-		cfg.MidiaStorageDriver,
-		cfg.MidiaStorageSupabaseURL,
-		cfg.MidiaStorageSupabaseKey,
-		cfg.MidiaStorageSupabaseBucket,
-		cfg.MidiaStoragePublicBaseURL,
-	)
+	midiaUploader, err := mediastorage.NovoMidiaUploader(mediastorage.Config{
+		Driver:         cfg.MidiaStorageDriver,
+		PublicBaseURL:  cfg.MidiaStoragePublicBaseURL,
+		SupabaseURL:    cfg.MidiaStorageSupabaseURL,
+		SupabaseKey:    cfg.MidiaStorageSupabaseKey,
+		SupabaseBucket: cfg.MidiaStorageSupabaseBucket,
+		S3Endpoint:     cfg.MidiaStorageS3Endpoint,
+		S3AccessKey:    cfg.MidiaStorageS3AccessKey,
+		S3SecretKey:    cfg.MidiaStorageS3SecretKey,
+		S3Bucket:       cfg.MidiaStorageS3Bucket,
+		S3Region:       cfg.MidiaStorageS3Region,
+	})
 	if err != nil {
 		return nil, err
 	}

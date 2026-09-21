@@ -667,6 +667,74 @@ WHATSAPP_STORE_DRIVER=postgres
 
 Se `WHATSAPP_STORE_DSN` estiver vazio, a API reutiliza o Postgres da aplicacao (`DATABASE_DSN` ou `DB_*`). O vinculo entre instancia e device fica em `whatsapp_devices`, evitando que uma instancia carregue o device de outra em um store compartilhado.
 
+## Storage de midia
+
+Midia recebida sempre grava no disco do container. O `MEDIA_STORAGE_DRIVER` define
+se, alem disso, ela sobe para um storage externo.
+
+| Driver | Uso |
+| --- | --- |
+| `local` | so disco do container. Padrao |
+| `supabase` | Supabase Storage, via REST proprio do Supabase |
+| `s3` | qualquer servico compativel com S3: Cloudflare R2, Garage, MinIO, Backblaze B2, Wasabi |
+
+Com varias replicas, `local` e problematico: o arquivo fica no disco da replica que
+recebeu a mensagem, e um download que caia em outra replica nao acha. Storage externo
+resolve isso, porque todas as replicas escrevem e leem do mesmo lugar.
+
+### Driver s3
+
+Variaveis: `MEDIA_STORAGE_S3_ENDPOINT`, `MEDIA_STORAGE_S3_ACCESS_KEY`,
+`MEDIA_STORAGE_S3_SECRET_KEY`, `MEDIA_STORAGE_S3_BUCKET` e `MEDIA_STORAGE_S3_REGION`.
+
+O endpoint aceita com ou sem esquema; sem esquema, assume `https`. Trocar de um
+servico compativel para outro e so mudar as variaveis, sem rebuild.
+
+Cloudflare R2:
+
+```text
+MEDIA_STORAGE_S3_ENDPOINT=https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com
+MEDIA_STORAGE_S3_REGION=auto
+```
+
+Garage ou MinIO:
+
+```text
+MEDIA_STORAGE_S3_ENDPOINT=http://garage.interno:3900
+MEDIA_STORAGE_S3_REGION=garage
+```
+
+### URL publica
+
+`MEDIA_STORAGE_PUBLIC_BASE_URL` e o endereco usado para montar o link salvo em
+`storage_url`. Sem ela, o link sai apontando direto para o endpoint com o bucket no
+caminho, o que so funciona se o bucket for publico.
+
+- No R2, use um dominio custom ligado ao bucket. O endereco `r2.dev` e so para
+  desenvolvimento: tem limite de requisicoes e a Cloudflare nao recomenda em producao.
+- No Garage, use o modo website do bucket.
+
+### Um driver por vez
+
+So um driver fica ativo. Nao da para gravar em dois storages ao mesmo tempo: cada
+midia guarda um unico `storage_provider`, `storage_path` e `storage_url`.
+
+Trocar de driver vale so para midia nova. As antigas continuam onde foram gravadas,
+e os links ja salvos no banco continuam apontando para la. Ou seja, o storage antigo
+precisa continuar de pe enquanto esses links importarem, ou a midia antiga precisa
+ser migrada e os links reescritos.
+
+### Compatibilidade
+
+O driver usa `minio-go`, nao o SDK oficial da AWS: versoes recentes do
+`aws-sdk-go-v2` mandam headers de checksum por padrao que varios servicos
+compativeis rejeitam, o R2 entre eles, e o sintoma aparece como erro de assinatura.
+
+O upload tambem desliga a assinatura streaming do `minio-go`, que quebraria o corpo
+em blocos `aws-chunked` em endpoint sem TLS e nao e aceita por todo servico
+compativel. No lugar vai `Content-MD5`, entao o servidor continua conferindo
+integridade.
+
 ## Multi-container
 
 Multi-container e seguro quando o Postgres esta ativo e o ownership por instancia esta habilitado. A API usa a tabela `instancia_runtime_locks` para garantir que uma instancia WhatsApp tenha somente um container dono por vez.

@@ -66,6 +66,11 @@ type Config struct {
 	MidiaStorageSupabaseKey       string
 	MidiaStorageSupabaseBucket    string
 	MidiaStoragePublicBaseURL     string
+	MidiaStorageS3Endpoint        string
+	MidiaStorageS3AccessKey       string
+	MidiaStorageS3SecretKey       string
+	MidiaStorageS3Bucket          string
+	MidiaStorageS3Region          string
 }
 
 func Carregar() (*Config, error) {
@@ -129,6 +134,11 @@ func Carregar() (*Config, error) {
 		MidiaStorageSupabaseKey:       os.Getenv("MEDIA_STORAGE_SUPABASE_KEY"),
 		MidiaStorageSupabaseBucket:    os.Getenv("MEDIA_STORAGE_SUPABASE_BUCKET"),
 		MidiaStoragePublicBaseURL:     strings.TrimRight(os.Getenv("MEDIA_STORAGE_PUBLIC_BASE_URL"), "/"),
+		MidiaStorageS3Endpoint:        strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_ENDPOINT")),
+		MidiaStorageS3AccessKey:       strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_ACCESS_KEY")),
+		MidiaStorageS3SecretKey:       strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_SECRET_KEY")),
+		MidiaStorageS3Bucket:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_BUCKET")),
+		MidiaStorageS3Region:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_REGION")),
 	}
 	if cfg.HistoricoMaxDias < 1 {
 		cfg.HistoricoMaxDias = 90

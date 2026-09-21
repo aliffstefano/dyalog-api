@@ -313,11 +313,16 @@ Regras:
 - `WEBHOOK_RECOVERY_ENABLED`: habilita deteccao de janela offline e recuperacao por historico on-demand. Cobre API desligada e queda de conexao WhatsApp detectada por disconnect/keepalive. Padrao `true`.
 - `WEBHOOK_RECOVERY_MARGIN_SECONDS`: margem adicionada antes/depois da janela offline ou da queda de conexao WhatsApp para recuperar mensagens. Padrao `120`.
 - `WEBHOOK_RECOVERY_HISTORY_COUNT`: quantidade de mensagens solicitadas por conversa quando uma nova mensagem servir de ancora. Padrao `50`.
-- `MEDIA_STORAGE_DRIVER`: `local` ou `supabase`
+- `MEDIA_STORAGE_DRIVER`: `local`, `supabase` ou `s3`
 - `MEDIA_STORAGE_SUPABASE_URL`: URL do projeto Supabase quando `MEDIA_STORAGE_DRIVER=supabase`
 - `MEDIA_STORAGE_SUPABASE_KEY`: chave com permissao de escrita no Supabase Storage
 - `MEDIA_STORAGE_SUPABASE_BUCKET`: bucket usado para midias recebidas
 - `MEDIA_STORAGE_PUBLIC_BASE_URL`: URL publica opcional para montar links diretos de midia
+- `MEDIA_STORAGE_S3_ENDPOINT`: endpoint do servico S3-compatible quando `MEDIA_STORAGE_DRIVER=s3`. Aceita com ou sem esquema; sem esquema assume `https`
+- `MEDIA_STORAGE_S3_ACCESS_KEY`: access key do storage S3
+- `MEDIA_STORAGE_S3_SECRET_KEY`: secret key do storage S3
+- `MEDIA_STORAGE_S3_BUCKET`: bucket usado para midias recebidas
+- `MEDIA_STORAGE_S3_REGION`: regiao do storage S3. No Cloudflare R2 use `auto`
 - `UPDATE_MONITORING_ENABLED`: habilita monitoramento da dependencia
 - `UPDATE_MODE`: `aviso` ou `preparo`
 - `UPDATE_WINDOW_START`: inicio da janela noturna, ex. `01:00`
