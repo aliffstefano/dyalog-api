@@ -724,6 +724,27 @@ e os links ja salvos no banco continuam apontando para la. Ou seja, o storage an
 precisa continuar de pe enquanto esses links importarem, ou a midia antiga precisa
 ser migrada e os links reescritos.
 
+### Limpeza da copia local
+
+Midia recebida sempre grava no disco, mesmo com storage externo ligado. Nada
+apagava esses arquivos, entao a pasta crescia para sempre.
+
+`MEDIA_LOCAL_RETENTION_DAYS` liga a limpeza: uma vez por dia, as 5h no fuso do
+container, arquivos mais antigos que N dias sao removidos do disco.
+
+Duas garantias importantes:
+
+- So entra na limpeza midia que **ja tem copia no storage externo**, ou seja, com
+  `storage_provider` e `storage_url` preenchidos. Midia sem copia fica no disco
+  para sempre: apagar seria perder o arquivo, nao liberar espaco.
+- O padrao e `0`, que desliga tudo. Ninguem perde arquivo por atualizar a API.
+
+O registro no banco continua; so o `caminho_arquivo` e zerado. E o endpoint
+`GET /api/v1/instancias/{id}/midia/{midiaId}` passa a redirecionar para a
+`storage_url` quando o arquivo local ja saiu, entao o download continua funcionando.
+
+Pastas de dia que ficam vazias sao removidas junto.
+
 ### Compatibilidade
 
 O driver usa `minio-go`, nao o SDK oficial da AWS: versoes recentes do

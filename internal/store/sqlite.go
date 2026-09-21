@@ -84,6 +84,13 @@ type MidiaStore interface {
 	BuscarMidiaRecebida(ctx context.Context, instanciaID, midiaID string) (models.MidiaRecebida, error)
 }
 
+// MidiaLimpezaStore cobre a remocao dos arquivos locais de midia que ja tem
+// copia em storage externo.
+type MidiaLimpezaStore interface {
+	BuscarMidiasLocaisComCopiaExterna(ctx context.Context, antesDe time.Time, limite int) ([]models.MidiaArquivoLocal, error)
+	EsquecerCaminhoArquivoMidia(ctx context.Context, midiaID string) error
+}
+
 type ProxyStore interface {
 	ObterProxyGlobal(ctx context.Context) (models.ProxyGlobal, error)
 	AtualizarProxyGlobal(ctx context.Context, proxy models.ProxyGlobal) (models.ProxyGlobal, error)
@@ -1528,6 +1535,48 @@ ON CONFLICT(id) DO UPDATE SET
 		return models.MidiaRecebida{}, fmt.Errorf("erro ao salvar midia recebida: %w", err)
 	}
 	return midia, nil
+}
+
+// BuscarMidiasLocaisComCopiaExterna lista arquivos de midia que ja subiram para o
+// storage externo e podem ser apagados do disco.
+//
+// As duas condicoes de storage sao o ponto central: so entra aqui midia que tem
+// copia fora. Midia sem copia externa fica no disco para sempre, porque apagar
+// seria perder o arquivo, nao liberar espaco.
+func (s *SQLStore) BuscarMidiasLocaisComCopiaExterna(ctx context.Context, antesDe time.Time, limite int) ([]models.MidiaArquivoLocal, error) {
+	if limite <= 0 {
+		limite = 500
+	}
+	linhas, err := s.db.QueryContext(ctx, s.q(`
+SELECT id, instancia_id, caminho_arquivo
+FROM midias_recebidas
+WHERE recebida_em < ? AND caminho_arquivo <> '' AND storage_provider <> '' AND storage_url <> ''
+ORDER BY recebida_em
+LIMIT ?`), antesDe.UTC(), limite)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar midias locais para limpeza: %w", err)
+	}
+	defer linhas.Close()
+	var arquivos []models.MidiaArquivoLocal
+	for linhas.Next() {
+		var arquivo models.MidiaArquivoLocal
+		if err := linhas.Scan(&arquivo.ID, &arquivo.InstanciaID, &arquivo.CaminhoArquivo); err != nil {
+			return nil, fmt.Errorf("erro ao ler midia local para limpeza: %w", err)
+		}
+		arquivos = append(arquivos, arquivo)
+	}
+	return arquivos, linhas.Err()
+}
+
+// EsquecerCaminhoArquivoMidia zera o caminho local depois que o arquivo foi
+// apagado. O registro continua: e ele que guarda a URL no storage externo.
+func (s *SQLStore) EsquecerCaminhoArquivoMidia(ctx context.Context, midiaID string) error {
+	_, err := s.db.ExecContext(ctx, s.q(`
+UPDATE midias_recebidas SET caminho_arquivo = '' WHERE id = ?`), midiaID)
+	if err != nil {
+		return fmt.Errorf("erro ao limpar caminho local da midia: %w", err)
+	}
+	return nil
 }
 
 func (s *SQLStore) BuscarMidiaRecebida(ctx context.Context, instanciaID, midiaID string) (models.MidiaRecebida, error) {

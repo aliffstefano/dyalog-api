@@ -594,6 +594,13 @@ func (h *APIHandler) BaixarMidiaRecebida(c *gin.Context) {
 	}
 	info, err := os.Stat(midia.CaminhoArquivo)
 	if err != nil || info.IsDir() {
+		// A limpeza de midia local apaga o arquivo do disco quando ele ja tem
+		// copia no storage externo. Sem este desvio, o download passaria a
+		// devolver 404 para midia que continua existindo, so que fora daqui.
+		if destino := strings.TrimSpace(midia.StorageURL); destino != "" {
+			c.Redirect(nethttp.StatusFound, destino)
+			return
+		}
 		h.responderErro(c, nethttp.StatusNotFound, "midia_nao_encontrada", "Arquivo de midia nao encontrado")
 		return
 	}

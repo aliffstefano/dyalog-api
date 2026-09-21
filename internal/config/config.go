@@ -71,6 +71,7 @@ type Config struct {
 	MidiaStorageS3SecretKey       string
 	MidiaStorageS3Bucket          string
 	MidiaStorageS3Region          string
+	MidiaRetencaoLocalDias        int
 }
 
 func Carregar() (*Config, error) {
@@ -139,6 +140,7 @@ func Carregar() (*Config, error) {
 		MidiaStorageS3SecretKey:       strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_SECRET_KEY")),
 		MidiaStorageS3Bucket:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_BUCKET")),
 		MidiaStorageS3Region:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_REGION")),
+		MidiaRetencaoLocalDias:        obterInt("MEDIA_LOCAL_RETENTION_DAYS", 0),
 	}
 	if cfg.HistoricoMaxDias < 1 {
 		cfg.HistoricoMaxDias = 90
@@ -175,6 +177,10 @@ func Carregar() (*Config, error) {
 	}
 	if cfg.ReconexaoIntervaloSegundos < 10 {
 		cfg.ReconexaoIntervaloSegundos = 30
+	}
+	// Zero desliga a limpeza de midia local. Negativo nao faz sentido e vira zero.
+	if cfg.MidiaRetencaoLocalDias < 0 {
+		cfg.MidiaRetencaoLocalDias = 0
 	}
 	if cfg.RuntimeLockTTLSeconds <= cfg.HeartbeatIntervaloSegundos {
 		cfg.RuntimeLockTTLSeconds = cfg.HeartbeatIntervaloSegundos * 3

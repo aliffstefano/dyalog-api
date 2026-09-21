@@ -323,6 +323,7 @@ Regras:
 - `MEDIA_STORAGE_S3_SECRET_KEY`: secret key do storage S3
 - `MEDIA_STORAGE_S3_BUCKET`: bucket usado para midias recebidas
 - `MEDIA_STORAGE_S3_REGION`: regiao do storage S3. No Cloudflare R2 use `auto`
+- `MEDIA_LOCAL_RETENTION_DAYS`: dias para apagar do disco a midia que ja tem copia no storage externo. Midia sem copia externa nunca e apagada. Padrao `0`, que desliga a limpeza
 - `UPDATE_MONITORING_ENABLED`: habilita monitoramento da dependencia
 - `UPDATE_MODE`: `aviso` ou `preparo`
 - `UPDATE_WINDOW_START`: inicio da janela noturna, ex. `01:00`

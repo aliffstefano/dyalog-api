@@ -26,3 +26,12 @@ type MidiaRecebida struct {
 func (m MidiaRecebida) DownloadPath() string {
 	return "/api/v1/instancias/" + m.InstanciaID + "/midia/" + m.ID
 }
+
+// MidiaArquivoLocal identifica um arquivo de midia no disco, para a rotina de
+// limpeza. So carrega o necessario: a listagem completa traria colunas grandes
+// sem uso nenhum aqui.
+type MidiaArquivoLocal struct {
+	ID             string
+	InstanciaID    string
+	CaminhoArquivo string
+}

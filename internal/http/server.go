@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"dyalog-api-go/internal/config"
@@ -97,6 +98,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	registrarRecuperacaoWebhook(context.Background(), cfg, storeSQL, gerenciador)
 	iniciarHeartbeatRuntime(context.Background(), storeSQL, time.Duration(cfg.HeartbeatIntervaloSegundos)*time.Second)
 	iniciarLimpezaWebhookEntregas(context.Background(), storeSQL, cfg.WebhookEntregaRetencaoDias)
+	iniciarLimpezaMidiasLocais(context.Background(), storeSQL, cfg.MidiaRetencaoLocalDias)
 	gerenciador.IniciarRenovacaoOwnership(context.Background(), time.Duration(cfg.HeartbeatIntervaloSegundos)*time.Second)
 	sistemaService.IniciarMonitoramento(context.Background())
 	instanciaService.RestaurarSessoes(context.Background())
@@ -217,6 +219,90 @@ func iniciarLimpezaWebhookEntregas(ctx context.Context, entregaStore store.Webho
 			}
 		}
 	}()
+}
+
+// horaLimpezaMidias roda depois da limpeza de webhooks para as duas nao
+// disputarem disco na mesma hora.
+const (
+	horaLimpezaMidias   = 5
+	minutoLimpezaMidias = 0
+)
+
+// iniciarLimpezaMidiasLocais apaga, uma vez por dia, arquivos de midia do disco
+// que ja tenham copia no storage externo e sejam mais antigos que retencaoDias.
+//
+// Fica desligada quando retencaoDias e zero, que e o padrao: ninguem perde
+// arquivo por atualizar a API sem querer.
+//
+// Midia sem copia externa nunca e apagada, mesmo que seja antiga. Apagar essa
+// seria perder o arquivo, e o endpoint de download passaria a devolver 404 sem
+// ter para onde apontar.
+func iniciarLimpezaMidiasLocais(ctx context.Context, midiaStore store.MidiaLimpezaStore, retencaoDias int) {
+	if midiaStore == nil || retencaoDias < 1 {
+		return
+	}
+	go func() {
+		for {
+			espera := duracaoAteProximoHorario(horaLimpezaMidias, minutoLimpezaMidias)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(espera):
+				executarLimpezaMidiasLocais(ctx, midiaStore, retencaoDias)
+			}
+		}
+	}()
+}
+
+// executarLimpezaMidiasLocais faz uma passada da limpeza. Separada da rotina
+// agendada para poder ser testada sem depender do relogio.
+func executarLimpezaMidiasLocais(ctx context.Context, midiaStore store.MidiaLimpezaStore, retencaoDias int) {
+	if midiaStore == nil || retencaoDias < 1 {
+		return
+	}
+	retencao := time.Duration(retencaoDias) * 24 * time.Hour
+	{
+		antesDe := time.Now().UTC().Add(-retencao)
+		var apagados int
+		var liberados int64
+		// Em lotes: a primeira execucao pode encontrar meses de arquivo acumulado,
+		// e carregar tudo de uma vez nao ajuda em nada.
+		for {
+			arquivos, err := midiaStore.BuscarMidiasLocaisComCopiaExterna(context.Background(), antesDe, 500)
+			if err != nil {
+				fmt.Printf("erro ao listar midias locais para limpeza: %v\n", err)
+				return
+			}
+			if len(arquivos) == 0 {
+				break
+			}
+			for _, arquivo := range arquivos {
+				if info, err := os.Stat(arquivo.CaminhoArquivo); err == nil && !info.IsDir() {
+					liberados += info.Size()
+				}
+				if err := os.Remove(arquivo.CaminhoArquivo); err != nil && !os.IsNotExist(err) {
+					fmt.Printf("erro ao apagar midia local %s: %v\n", arquivo.CaminhoArquivo, err)
+					continue
+				}
+				// So zera o caminho depois que o arquivo saiu, senao a midia ficaria
+				// sem caminho e sem ter sido apagada, invisivel para a proxima rodada.
+				if err := midiaStore.EsquecerCaminhoArquivoMidia(context.Background(), arquivo.ID); err != nil {
+					fmt.Printf("erro ao atualizar midia %s apos apagar arquivo: %v\n", arquivo.ID, err)
+					continue
+				}
+				apagados++
+				// Remove a pasta do dia quando ela esvazia. os.Remove so apaga
+				// diretorio vazio, entao pasta ainda em uso nao corre risco.
+				_ = os.Remove(filepath.Dir(arquivo.CaminhoArquivo))
+			}
+			if ctx.Err() != nil {
+				return
+			}
+		}
+		if apagados > 0 {
+			fmt.Printf("limpeza de midias: %d arquivos locais removidos, %.1f MB liberados (retencao %dd)\n", apagados, float64(liberados)/(1024*1024), retencaoDias)
+		}
+	}
 }
 
 // duracaoAteProximoHorario calcula quanto falta, a partir de agora (no fuso

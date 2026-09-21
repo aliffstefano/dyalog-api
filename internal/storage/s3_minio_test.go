@@ -32,6 +32,9 @@ func TestS3ContraServidorReal(t *testing.T) {
 	accessKey := valorOuPadrao("MINIO_TESTE_ACCESS_KEY", "testekey")
 	secretKey := valorOuPadrao("MINIO_TESTE_SECRET_KEY", "testesegredo123")
 	bucket := valorOuPadrao("MINIO_TESTE_BUCKET", "dyalog-midias")
+	// MinIO aceita us-east-1; o R2 exige auto. Configuravel para o mesmo teste
+	// servir de validacao contra o servico real antes de apontar producao.
+	regiao := valorOuPadrao("MINIO_TESTE_REGION", "us-east-1")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -43,6 +46,7 @@ func TestS3ContraServidorReal(t *testing.T) {
 	admin, err := minio.New(host, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: seguro,
+		Region: regiao,
 	})
 	if err != nil {
 		t.Fatalf("erro ao conectar no servidor: %v", err)
@@ -52,8 +56,10 @@ func TestS3ContraServidorReal(t *testing.T) {
 		t.Fatalf("erro ao consultar bucket: %v", err)
 	}
 	if !existe {
-		if err := admin.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
-			t.Fatalf("erro ao criar bucket: %v", err)
+		// Contra R2 ou Garage o token pode nao ter permissao de criar bucket, e
+		// normalmente o bucket ja existe. Falhar aqui esconderia o que importa.
+		if err := admin.MakeBucket(ctx, bucket, minio.MakeBucketOptions{Region: regiao}); err != nil {
+			t.Fatalf("bucket %q nao existe e nao foi possivel criar: %v", bucket, err)
 		}
 	}
 
@@ -63,7 +69,7 @@ func TestS3ContraServidorReal(t *testing.T) {
 		S3AccessKey: accessKey,
 		S3SecretKey: secretKey,
 		S3Bucket:    bucket,
-		S3Region:    "us-east-1",
+		S3Region:    regiao,
 	})
 	if err != nil {
 		t.Fatalf("erro ao criar uploader: %v", err)
