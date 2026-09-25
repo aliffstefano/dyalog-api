@@ -599,6 +599,33 @@ TURN_TTL_SECONDS=43200
 Sem nenhuma das duas, a API sobe e loga um aviso: as chamadas continuam
 funcionando quando o navegador traz o proprio STUN, mas sem garantia.
 
+### TURN gerenciado da Cloudflare
+
+Alternativa a rodar coturn. Duas variaveis e nada de infraestrutura:
+
+```text
+CLOUDFLARE_TURN_KEY_ID=seu-key-id
+CLOUDFLARE_TURN_API_TOKEN=seu-api-token
+```
+
+A chave sai do painel da Cloudflare em Realtime > TURN. A API chama
+`POST /v1/turn/keys/{id}/credentials/generate-ice-servers` e devolve ao cliente
+a lista que vier de la, com STUN e TURN ja juntos.
+
+Vantagens sobre o coturn proprio:
+
+- TURN tambem nas portas **443 e 80**, que atravessam rede corporativa com UDP
+  bloqueado. Um coturn proprio disputaria a 443 com o Traefik no mesmo no.
+- rede anycast global, em vez de um servidor em um lugar so
+- sem no com IP publico fixo, sem certificado para o 5349, sem servico a mais
+- os primeiros 1000 GB por mes sao gratuitos. Como audio PCMU gasta cerca de
+  29 MB por hora, isso da algo em torno de 34 mil horas de chamada relayed.
+
+A credencial e guardada em cache e renovada aos 80% da validade: sem isso, todo
+inicio de chamada viraria uma ida a rede. Se a API da Cloudflare falhar, a
+ultima credencial obtida e reaproveitada, porque entregar credencial vencendo
+ainda tem chance de funcionar, enquanto nao entregar nada garante chamada muda.
+
 ### Entregando os servidores ao cliente
 
 O cliente nao deve chumbar STUN nem senha de TURN no front. Dois caminhos

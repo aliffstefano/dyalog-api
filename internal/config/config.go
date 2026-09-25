@@ -76,6 +76,8 @@ type Config struct {
 	TurnURLs                      string
 	TurnSegredo                   string
 	TurnTTLSegundos               int
+	CloudflareTurnKeyID           string
+	CloudflareTurnAPIToken        string
 }
 
 func Carregar() (*Config, error) {
@@ -149,6 +151,8 @@ func Carregar() (*Config, error) {
 		TurnURLs:                      strings.TrimSpace(os.Getenv("TURN_URLS")),
 		TurnSegredo:                   strings.TrimSpace(os.Getenv("TURN_SECRET")),
 		TurnTTLSegundos:               obterInt("TURN_TTL_SECONDS", 43200),
+		CloudflareTurnKeyID:           strings.TrimSpace(os.Getenv("CLOUDFLARE_TURN_KEY_ID")),
+		CloudflareTurnAPIToken:        strings.TrimSpace(os.Getenv("CLOUDFLARE_TURN_API_TOKEN")),
 	}
 	if cfg.HistoricoMaxDias < 1 {
 		cfg.HistoricoMaxDias = 90

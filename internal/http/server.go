@@ -88,7 +88,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 		time.Duration(cfg.RecuperacaoMargemSegundos)*time.Second,
 		cfg.RecuperacaoHistoricoMensagens,
 	)
-	configICE, err := chamadas.NovaConfigICE(cfg.WebRTCICEServers, cfg.TurnURLs, cfg.TurnSegredo, cfg.TurnTTLSegundos)
+	configICE, err := chamadas.NovaConfigICE(cfg.WebRTCICEServers, cfg.TurnURLs, cfg.TurnSegredo, cfg.CloudflareTurnKeyID, cfg.CloudflareTurnAPIToken, cfg.TurnTTLSegundos)
 	if err != nil {
 		return nil, err
 	}

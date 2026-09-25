@@ -923,7 +923,7 @@ func (h *APIHandler) ListarChamadas(c *gin.Context) {
 // montar a RTCPeerConnection. A credencial TURN e temporaria e gerada a cada
 // chamada deste endpoint, entao o front nunca precisa de senha fixa embutida.
 func (h *APIHandler) ServidoresICE(c *gin.Context) {
-	servidores, validade := h.chamadaService.ServidoresICE()
+	servidores, validade := h.chamadaService.ServidoresICE(c.Request.Context())
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Servidores ICE consultados com sucesso", gin.H{
 		"ice_servers":       servidores,
 		"validade_segundos": validade,
@@ -946,7 +946,7 @@ func (h *APIHandler) IniciarChamada(c *gin.Context) {
 	}
 	// Os servidores ICE vao junto para o cliente nao precisar de uma segunda
 	// chamada antes de montar a RTCPeerConnection.
-	servidores, validade := h.chamadaService.ServidoresICE()
+	servidores, validade := h.chamadaService.ServidoresICE(c.Request.Context())
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Chamada iniciada com sucesso", gin.H{
 		"instancia":         resultado.Instancia,
 		"id":                resultado.ID,

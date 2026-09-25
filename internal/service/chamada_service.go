@@ -21,8 +21,8 @@ func NovoChamadaService(instanciaStore store.InstanciaStore, gerenciador *whatsa
 }
 
 // ServidoresICE repassa a lista de STUN/TURN do gerenciador.
-func (s *ChamadaService) ServidoresICE() ([]chamadas.ServidorICE, int) {
-	return s.gerenciador.ServidoresICECliente()
+func (s *ChamadaService) ServidoresICE(ctx context.Context) ([]chamadas.ServidorICE, int) {
+	return s.gerenciador.ServidoresICECliente(ctx)
 }
 
 func (s *ChamadaService) Iniciar(ctx context.Context, req models.IniciarChamadaRequest) (models.ResultadoChamada, error) {

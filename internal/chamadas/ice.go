@@ -1,11 +1,13 @@
 package chamadas
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +35,7 @@ type ConfigICE struct {
 	turnURLs        []string
 	turnSegredo     string
 	turnTTL         time.Duration
+	cloudflare      *clienteCloudflareTURN
 }
 
 // NovaConfigICE monta a configuracao a partir das variaveis de ambiente.
@@ -41,7 +44,7 @@ type ConfigICE struct {
 // turnURLs, turnSegredo e turnTTL configuram o TURN com credencial temporaria.
 // Os dois caminhos convivem: o JSON costuma trazer o STUN, e o TURN entra por
 // cima ja com usuario e senha gerados.
-func NovaConfigICE(servidoresJSON, turnURLs, turnSegredo string, turnTTLSegundos int) (ConfigICE, error) {
+func NovaConfigICE(servidoresJSON, turnURLs, turnSegredo, cloudflareKeyID, cloudflareToken string, turnTTLSegundos int) (ConfigICE, error) {
 	cfg := ConfigICE{turnSegredo: strings.TrimSpace(turnSegredo)}
 
 	if texto := strings.TrimSpace(servidoresJSON); texto != "" {
@@ -64,9 +67,18 @@ func NovaConfigICE(servidoresJSON, turnURLs, turnSegredo string, turnTTLSegundos
 		return ConfigICE{}, fmt.Errorf("TURN_URLS configurado sem TURN_SECRET: a credencial temporaria precisa do segredo")
 	}
 
+	cloudflareKeyID = strings.TrimSpace(cloudflareKeyID)
+	cloudflareToken = strings.TrimSpace(cloudflareToken)
+	if (cloudflareKeyID == "") != (cloudflareToken == "") {
+		return ConfigICE{}, fmt.Errorf("CLOUDFLARE_TURN_KEY_ID e CLOUDFLARE_TURN_API_TOKEN precisam ser informados juntos")
+	}
+
 	cfg.turnTTL = time.Duration(turnTTLSegundos) * time.Second
 	if cfg.turnTTL <= 0 {
 		cfg.turnTTL = 12 * time.Hour
+	}
+	if cloudflareKeyID != "" {
+		cfg.cloudflare = novoClienteCloudflareTURN(cloudflareKeyID, cloudflareToken, os.Getenv("CLOUDFLARE_TURN_BASE_URL"), cfg.turnTTL)
 	}
 	return cfg, nil
 }
@@ -74,14 +86,22 @@ func NovaConfigICE(servidoresJSON, turnURLs, turnSegredo string, turnTTLSegundos
 // Configurado informa se ha algum servidor ICE definido. Sem nenhum, a conexao
 // depende dos candidatos que o proprio navegador trouxer.
 func (c ConfigICE) Configurado() bool {
-	return len(c.servidoresFixos) > 0 || len(c.turnURLs) > 0
+	return len(c.servidoresFixos) > 0 || len(c.turnURLs) > 0 || c.cloudflare != nil
 }
 
 // ServidoresParaCliente devolve a lista pronta para o navegador, com a
 // credencial TURN ja gerada e com validade a partir de agora.
-func (c ConfigICE) ServidoresParaCliente(agora time.Time) []ServidorICE {
+func (c ConfigICE) ServidoresParaCliente(ctx context.Context, agora time.Time) []ServidorICE {
 	servidores := make([]ServidorICE, 0, len(c.servidoresFixos)+1)
 	servidores = append(servidores, c.servidoresFixos...)
+	if c.cloudflare != nil {
+		// A Cloudflare ja devolve STUN e TURN juntos, no formato do navegador.
+		if daCloudflare, err := c.cloudflare.Servidores(ctx, agora); err == nil {
+			servidores = append(servidores, daCloudflare...)
+		} else {
+			fmt.Printf("erro ao obter TURN da Cloudflare: %v\n", err)
+		}
+	}
 	if len(c.turnURLs) == 0 {
 		return servidores
 	}
@@ -94,8 +114,8 @@ func (c ConfigICE) ServidoresParaCliente(agora time.Time) []ServidorICE {
 }
 
 // ParaPion converte a lista para o formato do pion, usado pela ponte de audio.
-func (c ConfigICE) ParaPion(agora time.Time) []webrtc.ICEServer {
-	clientes := c.ServidoresParaCliente(agora)
+func (c ConfigICE) ParaPion(ctx context.Context, agora time.Time) []webrtc.ICEServer {
+	clientes := c.ServidoresParaCliente(ctx, agora)
 	servidores := make([]webrtc.ICEServer, 0, len(clientes))
 	for _, servidor := range clientes {
 		item := webrtc.ICEServer{URLs: servidor.URLs}
@@ -123,7 +143,7 @@ func (c ConfigICE) credencialTemporaria(agora time.Time) (string, string) {
 // ValidadeSegundos informa por quanto tempo a credencial devolvida vale, para o
 // cliente saber quando pedir outra.
 func (c ConfigICE) ValidadeSegundos() int {
-	if len(c.turnURLs) == 0 {
+	if len(c.turnURLs) == 0 && c.cloudflare == nil {
 		return 0
 	}
 	return int(c.turnTTL.Seconds())

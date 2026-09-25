@@ -1,6 +1,7 @@
 package chamadas
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
@@ -11,24 +12,24 @@ import (
 )
 
 func TestConfigICEVaziaNaoConfigurada(t *testing.T) {
-	cfg, err := NovaConfigICE("", "", "", 0)
+	cfg, err := NovaConfigICE("", "", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("configuracao vazia nao deveria falhar: %v", err)
 	}
 	if cfg.Configurado() {
 		t.Fatal("sem STUN e sem TURN a config nao pode se dizer configurada")
 	}
-	if len(cfg.ServidoresParaCliente(time.Now())) != 0 {
+	if len(cfg.ServidoresParaCliente(context.Background(), time.Now())) != 0 {
 		t.Fatal("sem configuracao nao ha servidor para devolver")
 	}
 }
 
 func TestConfigICEComStunJSON(t *testing.T) {
-	cfg, err := NovaConfigICE(`[{"urls":["stun:stun.l.google.com:19302"]}]`, "", "", 0)
+	cfg, err := NovaConfigICE(`[{"urls":["stun:stun.l.google.com:19302"]}]`, "", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("erro inesperado: %v", err)
 	}
-	servidores := cfg.ServidoresParaCliente(time.Now())
+	servidores := cfg.ServidoresParaCliente(context.Background(), time.Now())
 	if len(servidores) != 1 || servidores[0].URLs[0] != "stun:stun.l.google.com:19302" {
 		t.Fatalf("servidores = %+v", servidores)
 	}
@@ -39,16 +40,16 @@ func TestConfigICEComStunJSON(t *testing.T) {
 }
 
 func TestConfigICEJSONInvalidoFalhaNaSubida(t *testing.T) {
-	if _, err := NovaConfigICE("nao-e-json", "", "", 0); err == nil {
+	if _, err := NovaConfigICE("nao-e-json", "", "", "", "", 0); err == nil {
 		t.Fatal("JSON invalido deveria falhar na subida, nao na primeira chamada")
 	}
-	if _, err := NovaConfigICE(`[{"username":"x"}]`, "", "", 0); err == nil {
+	if _, err := NovaConfigICE(`[{"username":"x"}]`, "", "", "", "", 0); err == nil {
 		t.Fatal("servidor sem urls deveria falhar")
 	}
 }
 
 func TestTurnExigeSegredo(t *testing.T) {
-	if _, err := NovaConfigICE("", "turn:turn.exemplo.com:3478", "", 0); err == nil {
+	if _, err := NovaConfigICE("", "turn:turn.exemplo.com:3478", "", "", "", 0); err == nil {
 		t.Fatal("TURN sem segredo deveria falhar: a credencial temporaria depende dele")
 	}
 }
@@ -57,12 +58,12 @@ func TestTurnExigeSegredo(t *testing.T) {
 // use-auth-secret, senao o TURN recusa e o audio nao passa em rede restritiva.
 func TestCredencialTemporariaSegueTurnRestAPI(t *testing.T) {
 	const segredo = "segredo-compartilhado"
-	cfg, err := NovaConfigICE("", "turn:turn.exemplo.com:3478,turns:turn.exemplo.com:5349", segredo, 3600)
+	cfg, err := NovaConfigICE("", "turn:turn.exemplo.com:3478,turns:turn.exemplo.com:5349", segredo, "", "", 3600)
 	if err != nil {
 		t.Fatalf("erro inesperado: %v", err)
 	}
 	agora := time.Unix(1700000000, 0).UTC()
-	servidores := cfg.ServidoresParaCliente(agora)
+	servidores := cfg.ServidoresParaCliente(context.Background(), agora)
 	if len(servidores) != 1 {
 		t.Fatalf("esperado um servidor TURN, obtido %d", len(servidores))
 	}
@@ -98,18 +99,18 @@ func TestCredencialTemporariaSegueTurnRestAPI(t *testing.T) {
 }
 
 func TestCredencialMudaComOTempo(t *testing.T) {
-	cfg, _ := NovaConfigICE("", "turn:turn.exemplo.com:3478", "segredo", 60)
+	cfg, _ := NovaConfigICE("", "turn:turn.exemplo.com:3478", "segredo", "", "", 60)
 	base := time.Unix(1700000000, 0).UTC()
-	primeira := cfg.ServidoresParaCliente(base)[0].Credential
-	segunda := cfg.ServidoresParaCliente(base.Add(time.Minute))[0].Credential
+	primeira := cfg.ServidoresParaCliente(context.Background(), base)[0].Credential
+	segunda := cfg.ServidoresParaCliente(context.Background(), base.Add(time.Minute))[0].Credential
 	if primeira == segunda {
 		t.Fatal("credenciais geradas em momentos diferentes deveriam diferir")
 	}
 }
 
 func TestParaPionConverteCredencial(t *testing.T) {
-	cfg, _ := NovaConfigICE(`[{"urls":["stun:stun.exemplo:3478"]}]`, "turn:turn.exemplo:3478", "segredo", 60)
-	pion := cfg.ParaPion(time.Now())
+	cfg, _ := NovaConfigICE(`[{"urls":["stun:stun.exemplo:3478"]}]`, "turn:turn.exemplo:3478", "segredo", "", "", 60)
+	pion := cfg.ParaPion(context.Background(), time.Now())
 	if len(pion) != 2 {
 		t.Fatalf("esperado STUN e TURN, obtido %d", len(pion))
 	}

@@ -90,7 +90,7 @@ func (g *GerenciadorInstancias) SinalizarWebRTC(ctx context.Context, req models.
 	if err != nil {
 		return models.ResultadoWebRTC{}, err
 	}
-	bridge, resposta, err := chamadas.NovoBridge(req.SDPOffer, g.configICE.ParaPion(time.Now().UTC()), slog.Default())
+	bridge, resposta, err := chamadas.NovoBridge(req.SDPOffer, g.configICE.ParaPion(ctx, time.Now().UTC()), slog.Default())
 	if err != nil {
 		return models.ResultadoWebRTC{}, err
 	}
@@ -416,9 +416,9 @@ func (g *GerenciadorInstancias) ConfigurarICE(cfg chamadas.ConfigICE) {
 
 // ServidoresICECliente devolve a lista que o navegador deve usar, com credencial
 // TURN temporaria gerada na hora.
-func (g *GerenciadorInstancias) ServidoresICECliente() ([]chamadas.ServidorICE, int) {
+func (g *GerenciadorInstancias) ServidoresICECliente(ctx context.Context) ([]chamadas.ServidorICE, int) {
 	g.mu.RLock()
 	cfg := g.configICE
 	g.mu.RUnlock()
-	return cfg.ServidoresParaCliente(time.Now().UTC()), cfg.ValidadeSegundos()
+	return cfg.ServidoresParaCliente(ctx, time.Now().UTC()), cfg.ValidadeSegundos()
 }

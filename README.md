@@ -328,6 +328,8 @@ Regras:
 - `TURN_URLS`: URLs do TURN separadas por virgula. Usa credencial temporaria, entao exige `TURN_SECRET`
 - `TURN_SECRET`: segredo compartilhado com o coturn no modo `use-auth-secret`
 - `TURN_TTL_SECONDS`: validade da credencial TURN entregue ao cliente. Padrao `43200`
+- `CLOUDFLARE_TURN_KEY_ID`: key ID do TURN gerenciado da Cloudflare. Dispensa rodar coturn
+- `CLOUDFLARE_TURN_API_TOKEN`: token da chave de TURN da Cloudflare
 - `UPDATE_MONITORING_ENABLED`: habilita monitoramento da dependencia
 - `UPDATE_MODE`: `aviso` ou `preparo`
 - `UPDATE_WINDOW_START`: inicio da janela noturna, ex. `01:00`
