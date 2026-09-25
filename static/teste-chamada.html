@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de chamada</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b1220; --card:#121c2e; --linha:#233150; --txt:#e6edf7; --fraco:#8fa3c4; --ok:#2ecc71; --erro:#ff6b6b; --alerta:#ffb020; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--txt); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:var(--fraco); margin:0 0 20px; font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--linha); border-radius:12px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--fraco); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.04em; }
+  input[type=text] { width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--linha); background:#0d1626; color:var(--txt); font-size:15px; }
+  .linha-check { display:flex; align-items:flex-start; gap:10px; margin-top:14px; }
+  .linha-check input { margin-top:3px; }
+  .linha-check span { font-size:13px; color:var(--fraco); }
+  button { width:100%; padding:13px; border-radius:8px; border:0; font-size:15px; font-weight:600; cursor:pointer; margin-top:14px; }
+  .primario { background:#2f6fed; color:#fff; }
+  .perigo { background:#7a1f2b; color:#fff; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .estado { font-size:22px; font-weight:700; margin:0 0 2px; }
+  .metrica { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--linha); font-size:13px; }
+  .metrica:last-child { border-bottom:0; }
+  .metrica span:first-child { color:var(--fraco); }
+  .ok { color:var(--ok); } .erro { color:var(--erro); } .alerta { color:var(--alerta); }
+  pre { background:#0d1626; border:1px solid var(--linha); border-radius:8px; padding:10px; font-size:11px; overflow:auto; max-height:220px; margin:0; white-space:pre-wrap; word-break:break-all; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Teste de chamada</h1>
+  <p class="sub">Valida o audio WebRTC de ponta a ponta e mostra por qual caminho ele passou.</p>
+
+  <div class="card">
+    <label for="token">Token da instancia</label>
+    <input type="text" id="token" placeholder="X-Access-Token" autocomplete="off">
+
+    <label for="numero">Numero de destino</label>
+    <input type="text" id="numero" placeholder="67999999999" inputmode="numeric" autocomplete="off">
+
+    <div class="linha-check">
+      <input type="checkbox" id="relay">
+      <span><strong>Forcar TURN</strong><br>
+      Descarta o caminho direto e obriga o audio a passar pelo TURN. Sem isso, a
+      chamada pode fechar direto e o teste nao prova que o TURN funciona.</span>
+    </div>
+
+    <button class="primario" id="btn-ligar">Ligar</button>
+    <button class="perigo" id="btn-desligar" disabled>Desligar</button>
+  </div>
+
+  <div class="card">
+    <p class="estado" id="estado">parado</p>
+    <div class="metrica"><span>Duracao</span><span id="duracao">0s</span></div>
+    <div class="metrica"><span>Estado ICE</span><span id="ice">-</span></div>
+    <div class="metrica"><span>Caminho do audio</span><span id="caminho">-</span></div>
+    <div class="metrica"><span>Audio recebido</span><span id="recebido">-</span></div>
+    <div class="metrica"><span>Audio enviado</span><span id="enviado">-</span></div>
+  </div>
+
+  <div class="card">
+    <label>Registro</label>
+    <pre id="log"></pre>
+  </div>
+</div>
+
+<audio id="remoto" autoplay playsinline></audio>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let pc = null, stream = null, chamadaID = null, instanciaID = null;
+let timerDuracao = null, timerStats = null, segundos = 0;
+
+function log(msg, tipo) {
+  const agora = new Date().toLocaleTimeString('pt-BR');
+  const el = $('log');
+  el.textContent += '[' + agora + '] ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+  if (tipo === 'erro') { $('estado').textContent = 'falhou'; $('estado').className = 'estado erro'; }
+}
+
+function token() { return $('token').value.trim(); }
+
+async function api(caminho, opcoes) {
+  const resp = await fetch(caminho, Object.assign({
+    headers: { 'Content-Type': 'application/json', 'X-Access-Token': token() }
+  }, opcoes || {}));
+  const corpo = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(caminho + ' respondeu ' + resp.status + ': ' + JSON.stringify(corpo));
+  return corpo.dados !== undefined ? corpo.dados : corpo;
+}
+
+$('btn-ligar').onclick = async () => {
+  if (!token() || !$('numero').value.trim()) { log('preencha token e numero', 'erro'); return; }
+  $('btn-ligar').disabled = true;
+  $('log').textContent = '';
+  $('estado').className = 'estado';
+  try { await ligar(); } catch (e) { log(String(e), 'erro'); limpar(); }
+};
+
+$('btn-desligar').onclick = () => desligar(true);
+
+async function ligar() {
+  // 1. Servidores ICE. Vem da API para o cliente nao precisar chumbar STUN nem
+  //    senha de TURN: a credencial e temporaria e gerada a cada pedido.
+  $('estado').textContent = 'preparando';
+  const ice = await api('/api/v1/chamadas/ice');
+  const servidores = ice.ice_servers || [];
+  log('ICE: ' + servidores.length + ' servidor(es), validade ' + ice.validade_segundos + 's');
+  if (!servidores.length) log('ATENCAO: nenhum servidor ICE configurado na API', 'erro');
+
+  // 2. Microfone antes de tudo: sem permissao, nao adianta abrir a chamada.
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+  });
+  log('microfone liberado');
+
+  // 3. Inicia a chamada no WhatsApp.
+  const dados = await api('/api/v1/chamadas/iniciar', {
+    method: 'POST',
+    body: JSON.stringify({ numero: $('numero').value.trim() })
+  });
+  chamadaID = dados.chamada_id;
+  instanciaID = dados.instancia;
+  log('chamada ' + chamadaID + ' criada, estado ' + dados.estado);
+  $('estado').textContent = 'chamando';
+  $('btn-desligar').disabled = false;
+
+  // 4. A oferta WebRTC so vale depois que o outro lado atende: antes disso a
+  //    chamada ainda nao esta ativa. Como esta pagina nao recebe webhook, ela
+  //    consulta o estado ate virar "active".
+  const atendida = await esperarAtendimento();
+  if (!atendida) { log('nao atendida', 'erro'); desligar(true); return; }
+  log('atendida');
+
+  // 5. Monta a conexao. Com "forcar TURN", iceTransportPolicy relay descarta os
+  //    candidatos host e srflx: se conectar assim, o TURN esta funcionando.
+  const config = { iceServers: servidores };
+  if ($('relay').checked) { config.iceTransportPolicy = 'relay'; log('modo relay: so TURN'); }
+  pc = new RTCPeerConnection(config);
+  stream.getAudioTracks().forEach(t => pc.addTrack(t, stream));
+  pc.ontrack = (e) => { $('remoto').srcObject = e.streams[0]; };
+  pc.oniceconnectionstatechange = () => {
+    $('ice').textContent = pc.iceConnectionState;
+    $('ice').className = ['connected', 'completed'].indexOf(pc.iceConnectionState) >= 0 ? 'ok'
+      : pc.iceConnectionState === 'failed' ? 'erro' : '';
+    log('ice: ' + pc.iceConnectionState);
+    if (pc.iceConnectionState === 'failed') {
+      log('ICE falhou. Sem TURN, e o esperado em rede restritiva.', 'erro');
+    }
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  // 6. A API nao tem trickle ICE: o offer precisa sair com os candidatos ja
+  //    coletados, senao eles nunca chegam do outro lado.
+  await new Promise(resolve => {
+    if (pc.iceGatheringState === 'complete') return resolve();
+    const ver = () => {
+      if (pc.iceGatheringState === 'complete') {
+        pc.removeEventListener('icegatheringstatechange', ver);
+        resolve();
+      }
+    };
+    pc.addEventListener('icegatheringstatechange', ver);
+    setTimeout(resolve, 3000);
+  });
+  const qtd = (pc.localDescription.sdp.match(/a=candidate/g) || []).length;
+  log('candidatos coletados: ' + qtd);
+
+  const resposta = await api('/api/v1/chamadas/' + chamadaID + '/webrtc', {
+    method: 'POST',
+    body: JSON.stringify({ sdp_offer: pc.localDescription.sdp })
+  });
+  await pc.setRemoteDescription({ type: 'answer', sdp: resposta.sdp_answer });
+  log('answer aplicada (' + resposta.audio_envio + ' / ' + resposta.audio_retorno + ')');
+
+  $('estado').textContent = 'em chamada';
+  $('estado').className = 'estado ok';
+  segundos = 0;
+  timerDuracao = setInterval(() => { segundos++; $('duracao').textContent = segundos + 's'; }, 1000);
+  timerStats = setInterval(coletarStats, 1000);
+}
+
+async function esperarAtendimento() {
+  const limite = Date.now() + 60000;
+  while (Date.now() < limite) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      const lista = await api('/api/v1/instancias/' + instanciaID + '/chamadas');
+      const atual = (lista.chamadas || []).filter(c => c.chamada_id === chamadaID)[0];
+      if (!atual) return false;
+      if (atual.estado === 'active') return true;
+      if (atual.estado === 'ended') return false;
+    } catch (e) { log('consulta de estado falhou: ' + e); }
+  }
+  return false;
+}
+
+// O par de candidatos em uso e a prova de por onde o audio passou: "relay"
+// significa TURN, "host" ou "srflx" significam caminho direto.
+async function coletarStats() {
+  if (!pc) return;
+  const stats = await pc.getStats();
+  let par = null, entrada = null, saida = null;
+  const candidatos = {};
+  stats.forEach(r => {
+    if (r.type === 'local-candidate' || r.type === 'remote-candidate') candidatos[r.id] = r;
+    if (r.type === 'candidate-pair' && r.state === 'succeeded' && r.nominated) par = r;
+    if (r.type === 'inbound-rtp' && r.kind === 'audio') entrada = r;
+    if (r.type === 'outbound-rtp' && r.kind === 'audio') saida = r;
+  });
+  if (par) {
+    const local = candidatos[par.localCandidateId], remoto = candidatos[par.remoteCandidateId];
+    const tipoLocal = local ? local.candidateType : '?';
+    const tipoRemoto = remoto ? remoto.candidateType : '?';
+    $('caminho').textContent = tipoLocal + ' / ' + tipoRemoto;
+    $('caminho').className = (tipoLocal === 'relay' || tipoRemoto === 'relay') ? 'ok' : 'alerta';
+  }
+  if (entrada) {
+    $('recebido').textContent = Math.round((entrada.bytesReceived || 0) / 1024) + ' KB';
+    $('recebido').className = entrada.bytesReceived > 0 ? 'ok' : 'erro';
+  }
+  if (saida) $('enviado').textContent = Math.round((saida.bytesSent || 0) / 1024) + ' KB';
+}
+
+function desligar(avisarAPI) {
+  if (avisarAPI && chamadaID) {
+    fetch('/api/v1/chamadas/' + chamadaID, {
+      method: 'DELETE',
+      headers: { 'X-Access-Token': token() }
+    }).catch(() => {});
+  }
+  limpar();
+  $('estado').textContent = 'encerrada';
+  $('estado').className = 'estado';
+  log('encerrada');
+}
+
+function limpar() {
+  clearInterval(timerDuracao); clearInterval(timerStats);
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (pc) { pc.close(); pc = null; }
+  chamadaID = null; instanciaID = null;
+  $('btn-ligar').disabled = false;
+  $('btn-desligar').disabled = true;
+}
+</script>
+</body>
+</html>

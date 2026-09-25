@@ -2790,11 +2790,18 @@ func (g *GerenciadorInstancias) obterOuCriarRuntime(ctx context.Context, instanc
 	}
 	ownershipAssumido := true
 	dirInstancia := filepath.Join(g.diretorioBase, instanciaID)
-	if err := os.MkdirAll(dirInstancia, 0o755); err != nil {
-		if ownershipAssumido {
-			g.liberarOwnership(context.Background(), instanciaID)
+	// O diretorio so serve ao store sqlite, que guarda o whatsmeow.db por
+	// instancia. Com store postgres a sessao vive toda no banco e a pasta fica
+	// vazia, entao exigir disco aqui transformava um detalhe do modo sqlite em
+	// requisito de volume para todo mundo: sem o volume montado, nenhuma
+	// instancia subia, mesmo sem precisar de disco para nada.
+	if g.whatsAppStoreDriver != "postgres" {
+		if err := os.MkdirAll(dirInstancia, 0o755); err != nil {
+			if ownershipAssumido {
+				g.liberarOwnership(context.Background(), instanciaID)
+			}
+			return nil, fmt.Errorf("erro ao criar diretorio da instancia: %w", err)
 		}
-		return nil, fmt.Errorf("erro ao criar diretorio da instancia: %w", err)
 	}
 	container, deviceStore, fecharContainer, err := g.abrirStoreDispositivo(ctx, instanciaID, dirInstancia)
 	if err != nil {
