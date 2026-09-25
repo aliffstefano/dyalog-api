@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/models"
@@ -38,6 +39,7 @@ func (g *GerenciadorInstancias) IniciarChamada(ctx context.Context, req models.I
 	callID := signaling.GenerateCallID()
 	cm := g.novoCallManager(req.Instancia, runtime, callID)
 	g.adicionarChamada(runtime, callID, &chamadaAtiva{manager: cm})
+	g.agendarTimeoutTocando(req.Instancia, runtime, callID)
 	if err := cm.StartCall(ctx, callID, destinos[0], req.Video); err != nil {
 		g.removerChamada(runtime, callID)
 		return models.ResultadoChamada{}, err
@@ -88,7 +90,7 @@ func (g *GerenciadorInstancias) SinalizarWebRTC(ctx context.Context, req models.
 	if err != nil {
 		return models.ResultadoWebRTC{}, err
 	}
-	bridge, resposta, err := chamadas.NovoBridge(req.SDPOffer, slog.Default())
+	bridge, resposta, err := chamadas.NovoBridge(req.SDPOffer, g.configICE.ParaPion(time.Now().UTC()), slog.Default())
 	if err != nil {
 		return models.ResultadoWebRTC{}, err
 	}
@@ -144,6 +146,7 @@ func (g *GerenciadorInstancias) tratarEventoChamada(instanciaID string, runtime 
 		}
 		cm := g.novoCallManager(instanciaID, runtime, callID)
 		g.adicionarChamada(runtime, callID, &chamadaAtiva{manager: cm})
+		g.agendarTimeoutTocando(instanciaID, runtime, callID)
 		cm.HandleCallOffer(ctx, node, evento.From)
 		return true
 	case *events.CallOfferNotice:
@@ -172,6 +175,32 @@ func (g *GerenciadorInstancias) tratarEventoChamada(instanciaID string, runtime 
 	default:
 		return false
 	}
+}
+
+// tempoMaximoTocando limita quanto uma chamada pode ficar chamando sem ninguem
+// atender. Sem isso ela ficava em memoria para sempre: o WhatsApp nem sempre
+// manda o encerramento quando o outro lado simplesmente ignora.
+const tempoMaximoTocando = 60 * time.Second
+
+// agendarTimeoutTocando encerra a chamada se ela continuar tocando depois do
+// prazo. Chamada ja atendida, recusada ou encerrada nao e afetada: a checagem
+// olha o estado no momento em que o prazo vence.
+func (g *GerenciadorInstancias) agendarTimeoutTocando(instanciaID string, runtime *runtimeInstancia, chamadaID string) {
+	time.AfterFunc(tempoMaximoTocando, func() {
+		g.mu.RLock()
+		ativa := runtime.chamadas[chamadaID]
+		g.mu.RUnlock()
+		if ativa == nil {
+			return
+		}
+		info := ativa.manager.CurrentCall()
+		if info == nil || !info.IsRinging() {
+			return
+		}
+		_ = ativa.manager.EndCall(context.Background(), core.EndCallReasonTimeout)
+		g.removerChamada(runtime, chamadaID)
+		fmt.Printf("chamada encerrada por falta de atendimento: instancia %s chamada %s\n", instanciaID, chamadaID)
+	})
 }
 
 func (g *GerenciadorInstancias) novoCallManager(instanciaID string, runtime *runtimeInstancia, callID string) *call.CallManager {
@@ -375,4 +404,21 @@ func wrapCall(from types.JID, inner *waBinary.Node) *waBinary.Node {
 		Attrs:   waBinary.Attrs{"from": from},
 		Content: content,
 	}
+}
+
+// ConfigurarICE define os servidores STUN/TURN usados pela ponte de audio com o
+// navegador. Chamado na subida, antes de qualquer chamada existir.
+func (g *GerenciadorInstancias) ConfigurarICE(cfg chamadas.ConfigICE) {
+	g.mu.Lock()
+	g.configICE = cfg
+	g.mu.Unlock()
+}
+
+// ServidoresICECliente devolve a lista que o navegador deve usar, com credencial
+// TURN temporaria gerada na hora.
+func (g *GerenciadorInstancias) ServidoresICECliente() ([]chamadas.ServidorICE, int) {
+	g.mu.RLock()
+	cfg := g.configICE
+	g.mu.RUnlock()
+	return cfg.ServidoresParaCliente(time.Now().UTC()), cfg.ValidadeSegundos()
 }

@@ -919,6 +919,17 @@ func (h *APIHandler) ListarChamadas(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Chamadas listadas com sucesso", gin.H{"chamadas": chamadas}))
 }
 
+// ServidoresICE entrega ao cliente os servidores STUN/TURN que ele deve usar ao
+// montar a RTCPeerConnection. A credencial TURN e temporaria e gerada a cada
+// chamada deste endpoint, entao o front nunca precisa de senha fixa embutida.
+func (h *APIHandler) ServidoresICE(c *gin.Context) {
+	servidores, validade := h.chamadaService.ServidoresICE()
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Servidores ICE consultados com sucesso", gin.H{
+		"ice_servers":       servidores,
+		"validade_segundos": validade,
+	}))
+}
+
 func (h *APIHandler) IniciarChamada(c *gin.Context) {
 	var req models.IniciarChamadaRequest
 	if err := decodificarJSONTolerante(c, &req); err != nil {
@@ -933,7 +944,22 @@ func (h *APIHandler) IniciarChamada(c *gin.Context) {
 		h.tratarErro(c, err)
 		return
 	}
-	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Chamada iniciada com sucesso", resultado))
+	// Os servidores ICE vao junto para o cliente nao precisar de uma segunda
+	// chamada antes de montar a RTCPeerConnection.
+	servidores, validade := h.chamadaService.ServidoresICE()
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Chamada iniciada com sucesso", gin.H{
+		"instancia":         resultado.Instancia,
+		"id":                resultado.ID,
+		"chamada_id":        resultado.ChamadaID,
+		"peer_jid":          resultado.PeerJID,
+		"numero":            resultado.Numero,
+		"direcao":           resultado.Direcao,
+		"estado":            resultado.Estado,
+		"tipo":              resultado.Tipo,
+		"criada_em":         resultado.CriadaEm,
+		"ice_servers":       servidores,
+		"validade_segundos": validade,
+	}))
 }
 
 func (h *APIHandler) AceitarChamada(c *gin.Context) {

@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/models"
 	mediastorage "dyalog-api-go/internal/storage"
 	"dyalog-api-go/internal/store"
@@ -159,6 +160,8 @@ type GerenciadorInstancias struct {
 	whatsAppStoreDriver    string
 	whatsAppStoreDSN       string
 	whatsAppStoreContainer *sqlstore.Container
+
+	configICE chamadas.ConfigICE
 
 	recuperacaoWebhookHabilitada bool
 	recuperacaoMargem            time.Duration

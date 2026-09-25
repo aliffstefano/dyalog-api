@@ -33,8 +33,16 @@ type Bridge struct {
 	OnTerminalICE func()
 }
 
-func NovoBridge(sdpOferta string, log *slog.Logger) (*Bridge, string, error) {
-	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+// NovoBridge monta a ponte de audio com o navegador.
+//
+// Os servidores ICE vem de fora porque, sem eles, o servidor so anuncia os IPs
+// das suas proprias interfaces. Dentro do Swarm esses IPs sao da rede overlay e
+// nenhum navegador alcanca. A conexao ate fecha quando o navegador traz um
+// candidato publico proprio, via STUN dele, mas isso depende do NAT da rede
+// onde ele esta e quebra em NAT simetrico ou com UDP bloqueado. Com TURN aqui,
+// deixa de depender disso.
+func NovoBridge(sdpOferta string, servidoresICE []webrtc.ICEServer, log *slog.Logger) (*Bridge, string, error) {
+	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{ICEServers: servidoresICE})
 	if err != nil {
 		return nil, "", err
 	}

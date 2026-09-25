@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/config"
 	"dyalog-api-go/internal/dashboard"
 	"dyalog-api-go/internal/service"
@@ -87,6 +88,14 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 		time.Duration(cfg.RecuperacaoMargemSegundos)*time.Second,
 		cfg.RecuperacaoHistoricoMensagens,
 	)
+	configICE, err := chamadas.NovaConfigICE(cfg.WebRTCICEServers, cfg.TurnURLs, cfg.TurnSegredo, cfg.TurnTTLSegundos)
+	if err != nil {
+		return nil, err
+	}
+	gerenciador.ConfigurarICE(configICE)
+	if !configICE.Configurado() {
+		fmt.Println("aviso: nenhum servidor ICE configurado (WEBRTC_ICE_SERVERS/TURN_URLS). O audio da chamada depende do STUN do proprio navegador e falha em rede com NAT restritivo.")
+	}
 	instanciaService := service.NovoInstanciaService(storeSQL, gerenciador)
 	mensagemService := service.NovoMensagemService(storeSQL, gerenciador)
 	chamadaService := service.NovoChamadaService(storeSQL, gerenciador)

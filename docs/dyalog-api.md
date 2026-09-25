@@ -151,6 +151,7 @@ Rotas canonicas (a instancia vem do `X-Access-Token`):
 
 | Metodo | Rota | Uso |
 | --- | --- | --- |
+| GET | `/api/v1/chamadas/ice` | Servidores STUN/TURN com credencial temporaria |
 | POST | `/api/v1/chamadas/iniciar` | Inicia chamada para `numero` ou `chat_jid` |
 | POST | `/api/v1/chamadas/{chamadaId}/webrtc` | Negocia audio: envia `sdp_offer`, recebe `sdp_answer` |
 | POST | `/api/v1/chamadas/{chamadaId}/aceitar` | Aceita chamada recebida |
@@ -574,6 +575,75 @@ Resposta de `/webrtc`:
 - Aplicacao para API: track Opus.
 - API para aplicacao: track PCMU.
 - Fallback legado: DataChannel WebRTC chamado `pcm`, PCM mono 16 kHz, Int16 little-endian, nos dois sentidos.
+
+### Servidores ICE (STUN/TURN)
+
+O audio da chamada e WebRTC entre o navegador e a API. Para a conexao fechar, um
+dos lados precisa ter um endereco que o outro alcance.
+
+Dentro do Swarm, a API so enxerga IPs da rede overlay, que nenhum navegador
+alcanca. Na pratica a conexao vinha fechando porque o **navegador** trazia um
+candidato publico proprio, obtido do STUN configurado no front, e a API
+respondia de dentro para fora. Isso funciona em NAT permissivo, comum em rede
+movel, e falha em NAT simetrico, Wi-Fi corporativo e rede que bloqueia UDP.
+
+Configure para deixar de depender do NAT da rede do cliente:
+
+```text
+WEBRTC_ICE_SERVERS=[{"urls":["stun:stun.l.google.com:19302"]}]
+TURN_URLS=turn:turn.SEU_DOMINIO:3478,turns:turn.SEU_DOMINIO:5349
+TURN_SECRET=segredo-compartilhado-com-o-coturn
+TURN_TTL_SECONDS=43200
+```
+
+Sem nenhuma das duas, a API sobe e loga um aviso: as chamadas continuam
+funcionando quando o navegador traz o proprio STUN, mas sem garantia.
+
+### Entregando os servidores ao cliente
+
+O cliente nao deve chumbar STUN nem senha de TURN no front. Dois caminhos
+devolvem a lista pronta, com credencial TURN temporaria gerada na hora:
+
+```text
+GET  /api/v1/chamadas/ice
+POST /api/v1/chamadas/iniciar
+```
+
+Os dois respondem com `ice_servers` e `validade_segundos`:
+
+```json
+{
+  "ice_servers": [
+    {"urls": ["stun:stun.l.google.com:19302"]},
+    {
+      "urls": ["turn:turn.SEU_DOMINIO:3478", "turns:turn.SEU_DOMINIO:5349"],
+      "username": "1790000000:dyalog",
+      "credential": "base64-do-hmac"
+    }
+  ],
+  "validade_segundos": 43200
+}
+```
+
+A credencial segue a TURN REST API: usuario `"<expiracao>:dyalog"` e senha
+`base64(HMAC-SHA1(TURN_SECRET, usuario))`. O coturn valida sozinho no modo
+`use-auth-secret`, sem usuario cadastrado. O segredo nunca sai do servidor.
+
+No cliente, basta repassar:
+
+```js
+const pc = new RTCPeerConnection({ iceServers: dados.ice_servers });
+```
+
+Como a API nao tem trickle ICE, o cliente precisa esperar o gathering terminar
+antes de enviar o `sdp_offer`, senao os candidatos ficam de fora.
+
+### Tempo limite de chamada nao atendida
+
+Chamada que fica tocando por mais de 60 segundos e encerrada com motivo
+`timeout`. Antes disso nao havia limite nenhum: o WhatsApp nem sempre avisa
+quando o outro lado apenas ignora, e a chamada ficava viva em memoria para
+sempre. Chamada ja atendida nao e afetada.
 
 ### Rejeicao automatica
 

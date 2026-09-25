@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/store"
 	"dyalog-api-go/internal/whatsapp"
@@ -17,6 +18,11 @@ type ChamadaService struct {
 
 func NovoChamadaService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *ChamadaService {
 	return &ChamadaService{instanciaStore: instanciaStore, gerenciador: gerenciador}
+}
+
+// ServidoresICE repassa a lista de STUN/TURN do gerenciador.
+func (s *ChamadaService) ServidoresICE() ([]chamadas.ServidorICE, int) {
+	return s.gerenciador.ServidoresICECliente()
 }
 
 func (s *ChamadaService) Iniciar(ctx context.Context, req models.IniciarChamadaRequest) (models.ResultadoChamada, error) {

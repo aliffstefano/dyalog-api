@@ -72,6 +72,10 @@ type Config struct {
 	MidiaStorageS3Bucket          string
 	MidiaStorageS3Region          string
 	MidiaRetencaoLocalDias        int
+	WebRTCICEServers              string
+	TurnURLs                      string
+	TurnSegredo                   string
+	TurnTTLSegundos               int
 }
 
 func Carregar() (*Config, error) {
@@ -141,6 +145,10 @@ func Carregar() (*Config, error) {
 		MidiaStorageS3Bucket:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_BUCKET")),
 		MidiaStorageS3Region:          strings.TrimSpace(os.Getenv("MEDIA_STORAGE_S3_REGION")),
 		MidiaRetencaoLocalDias:        obterInt("MEDIA_LOCAL_RETENTION_DAYS", 0),
+		WebRTCICEServers:              strings.TrimSpace(os.Getenv("WEBRTC_ICE_SERVERS")),
+		TurnURLs:                      strings.TrimSpace(os.Getenv("TURN_URLS")),
+		TurnSegredo:                   strings.TrimSpace(os.Getenv("TURN_SECRET")),
+		TurnTTLSegundos:               obterInt("TURN_TTL_SECONDS", 43200),
 	}
 	if cfg.HistoricoMaxDias < 1 {
 		cfg.HistoricoMaxDias = 90

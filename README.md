@@ -324,6 +324,10 @@ Regras:
 - `MEDIA_STORAGE_S3_BUCKET`: bucket usado para midias recebidas
 - `MEDIA_STORAGE_S3_REGION`: regiao do storage S3. No Cloudflare R2 use `auto`
 - `MEDIA_LOCAL_RETENTION_DAYS`: dias para apagar do disco a midia que ja tem copia no storage externo. Midia sem copia externa nunca e apagada. Padrao `0`, que desliga a limpeza
+- `WEBRTC_ICE_SERVERS`: lista JSON de servidores STUN/TURN usados nas chamadas, no mesmo formato que o navegador espera
+- `TURN_URLS`: URLs do TURN separadas por virgula. Usa credencial temporaria, entao exige `TURN_SECRET`
+- `TURN_SECRET`: segredo compartilhado com o coturn no modo `use-auth-secret`
+- `TURN_TTL_SECONDS`: validade da credencial TURN entregue ao cliente. Padrao `43200`
 - `UPDATE_MONITORING_ENABLED`: habilita monitoramento da dependencia
 - `UPDATE_MODE`: `aviso` ou `preparo`
 - `UPDATE_WINDOW_START`: inicio da janela noturna, ex. `01:00`
