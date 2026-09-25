@@ -255,15 +255,21 @@ func (g *GerenciadorInstancias) obterChamadaAtiva(ctx context.Context, instancia
 	if err != nil {
 		return nil, nil, err
 	}
+	return g.obterChamadaAtivaDeRuntime(runtime, chamadaID)
+}
+
+// obterChamadaAtivaDeRuntime separa a busca da chamada na memoria do runtime.
+// Fica fora de obterChamadaAtiva para poder ser testada sem instancia conectada.
+func (g *GerenciadorInstancias) obterChamadaAtivaDeRuntime(runtime *runtimeInstancia, chamadaID string) (*runtimeInstancia, *chamadaAtiva, error) {
 	chamadaID = strings.TrimSpace(chamadaID)
 	if chamadaID == "" {
-		return nil, nil, fmt.Errorf("chamada_id obrigatorio")
+		return nil, nil, fmt.Errorf("%w: chamada_id obrigatorio", ErrChamadaNaoEncontrada)
 	}
 	g.mu.RLock()
 	ativa := runtime.chamadas[chamadaID]
 	g.mu.RUnlock()
 	if ativa == nil {
-		return nil, nil, fmt.Errorf("chamada nao encontrada: id=%s chamadas_ativas=%s", chamadaID, strings.Join(g.idsChamadasAtivas(runtime), ","))
+		return nil, nil, fmt.Errorf("%w: id=%s chamadas_ativas=%s", ErrChamadaNaoEncontrada, chamadaID, strings.Join(g.idsChamadasAtivas(runtime), ","))
 	}
 	return runtime, ativa, nil
 }

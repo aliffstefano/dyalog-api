@@ -75,6 +75,11 @@ var ErrMidiaInvalida = errors.New("midia invalida")
 var ErrAvatarNaoEncontrado = errors.New("avatar nao encontrado")
 var ErrInstanciaPertenceOutroNode = errors.New("instancia pertence a outro container")
 
+// ErrChamadaNaoEncontrada cobre chamada que ja encerrou ou nunca existiu. Vira
+// 404, nao 500: desligar uma chamada que ja caiu e situacao normal, e o cliente
+// costuma chamar o encerrar no caminho de limpeza, sem saber se ela ainda vive.
+var ErrChamadaNaoEncontrada = errors.New("chamada nao encontrada")
+
 const (
 	metodoPareamentoQR     = "qr"
 	metodoPareamentoCodigo = "codigo"

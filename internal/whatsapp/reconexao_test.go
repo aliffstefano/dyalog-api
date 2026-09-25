@@ -1,6 +1,8 @@
 package whatsapp
 
 import (
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,5 +77,28 @@ func TestPossuiRuntime(t *testing.T) {
 	// quem manda e o banco, mantido pelo container dono.
 	if g.PossuiRuntime("de-outra-replica") {
 		t.Fatal("instancia sem runtime local nao pode ser tratada como propria")
+	}
+}
+
+// Encerrar uma chamada que ja caiu e situacao normal: o cliente chama o
+// encerrar no caminho de limpeza, sem saber se ela ainda vive. Precisa sair
+// como 404, nao 500, senao vira alerta de falha do servidor e retry a toa.
+func TestErroChamadaNaoEncontradaEIdentificavel(t *testing.T) {
+	g := &GerenciadorInstancias{
+		estados:            map[string]estadoRuntime{},
+		runtimes:           map[string]*runtimeInstancia{},
+		reconexaoBloqueada: map[string]time.Time{},
+	}
+	runtime := &runtimeInstancia{chamadas: map[string]*chamadaAtiva{}}
+	_, _, err := g.obterChamadaAtivaDeRuntime(runtime, "chamada-que-nao-existe")
+	if err == nil {
+		t.Fatal("chamada inexistente deveria falhar")
+	}
+	if !errors.Is(err, ErrChamadaNaoEncontrada) {
+		t.Fatalf("erro precisa ser identificavel como ErrChamadaNaoEncontrada, obtido: %v", err)
+	}
+	// A mensagem continua listando os ids ativos, que e o que ajuda a depurar.
+	if !strings.Contains(err.Error(), "chamadas_ativas=") {
+		t.Fatalf("mensagem perdeu o diagnostico: %v", err)
 	}
 }

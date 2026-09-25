@@ -1130,6 +1130,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusForbidden, "nao_autorizado", "Aplicacao de atualizacao exige token valido")
 	case errors.Is(err, service.ErrHistoricoBloqueado):
 		h.responderErro(c, nethttp.StatusConflict, "historico_bloqueado", "Defina a importacao de historico antes de conectar a instancia. Desconecte e gere nova conexao para mudar essa configuracao.")
+	case errors.Is(err, whatsapp.ErrChamadaNaoEncontrada):
+		h.responderErro(c, nethttp.StatusNotFound, "chamada_nao_encontrada", "Chamada nao encontrada: ja encerrou ou nunca existiu")
 	case errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode):
 		h.responderErro(c, nethttp.StatusConflict, "instancia_em_outro_container", err.Error())
 	case errors.Is(err, service.ErrAtualizacaoBloqueada):
