@@ -2815,7 +2815,7 @@ func (g *GerenciadorInstancias) obterOuCriarRuntime(ctx context.Context, instanc
 		}
 		return nil, fmt.Errorf("erro ao abrir store do whatsmeow: %w", err)
 	}
-	client := whatsmeow.NewClient(deviceStore, waLog.Stdout("WA-"+instanciaID, g.nivelLog, false))
+	client := whatsmeow.NewClient(deviceStore, loggerComCaptura(waLog.Stdout("WA-"+instanciaID, g.nivelLog, false), instanciaID))
 	client.EnableAutoReconnect = true
 	client.QRClientType = g.tipoCliente
 	if err := g.aplicarProxyCliente(ctx, instanciaID, client); err != nil {
@@ -3163,6 +3163,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		if evento.Message.GetPollUpdateMessage() != nil {
 			fmt.Printf("enquete: evento de voto recebido na instancia %s (mensagem_id=%s, remetente=%s, from_me=%v)\n", instanciaID, evento.Info.ID, evento.Info.Sender.String(), evento.Info.IsFromMe)
 		}
+		g.capturarMensagem(instanciaID, evento)
 		configuracao := g.obterConfiguracaoInstancia(context.Background(), instanciaID)
 		if g.deveIgnorarMensagem(configuracao, evento) {
 			if evento.Message.GetPollUpdateMessage() != nil {
@@ -3176,6 +3177,8 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		}
 		go g.dispararEventoMensagem(instanciaID, runtime.client, evento, "tempo_real", false)
 		g.prepararAcompanhamentoPresenca(instanciaID, runtime.client, evento)
+	case *events.UndecryptableMessage:
+		g.capturarIndecifravel(instanciaID, evento)
 	case *events.ChatPresence:
 		g.dispararEventoPresenca(instanciaID, evento)
 	case *events.Receipt:
