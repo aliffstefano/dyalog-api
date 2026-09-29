@@ -37,6 +37,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	waBinary "go.mau.fi/whatsmeow/binary"
 	waCompanionReg "go.mau.fi/whatsmeow/proto/waCompanionReg"
 	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
 	waStore "go.mau.fi/whatsmeow/store"
@@ -1335,7 +1336,12 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 	for _, tentativa := range montarTentativasLista(req) {
 		msg := tentativa.montar()
 		for _, jid := range jids {
-			resp, ultimoErro = enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
+			if tentativa.nosBiz != nil {
+				nos := tentativa.nosBiz()
+				resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg, whatsmeow.SendRequestExtra{AdditionalNodes: &nos})
+			} else {
+				resp, ultimoErro = enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
+			}
 			if ultimoErro == nil {
 				jidUsado = jid
 				modoUsado = tentativa.modo
@@ -5566,6 +5572,9 @@ func usarFallbackTextoLista(req models.EnvioListaRequest) bool {
 type tentativaLista struct {
 	modo   string
 	montar func() *waE2E.Message
+	// nosBiz, quando presente, fornece o <biz> enviado junto com a mensagem
+	// (um novo a cada envio, por causa do decision_id).
+	nosBiz func() []waBinary.Node
 }
 
 func modoListaAuto(req models.EnvioListaRequest) bool {
@@ -5600,6 +5609,8 @@ func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
 		}
 	case "native_flow", "single_select", "nativeflow":
 		return []tentativaLista{nativeFlow}
+	case "lista_biz", "list_biz":
+		return []tentativaLista{{modo: "lista_biz", montar: func() *waE2E.Message { return montarMensagemListaBiz(req) }, nosBiz: nosBizLista}}
 	case "native_flow_view_once":
 		return []tentativaLista{{modo: "native_flow_view_once", montar: func() *waE2E.Message { return montarMensagemListaNativeFlowViewOnce(req) }}}
 	case "lista_view_once", "list_view_once", "view_once", "viewonce":

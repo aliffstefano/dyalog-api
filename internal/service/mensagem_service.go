@@ -504,9 +504,9 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista deve ter entre 1 e %d linhas no total", ErrEntradaInvalida, maxLinhasListaTotal)
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
-	case "", "auto", "native_flow", "native_flow_view_once", "single_select", "nativeflow", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto":
+	case "", "auto", "native_flow", "native_flow_view_once", "single_select", "nativeflow", "lista_biz", "list_biz", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto":
 	default:
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista_biz, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
 	}
 	return s.gerenciador.EnviarLista(ctx, req)
 }

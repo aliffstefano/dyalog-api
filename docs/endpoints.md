@@ -1580,6 +1580,12 @@ Modos:
   `name` (padrao `mixed`). Nao ha fallback automatico para texto nesse modo
 - `native_flow_view_once`: **em teste** - o mesmo menu embrulhado em
   `ViewOnceMessage`
+- `lista_biz`: **em teste** - replica exatamente a lista que empresas enviam e
+  que renderiza (capturada com `CAPTURAR_MENSAGENS=true`): `ListMessage` sem
+  campos vazios e envelope `<biz>` com `<list type="single_select" v="1">` e
+  `<quality_control>`. Precisa da imagem Docker oficial, que aplica o ajuste de
+  `tools/whatsmeow-overlay`; num `go build` direto o stanza sai com dois
+  `<biz>` e e recusado
 - `texto`: envia menu textual em vez de lista interativa
 - `fallback_texto`: alias operacional do mesmo fallback
 

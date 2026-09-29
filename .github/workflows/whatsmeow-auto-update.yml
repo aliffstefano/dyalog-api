@@ -59,6 +59,12 @@ jobs:
         if: steps.bump.outputs.mudou == 'true'
         run: go test ./...
 
+      # Garante que o ajuste da lista (tools/whatsmeow-overlay) ainda se aplica
+      # na versao nova, antes de commitar o bump e publicar a imagem.
+      - name: Conferir ajuste do whatsmeow
+        if: steps.bump.outputs.mudou == 'true'
+        run: go run ./tools/whatsmeow-overlay /tmp/whatsmeow
+
       - name: Commitar bump do whatsmeow
         if: steps.bump.outputs.mudou == 'true'
         run: |

@@ -8,6 +8,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+# Ajuste no whatsmeow para a lista com envelope <biz> proprio (modo lista_biz).
+# Ver tools/whatsmeow-overlay. Falha o build se o whatsmeow mudar o trecho.
+RUN go run ./tools/whatsmeow-overlay /tmp/whatsmeow \
+    && go mod edit -replace go.mau.fi/whatsmeow=/tmp/whatsmeow
 RUN CGO_ENABLED=1 GOOS=linux go build -o /bin/dyalog-api-go ./cmd/api
 
 FROM alpine:3.21
