@@ -202,13 +202,16 @@ func ehFluxoPagamento(nativeFlow *waE2E.InteractiveMessage_NativeFlowMessage) bo
 
 // nomesFlowProprio sao botoes cujo <native_flow name="..."> usa o proprio nome
 // do botao, em vez de "mixed". Confirmado para payment_info (com "order_details"
-// o servidor recusa com 473); single_select segue o mesmo padrao por analogia -
-// ainda nao confirmado contra um stanza real.
+// o servidor recusa com 473).
+//
+// single_select (menu/lista) NAO entra aqui: com name="single_select" o
+// servidor aceitava e o menu nunca renderizava. Ele segue o mesmo envelope dos
+// botoes quick_reply, que e o formato comprovado ("mixed"). Para testar outro
+// valor sem recompilar, use flow_name no envio da lista.
 var nomesFlowProprio = map[string]bool{
 	"payment_info":   true,
 	"review_and_pay": true,
 	"order_details":  true,
-	"single_select":  true,
 }
 
 // nomeNodeNativeFlow decide o valor do atributo name do no <native_flow>.

@@ -454,6 +454,14 @@ func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBoto
 	return s.gerenciador.EnviarBotoes(ctx, req)
 }
 
+// Limites do menu single_select: ate 10 secoes com ate 10 linhas cada, 100 no
+// total.
+const (
+	maxSecoesLista         = 10
+	maxLinhasPorSecaoLista = 10
+	maxLinhasListaTotal    = maxSecoesLista * maxLinhasPorSecaoLista
+)
+
 func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioListaRequest) (models.ResultadoEnvio, error) {
 	req = normalizarListaCompat(req)
 	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
@@ -472,9 +480,15 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 	if len(req.Secoes) == 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe opcoes, secoes ou List", ErrEntradaInvalida)
 	}
+	if len(req.Secoes) > maxSecoesLista {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista aceita no maximo %d secoes", ErrEntradaInvalida, maxSecoesLista)
+	}
 	for _, secao := range req.Secoes {
 		if len(secao.Linhas) == 0 {
 			return models.ResultadoEnvio{}, fmt.Errorf("%w: cada secao precisa de pelo menos uma linha", ErrEntradaInvalida)
+		}
+		if len(secao.Linhas) > maxLinhasPorSecaoLista {
+			return models.ResultadoEnvio{}, fmt.Errorf("%w: cada secao aceita no maximo %d linhas", ErrEntradaInvalida, maxLinhasPorSecaoLista)
 		}
 		totalLinhas += len(secao.Linhas)
 		for _, linha := range secao.Linhas {
@@ -486,8 +500,8 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 			}
 		}
 	}
-	if totalLinhas == 0 || totalLinhas > 10 {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista deve ter entre 1 e 10 linhas no total", ErrEntradaInvalida)
+	if totalLinhas == 0 || totalLinhas > maxLinhasListaTotal {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista deve ter entre 1 e %d linhas no total", ErrEntradaInvalida, maxLinhasListaTotal)
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
 	case "", "auto", "native_flow", "single_select", "nativeflow", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto":
@@ -708,8 +722,20 @@ func normalizarListaCompat(req models.EnvioListaRequest) models.EnvioListaReques
 		req.Numero = strings.TrimSpace(req.Phone)
 		usouCompat = true
 	}
+	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.Number) != "" {
+		req.Numero = strings.TrimSpace(req.Number)
+		usouCompat = true
+	}
 	if strings.TrimSpace(req.Titulo) == "" && strings.TrimSpace(req.TopText) != "" {
 		req.Titulo = strings.TrimSpace(req.TopText)
+		usouCompat = true
+	}
+	if strings.TrimSpace(req.Descricao) == "" && strings.TrimSpace(req.Mensagem) == "" && strings.TrimSpace(req.ContentText) != "" {
+		req.Descricao = strings.TrimSpace(req.ContentText)
+		usouCompat = true
+	}
+	if len(req.Secoes) == 0 && len(req.Sections) > 0 {
+		req.Secoes = req.Sections
 		usouCompat = true
 	}
 	if strings.TrimSpace(req.Descricao) == "" && strings.TrimSpace(req.Mensagem) == "" && strings.TrimSpace(req.Desc) != "" {
@@ -782,6 +808,9 @@ func normalizarLinhaListaCompat(indice int, linha models.ListaLinhaRequest) mode
 	}
 	if strings.TrimSpace(linha.Descricao) == "" {
 		linha.Descricao = strings.TrimSpace(linha.Desc)
+	}
+	if strings.TrimSpace(linha.Descricao) == "" {
+		linha.Descricao = strings.TrimSpace(linha.Description)
 	}
 	if strings.TrimSpace(linha.ID) == "" && strings.TrimSpace(linha.Titulo) != "" {
 		linha.ID = fmt.Sprintf("linha_%d", indice+1)

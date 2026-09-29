@@ -1574,12 +1574,19 @@ Modos:
 
 - `lista`: padrao, envia `ListMessage` interativa
 - `list`: alias do mesmo formato
+- `native_flow` (ou `single_select`): **em teste** - envia o menu como
+  `InteractiveMessage` com botao `single_select`, usando o mesmo envelope dos
+  botoes que renderizam. Aceita `flow_name` para testar outro valor do atributo
+  `name` (padrao `mixed`). Nao ha fallback automatico para texto nesse modo
 - `texto`: envia menu textual em vez de lista interativa
 - `fallback_texto`: alias operacional do mesmo fallback
 
 Regras:
 
-- a lista aceita de 1 a 10 linhas no total
+- ate 10 secoes, cada uma com ate 10 linhas (maximo de 100 linhas no total)
+- tambem aceita o formato usado por outras APIs: `number`, `contentText`,
+  `buttonText`, `footerText` e `sections[].rows[]` com `id`, `title` e
+  `description`
 - se usar `opcoes` ou `List`, a API cria uma secao unica automaticamente
 - se usar `secoes`, cada secao pode ter titulo e varias linhas
 - quando usar token de instancia, `instancia` pode ser omitida

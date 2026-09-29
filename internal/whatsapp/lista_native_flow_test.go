@@ -84,8 +84,9 @@ func TestMontarMensagemListaNativeFlowPreencheCabecalhoERodape(t *testing.T) {
 	}
 }
 
-// O menu via native_flow usa o envelope completo, com name igual ao nome do
-// botao (single_select) - mesmo padrao confirmado no fluxo de pagamento.
+// O menu via native_flow usa o mesmo envelope completo dos botoes quick_reply
+// que renderizam (name="mixed"). Com name="single_select" o servidor aceitava e
+// o menu nunca aparecia.
 func TestListaNativeFlowUsaEnvelopeCompleto(t *testing.T) {
 	msg := montarMensagemListaNativeFlow(reqListaTeste())
 	destino := types.NewJID("5511999999999", types.DefaultUserServer)
@@ -103,8 +104,21 @@ func TestListaNativeFlowUsaEnvelopeCompleto(t *testing.T) {
 		t.Fatalf("<quality_control> ausente no formato completo: %#v", filhos)
 	}
 	flow := acharNo(acharNo(filhos, "interactive").Content.([]waBinary.Node), "native_flow")
-	if flow.Attrs["name"] != "single_select" || flow.Attrs["v"] != "9" {
-		t.Fatalf("native_flow = %#v, esperado name=single_select v=9", flow.Attrs)
+	if flow.Attrs["name"] != "mixed" || flow.Attrs["v"] != "9" {
+		t.Fatalf("native_flow = %#v, esperado name=mixed v=9", flow.Attrs)
+	}
+}
+
+// flow_name continua permitindo testar outro name sem recompilar.
+func TestListaNativeFlowAceitaFlowNameForcado(t *testing.T) {
+	msg := montarMensagemListaNativeFlow(reqListaTeste())
+	destino := types.NewJID("5511999999999", types.DefaultUserServer)
+
+	nos := nosInterativoNativeFlowComNome(msg, destino, "single_select")
+	filhos := acharNo(nos, "biz").Content.([]waBinary.Node)
+	flow := acharNo(acharNo(filhos, "interactive").Content.([]waBinary.Node), "native_flow")
+	if flow.Attrs["name"] != "single_select" {
+		t.Fatalf("native_flow = %#v, esperado name forcado single_select", flow.Attrs)
 	}
 }
 

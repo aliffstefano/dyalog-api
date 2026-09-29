@@ -5605,24 +5605,23 @@ func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
 }
 
 // montarMensagemListaNativeFlow monta o menu como InteractiveMessage/native_flow
-// com um botao "single_select".
+// com um botao "single_select" - o mesmo formato que as empresas usam para listas
+// de ate 10 secoes.
 //
-// ATENCAO: nenhum formato de menu interativo funciona hoje a partir de um
-// cliente multi-device comum. Testado contra o servidor real:
+// Historico dos testes contra o servidor real a partir de um cliente
+// multi-device comum:
 //
 //	ButtonsMessage (<biz><buttons/></biz>)          -> ack error 405
 //	ListMessage, inclusive replicando byte a byte o
 //	  stanza de uma empresa cujo menu renderiza      -> ack error 405
-//	native_flow single_select                        -> aceito, nunca renderiza
+//	native_flow single_select, <native_flow
+//	  name="single_select">                          -> aceito, nunca renderiza
 //
-// Os dois formatos legados dao 405 mesmo com o envelope <biz> identico ao de um
-// remetente que funciona, o que indica que a restricao e no tipo de remetente
-// (a empresa envia pela API oficial do WhatsApp Business), nao no formato.
-//
-// Esta funcao fica disponivel pelo modo "native_flow" para experimentacao, mas
-// nao entra no modo auto: por ser aceita sem erro, ela impediria o fallback de
-// texto, que hoje e o unico resultado que o destinatario consegue ler.
-// Para menus de verdade, use enquete (ate 12 opcoes) ou botoes (ate 3).
+// Os botoes quick_reply passaram a renderizar com o envelope <biz> completo e
+// name="mixed" (ver nosInterativoNativeFlowComNome). O menu agora usa esse mesmo
+// envelope; enquanto isso nao for confirmado em producao ele fica fora do modo
+// auto, porque por ser aceito sem erro ele impediria o fallback de texto.
+// Use modo "native_flow" para testar.
 func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message {
 	secoes := make([]map[string]interface{}, 0, len(req.Secoes))
 	for _, secao := range req.Secoes {
@@ -5653,8 +5652,17 @@ func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message 
 		return montarMensagemLista(req)
 	}
 
+	// Header e footer sempre presentes (mesmo vazios), igual aos botoes
+	// quick_reply que renderizam.
 	interactive := &waE2E.InteractiveMessage{
+		Header: &waE2E.InteractiveMessage_Header{
+			Title:              proto.String(strings.TrimSpace(req.Titulo)),
+			HasMediaAttachment: proto.Bool(false),
+		},
 		Body: &waE2E.InteractiveMessage_Body{Text: proto.String(textoMensagemListaEnvio(req))},
+		Footer: &waE2E.InteractiveMessage_Footer{
+			Text: proto.String(strings.TrimSpace(req.Rodape)),
+		},
 		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
 			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
 				Buttons: []*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{{
@@ -5666,15 +5674,6 @@ func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message 
 			},
 		},
 		ContextInfo: contextInfoLista(req),
-	}
-	if titulo := strings.TrimSpace(req.Titulo); titulo != "" {
-		interactive.Header = &waE2E.InteractiveMessage_Header{
-			Title:              proto.String(titulo),
-			HasMediaAttachment: proto.Bool(false),
-		}
-	}
-	if rodape := strings.TrimSpace(req.Rodape); rodape != "" {
-		interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(rodape)}
 	}
 	return &waE2E.Message{
 		InteractiveMessage: interactive,

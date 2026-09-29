@@ -154,6 +154,8 @@ type ListaLinhaRequest struct {
 	RowID     string `json:"RowId,omitempty"`
 	Title     string `json:"title,omitempty"`
 	Desc      string `json:"desc,omitempty"`
+	// Description e o nome usado por outras APIs (formato sections/rows).
+	Description string `json:"description,omitempty"`
 }
 
 type ListaSecaoRequest struct {
@@ -192,6 +194,11 @@ type EnvioListaRequest struct {
 	List                 []ListaLinhaRequest `json:"List,omitempty"`
 	ID                   string              `json:"Id,omitempty"`
 	ContextInfo          *ContextInfoCompat  `json:"ContextInfo,omitempty"`
+	// Formato usado por outras APIs: number, contentText, buttonText,
+	// footerText e sections[].rows[] com id/title/description.
+	Number      string              `json:"number,omitempty"`
+	ContentText string              `json:"contentText,omitempty"`
+	Sections    []ListaSecaoRequest `json:"sections,omitempty"`
 }
 
 type EnvioLocalizacaoRequest struct {
