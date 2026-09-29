@@ -5597,6 +5597,8 @@ func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
 		}
 	case "native_flow", "single_select", "nativeflow":
 		return []tentativaLista{nativeFlow}
+	case "native_flow_view_once":
+		return []tentativaLista{{modo: "native_flow_view_once", montar: func() *waE2E.Message { return montarMensagemListaNativeFlowViewOnce(req) }}}
 	case "lista_view_once", "list_view_once", "view_once", "viewonce":
 		return []tentativaLista{{modo: "lista_view_once", montar: func() *waE2E.Message { return montarMensagemListaViewOnce(req) }}}
 	default:
@@ -5678,6 +5680,18 @@ func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message 
 	return &waE2E.Message{
 		InteractiveMessage: interactive,
 		MessageContextInfo: contextInfoMensagemInterativa(),
+	}
+}
+
+// montarMensagemListaNativeFlowViewOnce embrulha o menu native_flow em
+// ViewOnceMessage, mesma variacao usada pelos botoes (native_flow_view_once).
+func montarMensagemListaNativeFlowViewOnce(req models.EnvioListaRequest) *waE2E.Message {
+	msg := montarMensagemListaNativeFlow(req)
+	if msg.GetInteractiveMessage() == nil {
+		return msg
+	}
+	return &waE2E.Message{
+		ViewOnceMessage: &waE2E.FutureProofMessage{Message: msg},
 	}
 }
 

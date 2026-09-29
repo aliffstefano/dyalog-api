@@ -158,3 +158,20 @@ func TestModoNativeFlowExplicitoContinuaDisponivel(t *testing.T) {
 		t.Fatalf("modo explicito native_flow = %#v", tentativas)
 	}
 }
+
+// A variacao view once leva o mesmo envelope <biz> do native_flow direto.
+func TestListaNativeFlowViewOnceLevaEnvelope(t *testing.T) {
+	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "native_flow_view_once"})
+	if len(tentativas) != 1 || tentativas[0].modo != "native_flow_view_once" {
+		t.Fatalf("tentativas = %#v", tentativas)
+	}
+	req := reqListaTeste()
+	msg := montarMensagemListaNativeFlowViewOnce(req)
+	if msg.GetViewOnceMessage().GetMessage().GetInteractiveMessage() == nil {
+		t.Fatalf("esperado InteractiveMessage dentro de ViewOnceMessage: %#v", msg)
+	}
+	nos := nosInterativoNativeFlow(msg, types.NewJID("5511999999999", types.DefaultUserServer))
+	if acharNo(nos, "biz") == nil {
+		t.Fatalf("view once sem <biz>: %#v", nos)
+	}
+}

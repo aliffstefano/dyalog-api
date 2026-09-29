@@ -1578,6 +1578,8 @@ Modos:
   `InteractiveMessage` com botao `single_select`, usando o mesmo envelope dos
   botoes que renderizam. Aceita `flow_name` para testar outro valor do atributo
   `name` (padrao `mixed`). Nao ha fallback automatico para texto nesse modo
+- `native_flow_view_once`: **em teste** - o mesmo menu embrulhado em
+  `ViewOnceMessage`
 - `texto`: envia menu textual em vez de lista interativa
 - `fallback_texto`: alias operacional do mesmo fallback
 
