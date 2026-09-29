@@ -1254,7 +1254,7 @@ func (g *GerenciadorInstancias) EnviarBotoes(ctx context.Context, req models.Env
 		if erroInterativoNaoPermitido(ultimoErro) {
 			resultadoFallback, err := g.enviarBotoesComoTexto(ctx, runtime.client, req, jids)
 			if err == nil {
-				resultadoFallback.Observacao = "Botoes interativos rejeitados pelo servidor do WhatsApp com erro 405; opcoes enviadas automaticamente como texto."
+				resultadoFallback.Observacao = fmt.Sprintf("Botoes interativos rejeitados pelo servidor do WhatsApp (%v); opcoes enviadas automaticamente como texto.", ultimoErro)
 				return resultadoFallback, nil
 			}
 		}
@@ -1359,7 +1359,7 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 		if erroInterativoNaoPermitido(ultimoErro) {
 			resultadoFallback, err := g.enviarListaComoTexto(ctx, runtime.client, req, jids)
 			if err == nil {
-				resultadoFallback.Observacao = "Lista interativa rejeitada pelo servidor do WhatsApp com erro 405; opcoes enviadas automaticamente como texto."
+				resultadoFallback.Observacao = fmt.Sprintf("Lista interativa rejeitada pelo servidor do WhatsApp (%v); opcoes enviadas automaticamente como texto.", ultimoErro)
 				return resultadoFallback, nil
 			}
 		}
@@ -2821,7 +2821,7 @@ func (g *GerenciadorInstancias) obterOuCriarRuntime(ctx context.Context, instanc
 		}
 		return nil, fmt.Errorf("erro ao abrir store do whatsmeow: %w", err)
 	}
-	client := whatsmeow.NewClient(deviceStore, loggerComCaptura(waLog.Stdout("WA-"+instanciaID, g.nivelLog, false), instanciaID))
+	client := whatsmeow.NewClient(deviceStore, loggerComCaptura(waLog.Stdout("WA-"+instanciaID, g.nivelLog, false), instanciaID, g.diretorioBase))
 	client.EnableAutoReconnect = true
 	client.QRClientType = g.tipoCliente
 	if err := g.aplicarProxyCliente(ctx, instanciaID, client); err != nil {

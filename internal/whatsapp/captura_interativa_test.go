@@ -28,7 +28,7 @@ func TestCapturaJuntaStanzaEMensagem(t *testing.T) {
 			{Tag: "enc", Attrs: waBinary.Attrs{"v": "2", "type": "msg"}, Content: []byte{1, 2, 3}},
 		},
 	}
-	recv := loggerComCaptura(waLog.Noop, "inst").Sub("Recv")
+	recv := loggerComCaptura(waLog.Noop, "inst", g.diretorioBase).Sub("Recv")
 	recv.Debugf("%s", stanza)
 
 	msg := &waE2E.Message{ListMessage: &waE2E.ListMessage{Title: proto.String("Menu")}}
@@ -62,7 +62,23 @@ func TestCapturaJuntaStanzaEMensagem(t *testing.T) {
 
 func TestCapturaDesligadaNaoEmbrulhaLogger(t *testing.T) {
 	t.Setenv("CAPTURAR_MENSAGENS", "")
-	if _, embrulhado := loggerComCaptura(waLog.Noop, "inst").(loggerCaptura); embrulhado {
+	if _, embrulhado := loggerComCaptura(waLog.Noop, "inst", "").(loggerCaptura); embrulhado {
 		t.Fatal("sem CAPTURAR_MENSAGENS o logger nao deveria ser embrulhado")
+	}
+}
+
+// O stanza que enviamos e a recusa do servidor tambem sao gravados.
+func TestCapturaGravaEnviadaERecusa(t *testing.T) {
+	t.Setenv("CAPTURAR_MENSAGENS", "true")
+	dir := t.TempDir()
+	base := loggerComCaptura(waLog.Noop, "inst", dir)
+
+	base.Sub("Send").Debugf("%s", &waBinary.Node{Tag: "message", Attrs: waBinary.Attrs{"id": "M1"}})
+	base.Sub("Recv").Debugf("%s", &waBinary.Node{Tag: "ack", Attrs: waBinary.Attrs{"id": "M1", "class": "message", "error": "405"}})
+
+	for _, nome := range []string{"inst_enviada_M1.json", "inst_recusa_M1.json"} {
+		if _, err := os.Stat(filepath.Join(dir, "capturas", nome)); err != nil {
+			t.Fatalf("%s nao gravado: %v", nome, err)
+		}
 	}
 }

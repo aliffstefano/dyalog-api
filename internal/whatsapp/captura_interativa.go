@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Captura de mensagens recebidas, para comparar o formato que uma empresa
+// Captura de mensagens recebidas e enviadas, para comparar o formato que uma empresa
 // envia (e o cliente renderiza) com o que nos enviamos. Ligada por
 // CAPTURAR_MENSAGENS=true; desligada por padrao porque grava o conteudo das
 // mensagens em disco. Use so numa instancia de teste.
@@ -77,32 +77,53 @@ func retirarStanza(instanciaID, mensagemID string) *waBinary.Node {
 	return no
 }
 
-// loggerCaptura intercepta o log "Recv" do whatsmeow, que recebe cada no
-// decodificado do socket, e guarda os <message>. Funciona em qualquer nivel de
-// log, porque o whatsmeow chama Debugf sempre e o filtro fica no logger.
+// loggerCaptura intercepta os logs "Recv" e "Send" do whatsmeow, que recebem
+// cada no do socket. Funciona em qualquer nivel de log, porque o whatsmeow chama
+// Debugf sempre e o filtro fica no logger.
+//
+//   - Recv <message>: guardado ate o evento decifrado chegar (capturarMensagem)
+//   - Recv <ack error="...">: recusa do servidor a algo que enviamos, gravada na hora
+//   - Send <message>: o stanza exato que enviamos, gravado na hora
 type loggerCaptura struct {
 	waLog.Logger
 	instanciaID string
-	recv        bool
+	diretorio   string
+	modulo      string
 }
 
-func loggerComCaptura(base waLog.Logger, instanciaID string) waLog.Logger {
+func loggerComCaptura(base waLog.Logger, instanciaID, diretorioBase string) waLog.Logger {
 	if !capturaMensagensAtiva() {
 		return base
 	}
-	return loggerCaptura{Logger: base, instanciaID: instanciaID}
+	return loggerCaptura{Logger: base, instanciaID: instanciaID, diretorio: diretorioBase}
 }
 
 func (l loggerCaptura) Sub(modulo string) waLog.Logger {
-	return loggerCaptura{Logger: l.Logger.Sub(modulo), instanciaID: l.instanciaID, recv: modulo == "Recv"}
+	return loggerCaptura{Logger: l.Logger.Sub(modulo), instanciaID: l.instanciaID, diretorio: l.diretorio, modulo: modulo}
 }
 
 func (l loggerCaptura) Debugf(msg string, args ...any) {
-	if l.recv {
-		for _, arg := range args {
-			if no, ok := arg.(*waBinary.Node); ok && no != nil && no.Tag == "message" {
-				guardarStanza(l.instanciaID, no)
-			}
+	for _, arg := range args {
+		no, ok := arg.(*waBinary.Node)
+		if !ok || no == nil {
+			continue
+		}
+		id, _ := no.Attrs["id"].(string)
+		switch {
+		case l.modulo == "Recv" && no.Tag == "message":
+			guardarStanza(l.instanciaID, no)
+		case l.modulo == "Recv" && no.Tag == "ack" && no.Attrs["error"] != nil:
+			gravarArquivoCaptura(l.diretorio, l.instanciaID+"_recusa_"+id, map[string]interface{}{
+				"instancia":   l.instanciaID,
+				"mensagem_id": id,
+				"recusa":      noParaJSON(no),
+			})
+		case l.modulo == "Send" && no.Tag == "message":
+			gravarArquivoCaptura(l.diretorio, l.instanciaID+"_enviada_"+id, map[string]interface{}{
+				"instancia":   l.instanciaID,
+				"mensagem_id": id,
+				"stanza":      noParaJSON(no),
+			})
 		}
 	}
 	l.Logger.Debugf(msg, args...)
@@ -183,20 +204,24 @@ func (g *GerenciadorInstancias) capturarIndecifravel(instanciaID string, evento 
 }
 
 func (g *GerenciadorInstancias) gravarCaptura(instanciaID, mensagemID string, registro map[string]interface{}) {
+	gravarArquivoCaptura(g.diretorioBase, instanciaID+"_"+mensagemID, registro)
+}
+
+func gravarArquivoCaptura(diretorioBase, nome string, registro map[string]interface{}) {
 	conteudo, err := json.MarshalIndent(registro, "", "  ")
 	if err != nil {
-		fmt.Printf("captura: erro ao montar registro %s: %v\n", mensagemID, err)
+		fmt.Printf("captura: erro ao montar registro %s: %v\n", nome, err)
 		return
 	}
-	diretorio := filepath.Join(g.diretorioBase, "capturas")
+	diretorio := filepath.Join(diretorioBase, "capturas")
 	if err := os.MkdirAll(diretorio, 0o755); err != nil {
 		fmt.Printf("captura: erro ao criar %s: %v\n", diretorio, err)
 		return
 	}
-	arquivo := filepath.Join(diretorio, instanciaID+"_"+mensagemID+".json")
+	arquivo := filepath.Join(diretorio, nome+".json")
 	if err := os.WriteFile(arquivo, conteudo, 0o644); err != nil {
 		fmt.Printf("captura: erro ao gravar %s: %v\n", arquivo, err)
 		return
 	}
-	fmt.Printf("captura: mensagem %s gravada em %s\n", mensagemID, arquivo)
+	fmt.Printf("captura: %s gravada em %s\n", nome, arquivo)
 }
