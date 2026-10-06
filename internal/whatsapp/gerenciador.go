@@ -994,27 +994,14 @@ func (g *GerenciadorInstancias) EnviarTexto(ctx context.Context, req models.Envi
 		}
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := montarMensagemTexto(req, jid)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar mensagem no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar mensagem no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	resultado := models.ResultadoEnvio{Instancia: req.Instancia, Numero: req.Numero, ChatJID: jidUsado.String(), MensagemID: mensagemID, Status: "enviada", Tipo: "texto"}
 	if presencaAntes {
 		resultado.PresencaAntes = "digitando"
@@ -1033,28 +1020,16 @@ func (g *GerenciadorInstancias) EditarTexto(ctx context.Context, req models.Edit
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		novoConteudo := &waE2E.Message{Conversation: proto.String(strings.TrimSpace(req.Mensagem))}
 		msg := runtime.client.BuildEdit(jid, types.MessageID(strings.TrimSpace(req.MensagemID)), novoConteudo)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
-	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao editar mensagem no WhatsApp: %w", ultimoErro)
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao editar mensagem no WhatsApp: %w", err)
 	}
 
-	mensagemID := strings.TrimSpace(req.MensagemID)
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(strings.TrimSpace(req.MensagemID), string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1084,28 +1059,16 @@ func (g *GerenciadorInstancias) ApagarMensagem(ctx context.Context, req models.A
 		}
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
 	mensagemID := types.MessageID(strings.TrimSpace(req.MensagemID))
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := runtime.client.BuildRevoke(jid, sender, mensagemID)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
-	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao apagar mensagem no WhatsApp: %w", ultimoErro)
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao apagar mensagem no WhatsApp: %w", err)
 	}
 
-	id := strings.TrimSpace(req.MensagemID)
-	if id == "" {
-		id = string(resp.ID)
-	}
+	id := cmp.Or(strings.TrimSpace(req.MensagemID), string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1127,31 +1090,18 @@ func (g *GerenciadorInstancias) ReagirMensagem(ctx context.Context, req models.R
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		remetente, err := g.jidRemetenteReacao(jid, req)
 		if err != nil {
-			ultimoErro = err
-			continue
+			return whatsmeow.SendResponse{}, err
 		}
 		msg := runtime.client.BuildReaction(jid, remetente, types.MessageID(strings.TrimSpace(req.MensagemID)), strings.TrimSpace(req.Emoji))
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao reagir mensagem no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao reagir mensagem no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := string(resp.ID)
-	if mensagemID == "" {
-		mensagemID = strings.TrimSpace(req.MensagemID)
-	}
+	mensagemID := cmp.Or(string(resp.ID), strings.TrimSpace(req.MensagemID))
 	status := "reagida"
 	if strings.TrimSpace(req.Emoji) == "" {
 		status = "reacao_removida"
@@ -1203,15 +1153,11 @@ func (g *GerenciadorInstancias) EnviarBotoes(ctx context.Context, req models.Env
 			ultimoErro = err
 			continue
 		}
-		for _, jid := range jids {
-			resp, ultimoErro = enviarMensagemInterativa(ctx, runtime.client, jid, msg)
-			if ultimoErro == nil {
-				jidUsado = jid
-				modoUsado = tentativa.modo
-				break
-			}
-		}
-		if jidUsado.User != "" {
+		resp, jidUsado, ultimoErro = enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+			return enviarMensagemInterativa(ctx, runtime.client, jid, msg)
+		})
+		if ultimoErro == nil {
+			modoUsado = tentativa.modo
 			break
 		}
 		if !modoBotoesAuto(req) {
@@ -1228,10 +1174,7 @@ func (g *GerenciadorInstancias) EnviarBotoes(ctx context.Context, req models.Env
 		}
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar botoes no WhatsApp: %w", ultimoErro)
 	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1246,25 +1189,13 @@ func (g *GerenciadorInstancias) EnviarBotoes(ctx context.Context, req models.Env
 
 func (g *GerenciadorInstancias) enviarBotoesComoTexto(ctx context.Context, client *whatsmeow.Client, req models.EnvioBotoesRequest, jids []types.JID) (models.ResultadoEnvio, error) {
 	msg := &waE2E.Message{Conversation: proto.String(textoFallbackBotoes(req))}
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar botoes como texto no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar botoes como texto no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1300,20 +1231,15 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 
 	for _, tentativa := range montarTentativasLista(req) {
 		msg := tentativa.montar()
-		for _, jid := range jids {
+		resp, jidUsado, ultimoErro = enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 			if tentativa.nosBiz != nil {
 				nos := tentativa.nosBiz()
-				resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg, whatsmeow.SendRequestExtra{AdditionalNodes: &nos})
-			} else {
-				resp, ultimoErro = enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
+				return runtime.client.SendMessage(ctx, jid, msg, whatsmeow.SendRequestExtra{AdditionalNodes: &nos})
 			}
-			if ultimoErro == nil {
-				jidUsado = jid
-				modoUsado = tentativa.modo
-				break
-			}
-		}
-		if jidUsado.User != "" {
+			return enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
+		})
+		if ultimoErro == nil {
+			modoUsado = tentativa.modo
 			break
 		}
 		if !modoListaAuto(req) {
@@ -1330,10 +1256,7 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 		}
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar lista no WhatsApp: %w", ultimoErro)
 	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1348,25 +1271,13 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 
 func (g *GerenciadorInstancias) enviarListaComoTexto(ctx context.Context, client *whatsmeow.Client, req models.EnvioListaRequest, jids []types.JID) (models.ResultadoEnvio, error) {
 	msg := &waE2E.Message{Conversation: proto.String(textoFallbackLista(req))}
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar lista como texto no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar lista como texto no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1398,25 +1309,13 @@ func (g *GerenciadorInstancias) EnviarEnquete(ctx context.Context, req models.En
 		msg.PollCreationMessage.ContextInfo = contexto
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar enquete no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar enquete no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	g.armazenarOpcoesEnquete(req.Instancia, mensagemID, opcoes)
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
@@ -1494,25 +1393,13 @@ func (g *GerenciadorInstancias) EnviarLocalizacao(ctx context.Context, req model
 	}
 	msg := &waE2E.Message{LocationMessage: localizacao}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar localizacao no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar localizacao no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1563,25 +1450,13 @@ func (g *GerenciadorInstancias) EnviarContato(ctx context.Context, req models.En
 		}}
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar contato no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar contato no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1649,32 +1524,20 @@ func (g *GerenciadorInstancias) EnviarCobrancaPix(ctx context.Context, req model
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
-	}
-	if jidUsado.User == "" {
-		if erroInterativoNaoPermitido(ultimoErro) {
-			resultadoFallback, err := g.enviarCobrancaPixComoTexto(ctx, runtime.client, req, jids)
-			if err == nil {
-				resultadoFallback.Observacao = "Botao de cobranca Pix rejeitado pelo servidor do WhatsApp com erro 405; dados enviados automaticamente como texto."
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return enviarMensagemInterativaComNome(ctx, runtime.client, jid, msg, req.FlowName)
+	})
+	if err != nil {
+		if erroInterativoNaoPermitido(err) {
+			resultadoFallback, errTexto := g.enviarCobrancaPixComoTexto(ctx, runtime.client, req, jids)
+			if errTexto == nil {
+				resultadoFallback.Observacao = fmt.Sprintf("Botao de cobranca Pix rejeitado pelo servidor do WhatsApp (%v); dados enviados automaticamente como texto.", err)
 				return resultadoFallback, nil
 			}
 		}
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar cobranca pix no WhatsApp: %w", ultimoErro)
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar cobranca pix no WhatsApp: %w", err)
 	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1694,25 +1557,13 @@ func (g *GerenciadorInstancias) enviarCobrancaPixComoTexto(ctx context.Context, 
 	chave := normalizarChavePix(tipoChave, req.ChavePix)
 	texto := textoFallbackCobrancaPix(req, chave)
 	msg := &waE2E.Message{Conversation: proto.String(texto)}
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		resp, ultimoErro = client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar cobranca pix como texto no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar cobranca pix como texto no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{
 		Instancia:  req.Instancia,
 		Numero:     req.Numero,
@@ -1925,22 +1776,11 @@ func (g *GerenciadorInstancias) EnviarPresenca(ctx context.Context, req models.E
 
 	_ = runtime.client.SendPresence(ctx, types.PresenceAvailable)
 
-	var (
-		ultimoErro error
-		jidUsado   types.JID
-	)
-	for _, jid := range jids {
-		ultimoErro = runtime.client.SendChatPresence(ctx, jid, estado, media)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
-	}
-	if jidUsado.User == "" {
-		if ultimoErro == nil {
-			ultimoErro = errors.New("nenhum destino aceitou a presenca")
-		}
-		return models.ResultadoPresenca{}, fmt.Errorf("erro ao enviar presenca no WhatsApp: %w", ultimoErro)
+	_, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
+		return whatsmeow.SendResponse{}, runtime.client.SendChatPresence(ctx, jid, estado, media)
+	})
+	if err != nil {
+		return models.ResultadoPresenca{}, fmt.Errorf("erro ao enviar presenca no WhatsApp: %w", err)
 	}
 
 	delay := atrasoEnvio(req.DelaySegundos, req.Delay, req.DelayMS)
@@ -2097,27 +1937,14 @@ func (g *GerenciadorInstancias) EnviarImagem(ctx context.Context, req models.Env
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := montarMensagemImagem(req, mimeType, upload, largura, altura)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar imagem no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar imagem no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{Instancia: req.Instancia, Numero: req.Numero, ChatJID: jidUsado.String(), MensagemID: mensagemID, Status: "enviada", Tipo: "imagem"}, nil
 }
 
@@ -2144,27 +1971,14 @@ func (g *GerenciadorInstancias) EnviarAudio(ctx context.Context, req models.Envi
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := montarMensagemAudio(reqEnvio, mimeType, upload, gerarWaveformAudio(dados))
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar audio no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar audio no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{Instancia: req.Instancia, Numero: req.Numero, ChatJID: jidUsado.String(), MensagemID: mensagemID, Status: "enviada", Tipo: "audio"}, nil
 }
 
@@ -2187,27 +2001,14 @@ func (g *GerenciadorInstancias) EnviarDocumento(ctx context.Context, req models.
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := montarMensagemDocumento(req, nomeArquivo, mimeType, upload)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar documento no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar documento no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{Instancia: req.Instancia, Numero: req.Numero, ChatJID: jidUsado.String(), MensagemID: mensagemID, Status: "enviada", Tipo: "documento"}, nil
 }
 
@@ -2231,27 +2032,14 @@ func (g *GerenciadorInstancias) EnviarFigurinha(ctx context.Context, req models.
 		return models.ResultadoEnvio{}, err
 	}
 
-	var (
-		ultimoErro error
-		resp       whatsmeow.SendResponse
-		jidUsado   types.JID
-	)
-
-	for _, jid := range jids {
+	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 		msg := montarMensagemFigurinha(mimeType, upload, largura, altura)
-		resp, ultimoErro = runtime.client.SendMessage(ctx, jid, msg)
-		if ultimoErro == nil {
-			jidUsado = jid
-			break
-		}
+		return runtime.client.SendMessage(ctx, jid, msg)
+	})
+	if err != nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar figurinha no WhatsApp: %w", err)
 	}
-	if jidUsado.User == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("erro ao enviar figurinha no WhatsApp: %w", ultimoErro)
-	}
-	mensagemID := req.MensagemID
-	if mensagemID == "" {
-		mensagemID = string(resp.ID)
-	}
+	mensagemID := cmp.Or(req.MensagemID, string(resp.ID))
 	return models.ResultadoEnvio{Instancia: req.Instancia, Numero: req.Numero, ChatJID: jidUsado.String(), MensagemID: mensagemID, Status: "enviada", Tipo: "figurinha"}, nil
 }
 
@@ -5711,6 +5499,21 @@ func textoFallbackLista(req models.EnvioListaRequest) string {
 		partes = append(partes, rodape)
 	}
 	return strings.Join(partes, "\n\n")
+}
+
+// enviarPrimeiroDestino tenta enviar para cada destino (as variacoes do numero
+// devolvidas por resolverDestinosEnvio) ate o primeiro ser aceito. Devolve a
+// resposta e o destino usado, ou o erro da ultima tentativa.
+func enviarPrimeiroDestino(jids []types.JID, enviar func(jid types.JID) (whatsmeow.SendResponse, error)) (whatsmeow.SendResponse, types.JID, error) {
+	ultimoErro := errors.New("nenhum destino para enviar")
+	for _, jid := range jids {
+		resp, err := enviar(jid)
+		if err == nil {
+			return resp, jid, nil
+		}
+		ultimoErro = err
+	}
+	return whatsmeow.SendResponse{}, types.JID{}, ultimoErro
 }
 
 func (g *GerenciadorInstancias) resolverDestinosEnvio(ctx context.Context, client *whatsmeow.Client, chatJID, numero string, grupo bool) ([]types.JID, error) {
