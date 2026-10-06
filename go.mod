@@ -14,7 +14,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.16
 	github.com/rs/zerolog v1.35.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/whatsmeow v0.0.0-20260925162019-b3832c2bd1d1
+	go.mau.fi/whatsmeow v0.0.0-20260929112325-8b41cfe6d9c4
 	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.47.0
 )
@@ -76,7 +76,7 @@ require (
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.37 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.60 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.mau.fi/libsignal v0.2.2 // indirect
