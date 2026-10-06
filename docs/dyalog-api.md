@@ -5,18 +5,18 @@ tokensEstimate: 5200
 verifiedAt: 2026-09-16
 ---
 
-# Dyalog API GO - Runbook operacional
+# Dyalog Connect - Runbook operacional
 
 API propria de WhatsApp baseada em Go, Gin e `go.mau.fi/whatsmeow`.
 Use este documento como referencia rapida para agentes, automacoes e integracoes externas.
 
 ## Quando carregar
 
-Carregue este contexto quando o sistema mencionar Dyalog API, WhatsApp via whatsmeow, webhooks Dyalog, n8n, envio de mensagens, midias, instancias, QR code, pairing code, recibos, presenca ou chamadas de voz (VoIP/WebRTC).
+Carregue este contexto quando o sistema mencionar Dyalog Connect (antes Dyalog API), WhatsApp via whatsmeow, webhooks Dyalog, n8n, envio de mensagens, midias, instancias, QR code, pairing code, recibos, presenca ou chamadas de voz (VoIP/WebRTC).
 
 ## O que este runbook garante
 
-- Nao confundir Dyalog API com WuzAPI, WAHA ou Evolution API.
+- Nao confundir Dyalog Connect com WuzAPI, WAHA ou Evolution API.
 - Usar sempre o prefixo canonico `/api/v1`.
 - Autenticar chamadas com `X-Access-Token`, nao com token no body.
 - Separar token master de token de instancia.
@@ -950,6 +950,6 @@ type DyalogAdapter = {
 
 ## Fonte
 
-- Codigo-fonte local do projeto Dyalog API GO.
+- Codigo-fonte local do projeto Dyalog Connect.
 - `docs/endpoints.md` para documentacao detalhada de API.
 - `go.mau.fi/whatsmeow` como nucleo WhatsApp.

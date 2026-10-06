@@ -31,7 +31,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Dyalog API GO ouvindo na porta %s", cfg.Porta)
+		log.Printf("Dyalog Connect ouvindo na porta %s", cfg.Porta)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("erro no servidor http: %v", err)
 		}

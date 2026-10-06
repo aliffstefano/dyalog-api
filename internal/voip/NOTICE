@@ -5,4 +5,4 @@ License: MIT
 Copyright (c) 2026 jotadev66
 
 The adapted code is kept under internal/voip and internal/wa to integrate
-WhatsApp call signaling and media transport with Dyalog API GO instances.
+WhatsApp call signaling and media transport with Dyalog Connect instances.

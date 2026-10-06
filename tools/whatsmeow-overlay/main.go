@@ -35,7 +35,7 @@ const substituto = `if buttonType := getButtonTypeFromMessage(message); buttonTy
 
 const funcaoExtra = `
 
-// dyalogTemBiz e injetado pelo overlay da Dyalog API (tools/whatsmeow-overlay).
+// dyalogTemBiz e injetado pelo overlay da Dyalog Connect (tools/whatsmeow-overlay).
 func dyalogTemBiz(nos *[]waBinary.Node) bool {
 	if nos == nil {
 		return false

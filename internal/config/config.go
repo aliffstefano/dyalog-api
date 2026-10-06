@@ -100,7 +100,7 @@ func Carregar() (*Config, error) {
 		TipoClienteSessao:             strings.ToLower(obter("SESSION_CLIENT_TYPE", "chrome")),
 		NomePareamentoSessao:          obter("SESSION_PAIRING_DISPLAY_NAME", "Chrome (Windows)"),
 		Ambiente:                      obter("APP_ENV", "development"),
-		NomeAplicacao:                 obter("APP_NAME", "Dyalog API GO"),
+		NomeAplicacao:                 obter("APP_NAME", "Dyalog Connect"),
 		CaminhoArquivosTemp:           obter("TEMP_FILES_DIR", "./data/temp"),
 		HTTPLogMode:                   strings.ToLower(obter("HTTP_LOG_MODE", "falhas")),
 		WhatsAppLogLevel:              strings.ToUpper(obter("WHATSAPP_LOG_LEVEL", "ERROR")),

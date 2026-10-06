@@ -19,7 +19,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <img src="/static/img/dyalog.png" alt="Dyalog" class="brand-logo">
         <div>
           <p class="eyebrow">Infrastructure Console</p>
-          <h1>Dyalog API</h1>
+          <h1>Dyalog Connect</h1>
         </div>
       </div>
       <nav class="topnav">

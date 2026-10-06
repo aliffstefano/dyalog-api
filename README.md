@@ -1,4 +1,4 @@
-# Dyalog API GO
+# Dyalog Connect
 
 <p align="center">
   <img src="static/img/dyalog.png" alt="Dyalog Internet Solutions" width="260">
@@ -17,7 +17,7 @@
 
 ## Visao geral
 
-Dyalog API GO e uma camada propria para operar instancias WhatsApp usando `go.mau.fi/whatsmeow`, sem depender da interface do WuzAPI. O projeto foi desenhado para uso em automacoes, CRMs e integracoes internas, com endpoints versionados em portugues e painel web embutido.
+Dyalog Connect e uma camada propria para operar instancias WhatsApp usando `go.mau.fi/whatsmeow`, sem depender da interface do WuzAPI. O projeto foi desenhado para uso em automacoes, CRMs e integracoes internas, com endpoints versionados em portugues e painel web embutido.
 
 Principais objetivos:
 
@@ -150,7 +150,7 @@ curl -X POST "http://localhost:8080/api/v1/batepapo/enviar/texto" \
   -H "X-Access-Token: SEU_TOKEN_DA_INSTANCIA" \
   -d '{
     "numero": "5511999999999",
-    "mensagem": "Mensagem enviada pela Dyalog API"
+    "mensagem": "Mensagem enviada pela Dyalog Connect"
   }'
 ```
 

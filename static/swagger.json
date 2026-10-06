@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Dyalog API GO",
+    "title": "Dyalog Connect",
     "description": "API REST para gerenciamento de instancias WhatsApp via whatsmeow. Para rotas protegidas, envie o token no header X-Access-Token. Todas as rotas usam o prefixo /api/v1.",
     "version": "1.0.0",
     "contact": {}
