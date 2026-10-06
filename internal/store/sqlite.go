@@ -687,12 +687,8 @@ func (s *SQLStore) AtualizarStatus(ctx context.Context, id, status string) (mode
 	if err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar status da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -705,12 +701,8 @@ func (s *SQLStore) AtualizarToken(ctx context.Context, id, token string) (models
 		}
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar token da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao do token: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -720,12 +712,8 @@ func (s *SQLStore) AtualizarHistorico(ctx context.Context, id string, dias int) 
 	if err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar historico da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao do historico: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -735,12 +723,8 @@ func (s *SQLStore) AtualizarProxy(ctx context.Context, id, modo, proxyURL string
 	if err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar proxy da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao do proxy: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -750,12 +734,8 @@ func (s *SQLStore) AtualizarPresenca(ctx context.Context, id, presenca string) (
 	if err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar presenca da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao da presenca: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -782,12 +762,8 @@ WHERE id = ?`),
 	if err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao atualizar configuracao avancada da instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return models.Instancia{}, fmt.Errorf("erro ao validar atualizacao da configuracao avancada: %w", err)
-	}
-	if afetadas == 0 {
-		return models.Instancia{}, ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return models.Instancia{}, err
 	}
 	return s.BuscarPorID(ctx, id)
 }
@@ -797,12 +773,8 @@ func (s *SQLStore) Excluir(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("erro ao excluir instancia: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("erro ao validar exclusao: %w", err)
-	}
-	if afetadas == 0 {
-		return ErrInstanciaNaoEncontrada
+	if err := exigirLinhaAfetada(result, ErrInstanciaNaoEncontrada); err != nil {
+		return err
 	}
 	return nil
 }
@@ -899,12 +871,8 @@ func (s *SQLStore) salvarWebhook(ctx context.Context, webhook models.WebhookInst
 		if err != nil {
 			return fmt.Errorf("erro ao atualizar webhook: %w", err)
 		}
-		afetadas, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("erro ao validar atualizacao do webhook: %w", err)
-		}
-		if afetadas == 0 {
-			return ErrWebhookNaoEncontrado
+		if err := exigirLinhaAfetada(result, ErrWebhookNaoEncontrado); err != nil {
+			return err
 		}
 		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM webhook_eventos WHERE webhook_id = ?`), webhook.ID); err != nil {
 			return fmt.Errorf("erro ao limpar eventos do webhook: %w", err)
@@ -962,12 +930,8 @@ func (s *SQLStore) ExcluirWebhook(ctx context.Context, instanciaID, webhookID st
 	if err != nil {
 		return fmt.Errorf("erro ao excluir webhook: %w", err)
 	}
-	afetadas, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("erro ao validar exclusao do webhook: %w", err)
-	}
-	if afetadas == 0 {
-		return ErrWebhookNaoEncontrado
+	if err := exigirLinhaAfetada(result, ErrWebhookNaoEncontrado); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1742,4 +1706,17 @@ func timeOrNil(v *time.Time) interface{} {
 		return nil
 	}
 	return v.UTC()
+}
+
+// exigirLinhaAfetada devolve naoEncontrado quando o comando nao alterou nenhuma
+// linha (id inexistente).
+func exigirLinhaAfetada(result sql.Result, naoEncontrado error) error {
+	afetadas, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("erro ao validar alteracao: %w", err)
+	}
+	if afetadas == 0 {
+		return naoEncontrado
+	}
+	return nil
 }
