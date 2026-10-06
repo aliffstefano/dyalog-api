@@ -21,13 +21,22 @@ func NovoMensagemService(instanciaStore store.InstanciaStore, gerenciador *whats
 	return &MensagemService{instanciaStore: instanciaStore, gerenciador: gerenciador}
 }
 
+// validarDestino confere se a instancia existe e se o envio tem numero ou
+// chat_jid.
+func (s *MensagemService) validarDestino(ctx context.Context, instancia, numero, chatJID string) error {
+	if _, err := s.instanciaStore.BuscarPorID(ctx, instancia); err != nil {
+		return ErrInstanciaNaoEncontrada
+	}
+	if strings.TrimSpace(numero) == "" && strings.TrimSpace(chatJID) == "" {
+		return fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	}
+	return nil
+}
+
 func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTextoRequest) (models.ResultadoEnvio, error) {
 	req = normalizarTextoCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
@@ -37,11 +46,8 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 
 func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
 	req = normalizarEditarTextoCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
@@ -54,11 +60,8 @@ func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarText
 
 func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
 	req = normalizarApagarMensagemCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
@@ -68,11 +71,8 @@ func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarM
 
 func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
 	req = normalizarReagirMensagemCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
@@ -268,11 +268,8 @@ func normalizarPresencaGlobalPersistida(acao string) string {
 
 func (s *MensagemService) MarcarLida(ctx context.Context, req models.MarcarLidaRequest) (models.ResultadoMarcarLida, error) {
 	req = normalizarMarcarLidaCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoMarcarLida{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoMarcarLida{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoMarcarLida{}, err
 	}
 	if strings.HasSuffix(strings.ToLower(strings.TrimSpace(req.ChatJID)), "@g.us") {
 		req.Grupo = true
@@ -299,11 +296,8 @@ func (s *MensagemService) MarcarLida(ctx context.Context, req models.MarcarLidaR
 
 func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.EnvioLocalizacaoRequest) (models.ResultadoEnvio, error) {
 	req = normalizarLocalizacaoCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if req.Latitude < -90 || req.Latitude > 90 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: latitude deve estar entre -90 e 90", ErrEntradaInvalida)
@@ -349,11 +343,8 @@ func normalizarLocalizacaoCompat(req models.EnvioLocalizacaoRequest) models.Envi
 
 func (s *MensagemService) EnviarContato(ctx context.Context, req models.EnvioContatoRequest) (models.ResultadoEnvio, error) {
 	req = normalizarContatoCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if len(req.Contatos) == 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe nome e telefone (ou vcard), ou a lista contatos", ErrEntradaInvalida)
@@ -406,11 +397,8 @@ func normalizarContatoCompat(req models.EnvioContatoRequest) models.EnvioContato
 
 func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBotoesRequest) (models.ResultadoEnvio, error) {
 	req = normalizarBotoesCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.Texto) == "" && strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe texto ou mensagem", ErrEntradaInvalida)
@@ -464,11 +452,8 @@ const (
 
 func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioListaRequest) (models.ResultadoEnvio, error) {
 	req = normalizarListaCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(textoMensagemLista(req)) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe descricao, mensagem ou Desc", ErrEntradaInvalida)
@@ -534,11 +519,8 @@ func normalizarTipoChavePix(tipo string) (string, error) {
 
 func (s *MensagemService) EnviarCobrancaPix(ctx context.Context, req models.EnvioCobrancaPixRequest) (models.ResultadoEnvio, error) {
 	req = normalizarCobrancaPixCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.ChavePix) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe chave_pix", ErrEntradaInvalida)
@@ -575,11 +557,8 @@ func normalizarCobrancaPixCompat(req models.EnvioCobrancaPixRequest) models.Envi
 
 func (s *MensagemService) EnviarEnquete(ctx context.Context, req models.EnvioEnqueteRequest) (models.ResultadoEnvio, error) {
 	req = normalizarEnqueteCompat(req)
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if strings.TrimSpace(req.Nome) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe nome ou pergunta", ErrEntradaInvalida)
@@ -842,11 +821,8 @@ func (s *MensagemService) EnviarFigurinha(ctx context.Context, req models.EnvioM
 }
 
 func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidiaRequest, fn func(context.Context, models.EnvioMidiaRequest) (models.ResultadoEnvio, error)) (models.ResultadoEnvio, error) {
-	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
-		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
-	}
-	if strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	if req.ArquivoURL == "" && req.CaminhoLocal == "" && req.ArquivoBase64 == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe arquivo_url, arquivo_base64 ou caminho_local", ErrEntradaInvalida)
