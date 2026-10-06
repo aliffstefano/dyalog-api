@@ -92,8 +92,7 @@ func NovoAPIHandler(cfg *config.Config, instanciaService *service.InstanciaServi
 
 func (h *APIHandler) LoginDashboard(c *gin.Context) {
 	var req loginDashboardRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe o token de acesso")
+	if !h.lerJSON(c, &req, nil, "Informe o token de acesso") {
 		return
 	}
 	acesso, err := h.authService.Autenticar(c.Request.Context(), req.Token)
@@ -227,8 +226,7 @@ func (h *APIHandler) AtualizarProxySistema(c *gin.Context) {
 		return
 	}
 	var req atualizarProxyGlobalRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe a configuracao do proxy global")
+	if !h.lerJSON(c, &req, nil, "Informe a configuracao do proxy global") {
 		return
 	}
 	ativo := strings.TrimSpace(req.URL) != ""
@@ -248,8 +246,7 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 		return
 	}
 	var req criarInstanciaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Nome da instancia e obrigatorio")
+	if !h.lerJSON(c, &req, nil, "Nome da instancia e obrigatorio") {
 		return
 	}
 	instancia, err := h.instanciaService.Criar(c.Request.Context(), req.Nome)
@@ -329,8 +326,7 @@ func (h *APIHandler) AtualizarHistoricoInstancia(c *gin.Context) {
 		return
 	}
 	var req atualizarHistoricoInstanciaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe a quantidade de dias do historico")
+	if !h.lerJSON(c, &req, nil, "Informe a quantidade de dias do historico") {
 		return
 	}
 	maxDias := h.cfg.HistoricoMaxDias
@@ -354,8 +350,7 @@ func (h *APIHandler) AtualizarProxyInstancia(c *gin.Context) {
 		return
 	}
 	var req atualizarProxyInstanciaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe modo e url do proxy da instancia")
+	if !h.lerJSON(c, &req, nil, "Informe modo e url do proxy da instancia") {
 		return
 	}
 	instancia, err := h.instanciaService.AtualizarProxy(c.Request.Context(), c.Param("id"), req.Modo, req.URL)
@@ -371,8 +366,7 @@ func (h *APIHandler) AtualizarPresencaInstancia(c *gin.Context) {
 		return
 	}
 	var req atualizarPresencaInstanciaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe presenca disponivel ou indisponivel")
+	if !h.lerJSON(c, &req, nil, "Informe presenca disponivel ou indisponivel") {
 		return
 	}
 	presenca := req.Presenca
@@ -395,8 +389,7 @@ func (h *APIHandler) AtualizarConfiguracaoAvancadaInstancia(c *gin.Context) {
 		return
 	}
 	var req atualizarConfiguracaoAvancadaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe as configuracoes avancadas da instancia")
+	if !h.lerJSON(c, &req, nil, "Informe as configuracoes avancadas da instancia") {
 		return
 	}
 	instancia, err := h.instanciaService.AtualizarConfiguracaoAvancada(c.Request.Context(), c.Param("id"), models.ConfiguracaoAvancadaInstancia{
@@ -631,8 +624,7 @@ func (h *APIHandler) CriarWebhook(c *gin.Context) {
 		return
 	}
 	var req webhookRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe nome, url e ao menos um evento")
+	if !h.lerJSON(c, &req, nil, "Informe nome, url e ao menos um evento") {
 		return
 	}
 	ativo := true
@@ -652,8 +644,7 @@ func (h *APIHandler) AtualizarWebhook(c *gin.Context) {
 		return
 	}
 	var req webhookRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe nome, url e ao menos um evento")
+	if !h.lerJSON(c, &req, nil, "Informe nome, url e ao menos um evento") {
 		return
 	}
 	ativo := true
@@ -694,11 +685,7 @@ func (h *APIHandler) ListarEntregasWebhook(c *gin.Context) {
 
 func (h *APIHandler) EnviarTexto(c *gin.Context) {
 	var req models.EnvioTextoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarTexto(c.Request.Context(), req)
@@ -711,11 +698,7 @@ func (h *APIHandler) EnviarTexto(c *gin.Context) {
 
 func (h *APIHandler) EditarTexto(c *gin.Context) {
 	var req models.EditarTextoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id, mensagem e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, mensagem e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EditarTexto(c.Request.Context(), req)
@@ -728,11 +711,7 @@ func (h *APIHandler) EditarTexto(c *gin.Context) {
 
 func (h *APIHandler) ApagarMensagem(c *gin.Context) {
 	var req models.ApagarMensagemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.ApagarMensagem(c.Request.Context(), req)
@@ -745,11 +724,7 @@ func (h *APIHandler) ApagarMensagem(c *gin.Context) {
 
 func (h *APIHandler) EnviarPresenca(c *gin.Context) {
 	var req models.EnvioPresencaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe acao ou type; numero/chat_jid so e obrigatorio para presenca de chat")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Informe acao ou type; numero/chat_jid so e obrigatorio para presenca de chat") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarPresenca(c.Request.Context(), req)
@@ -762,11 +737,7 @@ func (h *APIHandler) EnviarPresenca(c *gin.Context) {
 
 func (h *APIHandler) MarcarMensagemLida(c *gin.Context) {
 	var req models.MarcarLidaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id ou mensagens_id, e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id ou mensagens_id, e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.MarcarLida(c.Request.Context(), req)
@@ -779,11 +750,7 @@ func (h *APIHandler) MarcarMensagemLida(c *gin.Context) {
 
 func (h *APIHandler) EnviarBotoes(c *gin.Context) {
 	var req models.EnvioBotoesRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: texto ou mensagem, botoes e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: texto ou mensagem, botoes e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarBotoes(c.Request.Context(), req)
@@ -802,11 +769,7 @@ func (h *APIHandler) EnviarBotoes(c *gin.Context) {
 
 func (h *APIHandler) EnviarLista(c *gin.Context) {
 	var req models.EnvioListaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: descricao ou mensagem, botao_texto e opcoes/secoes, com numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: descricao ou mensagem, botao_texto e opcoes/secoes, com numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarLista(c.Request.Context(), req)
@@ -825,11 +788,7 @@ func (h *APIHandler) EnviarLista(c *gin.Context) {
 
 func (h *APIHandler) EnviarEnquete(c *gin.Context) {
 	var req models.EnvioEnqueteRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: nome ou pergunta, opcoes (2 a 12) e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: nome ou pergunta, opcoes (2 a 12) e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarEnquete(c.Request.Context(), req)
@@ -846,11 +805,7 @@ func (h *APIHandler) EnviarEnquete(c *gin.Context) {
 
 func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
 	var req models.EnvioCobrancaPixRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarCobrancaPix(c.Request.Context(), req)
@@ -869,11 +824,7 @@ func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
 
 func (h *APIHandler) EnviarLocalizacao(c *gin.Context) {
 	var req models.EnvioLocalizacaoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: latitude, longitude e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: latitude, longitude e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarLocalizacao(c.Request.Context(), req)
@@ -886,11 +837,7 @@ func (h *APIHandler) EnviarLocalizacao(c *gin.Context) {
 
 func (h *APIHandler) EnviarContato(c *gin.Context) {
 	var req models.EnvioContatoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: nome e telefone (ou vcard, ou lista contatos), e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: nome e telefone (ou vcard, ou lista contatos), e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarContato(c.Request.Context(), req)
@@ -1032,11 +979,7 @@ func (h *APIHandler) SinalizarWebRTCChamada(c *gin.Context) {
 
 func (h *APIHandler) ReagirMensagem(c *gin.Context) {
 	var req models.ReagirMensagemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: mensagem_id, emoji e numero ou chat_jid")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, emoji e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.ReagirMensagem(c.Request.Context(), req)
@@ -1049,11 +992,7 @@ func (h *APIHandler) ReagirMensagem(c *gin.Context) {
 
 func (h *APIHandler) enviarMidia(c *gin.Context, tipo string) {
 	var req models.EnvioMidiaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Campos obrigatorios: numero ou chat_jid, e arquivo_url, arquivo_base64 ou caminho_local; use grupo=true para grupo")
-		return
-	}
-	if !h.preencherInstanciaDaRequisicao(c, &req.Instancia) {
+	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: numero ou chat_jid, e arquivo_url, arquivo_base64 ou caminho_local; use grupo=true para grupo") {
 		return
 	}
 
@@ -1093,6 +1032,18 @@ func decodificarJSONTolerante(c *gin.Context, destino interface{}) error {
 		return io.EOF
 	}
 	return json.Unmarshal([]byte(texto), destino)
+}
+
+// lerJSON le o corpo da requisicao em req e, quando instanciaID nao e nil,
+// preenche a instancia pelo token de acesso. Devolve false quando ja respondeu
+// com erro. O motivo do erro de leitura (ex.: campo com tipo errado, como
+// "grupo": "true" em vez de true) vai junto na mensagem.
+func (h *APIHandler) lerJSON(c *gin.Context, req any, instanciaID *string, mensagemErro string) bool {
+	if err := c.ShouldBindJSON(req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", fmt.Sprintf("%s (%v)", mensagemErro, err))
+		return false
+	}
+	return instanciaID == nil || h.preencherInstanciaDaRequisicao(c, instanciaID)
 }
 
 func (h *APIHandler) preencherInstanciaDaRequisicao(c *gin.Context, instanciaID *string) bool {
