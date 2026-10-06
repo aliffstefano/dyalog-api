@@ -1357,3 +1357,111 @@ pre {
     font-size: 0;
   }
 }
+
+/* Uso e risco */
+.uso-conteudo {
+  display: grid;
+  gap: 14px;
+}
+
+.uso-resumo {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.uso-resumo small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.uso-colunas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.uso-bloco h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.uso-conteudo .helper-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.uso-bloco .helper-text {
+  margin: 0 0 8px;
+}
+
+.uso-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.uso-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.uso-lista li:first-child {
+  border-top: 0;
+}
+
+.uso-vazio,
+.uso-nota {
+  color: var(--muted);
+}
+
+.uso-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.uso-tabela th,
+.uso-tabela td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.uso-tabela th:first-child,
+.uso-tabela td:first-child {
+  text-align: left;
+}
+
+.uso-tabela th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.uso-tabela .warn,
+.uso-resumo .warn {
+  color: var(--warn);
+}
+
+.uso-lista strong {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .uso-resumo {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .uso-colunas {
+    grid-template-columns: 1fr;
+  }
+}

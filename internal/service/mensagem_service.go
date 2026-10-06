@@ -14,11 +14,51 @@ import (
 
 type MensagemService struct {
 	instanciaStore store.InstanciaStore
+	usoStore       store.UsoStore
 	gerenciador    *whatsapp.GerenciadorInstancias
 }
 
-func NovoMensagemService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *MensagemService {
-	return &MensagemService{instanciaStore: instanciaStore, gerenciador: gerenciador}
+func NovoMensagemService(instanciaStore store.InstanciaStore, usoStore store.UsoStore, gerenciador *whatsapp.GerenciadorInstancias) *MensagemService {
+	return &MensagemService{instanciaStore: instanciaStore, usoStore: usoStore, gerenciador: gerenciador}
+}
+
+// registrarEnvio anota no historico de uso (painel) o envio que deu certo.
+// Uso: return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarX(ctx, req))
+func (s *MensagemService) registrarEnvio(instanciaID string) func(models.ResultadoEnvio, error) (models.ResultadoEnvio, error) {
+	return func(resultado models.ResultadoEnvio, err error) (models.ResultadoEnvio, error) {
+		if err == nil {
+			s.anotarUso(models.EnvioRegistro{InstanciaID: instanciaID, ChatJID: resultado.ChatJID, Tipo: resultado.Tipo, Resultado: models.EnvioResultadoEnviada})
+		}
+		return resultado, err
+	}
+}
+
+// RegistrarEnvioLimitado anota um envio recusado pelo limite por minuto.
+func (s *MensagemService) RegistrarEnvioLimitado(instanciaID, tipo string) {
+	s.anotarUso(models.EnvioRegistro{InstanciaID: instanciaID, Tipo: tipo, Resultado: models.EnvioResultadoLimitada})
+}
+
+// anotarUso grava em segundo plano: a metrica nunca atrasa nem derruba o envio.
+func (s *MensagemService) anotarUso(envio models.EnvioRegistro) {
+	if s.usoStore == nil {
+		return
+	}
+	envio.CriadoEm = time.Now()
+	go func() {
+		ctx, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelar()
+		if err := s.usoStore.RegistrarEnvio(ctx, envio); err != nil {
+			fmt.Printf("uso: erro ao registrar envio da instancia %s: %v\n", envio.InstanciaID, err)
+		}
+	}()
+}
+
+// ResumoUso devolve os numeros de uso dos ultimos 7 dias da instancia.
+func (s *MensagemService) ResumoUso(ctx context.Context, instanciaID string) (models.ResumoUso, error) {
+	if _, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err != nil {
+		return models.ResumoUso{}, ErrInstanciaNaoEncontrada
+	}
+	return s.usoStore.ResumoUso(ctx, instanciaID, time.Now(), 7)
 }
 
 // validarDestino confere se a instancia existe e se o envio tem numero ou
@@ -41,7 +81,7 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarTexto(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarTexto(ctx, req))
 }
 
 func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
@@ -55,7 +95,7 @@ func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarText
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EditarTexto(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EditarTexto(ctx, req))
 }
 
 func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
@@ -66,7 +106,7 @@ func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarM
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
 	}
-	return s.gerenciador.ApagarMensagem(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.ApagarMensagem(ctx, req))
 }
 
 func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
@@ -80,7 +120,7 @@ func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirM
 	if req.Grupo && strings.TrimSpace(req.RemetenteJID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe remetente_jid ou participante para reagir mensagem de grupo", ErrEntradaInvalida)
 	}
-	return s.gerenciador.ReagirMensagem(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.ReagirMensagem(ctx, req))
 }
 
 func normalizarTextoCompat(req models.EnvioTextoRequest) models.EnvioTextoRequest {
@@ -308,7 +348,7 @@ func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.Envi
 	if req.Latitude == 0 && req.Longitude == 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe latitude e longitude", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarLocalizacao(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarLocalizacao(ctx, req))
 }
 
 func normalizarLocalizacaoCompat(req models.EnvioLocalizacaoRequest) models.EnvioLocalizacaoRequest {
@@ -357,7 +397,7 @@ func (s *MensagemService) EnviarContato(ctx context.Context, req models.EnvioCon
 			return models.ResultadoEnvio{}, fmt.Errorf("%w: contato %d precisa de nome e telefone, ou vcard", ErrEntradaInvalida, i+1)
 		}
 	}
-	return s.gerenciador.EnviarContato(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarContato(ctx, req))
 }
 
 func normalizarContatoCompat(req models.EnvioContatoRequest) models.EnvioContatoRequest {
@@ -439,7 +479,7 @@ func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBoto
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, template, texto, buttons ou auto", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarBotoes(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarBotoes(ctx, req))
 }
 
 // Limites do menu single_select: ate 10 secoes com ate 10 linhas cada, 100 no
@@ -493,7 +533,7 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista_biz, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarLista(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarLista(ctx, req))
 }
 
 var tiposChavePixValidos = map[string]string{
@@ -534,7 +574,7 @@ func (s *MensagemService) EnviarCobrancaPix(ctx context.Context, req models.Envi
 	if req.Valor < 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: valor nao pode ser negativo", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarCobrancaPix(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarCobrancaPix(ctx, req))
 }
 
 func normalizarCobrancaPixCompat(req models.EnvioCobrancaPixRequest) models.EnvioCobrancaPixRequest {
@@ -581,7 +621,7 @@ func (s *MensagemService) EnviarEnquete(ctx context.Context, req models.EnvioEnq
 	if req.OpcoesSelecionaveis < 0 || req.OpcoesSelecionaveis > len(req.Opcoes) {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: opcoes_selecionaveis deve estar entre 1 e a quantidade de opcoes", ErrEntradaInvalida)
 	}
-	return s.gerenciador.EnviarEnquete(ctx, req)
+	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarEnquete(ctx, req))
 }
 
 func normalizarEnqueteCompat(req models.EnvioEnqueteRequest) models.EnvioEnqueteRequest {
@@ -834,5 +874,5 @@ func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidia
 		}
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao preparar envio de midia: %w", err)
 	}
-	return resultado, nil
+	return s.registrarEnvio(req.Instancia)(resultado, nil)
 }

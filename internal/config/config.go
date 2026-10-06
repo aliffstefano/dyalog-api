@@ -53,6 +53,7 @@ type Config struct {
 	WebhookTimeoutSegundos        int
 	WebhookConcorrencia           int
 	WebhookEntregaRetencaoDias    int
+	UsoRetencaoDias               int
 	RuntimeNodeID                 string
 	RuntimeNodeEndereco           string
 	RuntimeLockTTLSeconds         int
@@ -137,6 +138,7 @@ func Carregar() (*Config, error) {
 		WebhookTimeoutSegundos:        obterInt("WEBHOOK_TIMEOUT_SECONDS", 5),
 		WebhookConcorrencia:           obterInt("WEBHOOK_WORKER_CONCURRENCY", 5),
 		WebhookEntregaRetencaoDias:    obterInt("WEBHOOK_ENTREGA_RETENTION_DAYS", 30),
+		UsoRetencaoDias:               obterInt("USO_RETENTION_DAYS", 30),
 		RuntimeNodeID:                 obterRuntimeNodeID(),
 		RuntimeNodeEndereco:           obterRuntimeNodeEndereco(obterInt("APP_PORT", 8080)),
 		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),
@@ -190,6 +192,9 @@ func Carregar() (*Config, error) {
 	}
 	if cfg.WebhookConcorrencia < 1 {
 		cfg.WebhookConcorrencia = 5
+	}
+	if cfg.UsoRetencaoDias < 7 {
+		cfg.UsoRetencaoDias = 30
 	}
 	if cfg.WebhookEntregaRetencaoDias < 1 {
 		cfg.WebhookEntregaRetencaoDias = 30

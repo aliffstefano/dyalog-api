@@ -1005,6 +1005,28 @@ Consulta o QR code disponivel para pareamento. Quando o fluxo ativo for Pairing 
 
 Baixa uma midia recebida anteriormente pela instancia. Exige token master ou token da propria instancia.
 
+### Uso da instancia
+
+```text
+GET /instancias/:id/uso
+```
+
+Numeros de uso para acompanhar o risco de bloqueio do numero (tambem aparecem no
+painel, no card "Uso e risco"). Nao bloqueiam nada - so mostram.
+
+- `ultimo_minuto`, `ultima_hora`: mensagens enviadas
+- `hoje.envios`, `hoje.contatos_novos`, `hoje.limitados`: totais do dia (fuso do servidor, `TZ`)
+- `pico_minuto_hoje` e `pico_minuto_em`: minuto com mais envios no dia
+- `rajadas`: contatos que receberam 5 ou mais mensagens no mesmo minuto hoje
+- `top_destinatarios`: quem mais recebeu hoje
+- `dias`: os ultimos 7 dias
+- `limite_por_minuto`: limite de envios configurado
+
+Contato novo e a primeira mensagem para quem nunca conversou com o numero
+(nenhuma mensagem recebida dele e nenhum envio registrado nos ultimos
+`retencao_dias`). O historico de envios e guardado por `USO_RETENTION_DAYS`
+dias (padrao 30).
+
 ## Webhooks por instancia
 
 ### `GET /api/v1/instancias/:id/webhooks`

@@ -233,6 +233,23 @@ const paginaInicialHTML = `<!DOCTYPE html>
             </form>
           </section>
 
+          <!-- Uso e risco -->
+          <section class="detail-card audit-card collapsed" id="uso-card">
+            <div class="detail-head advanced-head" role="button" tabindex="0" onclick="alternarUso()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarUso()}">
+              <div>
+                <h3>Uso e risco</h3>
+                <span class="helper-text">Envios, contatos novos e rajadas desta instancia. Ajuda a evitar bloqueio do numero.</span>
+              </div>
+              <div class="audit-head-actions">
+                <button class="ghost small" type="button" onclick="event.stopPropagation();carregarUso(true)" id="botao-atualizar-uso" disabled>Atualizar</button>
+                <button class="ghost small" type="button" onclick="event.stopPropagation();alternarUso()" id="botao-toggle-uso">Abrir</button>
+              </div>
+            </div>
+            <div id="uso-body" class="audit-body hidden">
+              <div id="uso-conteudo" class="webhook-delivery-list empty-state">Selecione uma instancia para ver o uso.</div>
+            </div>
+          </section>
+
           <!-- Webhooks -->
           <section class="detail-card webhook-card">
             <div class="detail-head">
@@ -937,11 +954,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
     BOTOES_INSTANCIA.forEach(id => document.getElementById(id).disabled = true);
     const botaoAuditoria = document.getElementById('botao-atualizar-auditoria');
     if (botaoAuditoria) botaoAuditoria.disabled = true;
+    const botaoUso = document.getElementById('botao-atualizar-uso');
+    if (botaoUso) botaoUso.disabled = true;
+    const usoConteudo = document.getElementById('uso-conteudo');
+    if (usoConteudo) { usoConteudo.className = 'webhook-delivery-list empty-state'; usoConteudo.textContent = 'Selecione uma instancia para ver o uso.'; }
     preencherConfiguracaoAvancada({}, true);
     CAMPOS_AVANCADO.forEach(id => document.getElementById(id).disabled = true);
     document.getElementById('advanced-copy').textContent = 'Selecione uma instancia para editar.';
     alternarAvancado(false);
     alternarAuditoria(false);
+    alternarUso(false);
     document.getElementById('botao-pairing').classList.add('hidden');
     pararPollingConexao();
   }
@@ -952,6 +974,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     await carregarInstancias(true);
     await carregarWebhooks();
     if (auditoriaAberta()) await carregarAuditoria(false);
+    if (usoAberto()) await carregarUso(false);
   }
 
   async function atualizarInstanciaSelecionada(mostrarErro) {
@@ -973,6 +996,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
       BOTOES_INSTANCIA.forEach(id => document.getElementById(id).disabled = false);
       const botaoAuditoria = document.getElementById('botao-atualizar-auditoria');
       if (botaoAuditoria) botaoAuditoria.disabled = false;
+      const botaoUso = document.getElementById('botao-atualizar-uso');
+      if (botaoUso) botaoUso.disabled = false;
       CAMPOS_AVANCADO.forEach(id => document.getElementById(id).disabled = false);
       preencherConfiguracaoAvancada(d.configuracao_avancada || {});
       atualizarBotaoPairing(d.status);
@@ -1104,6 +1129,78 @@ const paginaInicialHTML = `<!DOCTYPE html>
         '</div>' +
       '</div>'
     ).join('');
+  }
+
+  function usoAberto() {
+    const body = document.getElementById('uso-body');
+    return Boolean(body && !body.classList.contains('hidden'));
+  }
+
+  function alternarUso(forcarAberto) {
+    const card = document.getElementById('uso-card');
+    const body = document.getElementById('uso-body');
+    const botao = document.getElementById('botao-toggle-uso');
+    if (!card || !body || !botao) return;
+    const abrir = typeof forcarAberto === 'boolean' ? forcarAberto : body.classList.contains('hidden');
+    body.classList.toggle('hidden', !abrir);
+    card.classList.toggle('collapsed', !abrir);
+    card.classList.toggle('expanded', abrir);
+    botao.textContent = abrir ? 'Recolher' : 'Abrir';
+    if (abrir && estadoUI.instanciaSelecionada) carregarUso(false);
+  }
+
+  async function carregarUso(manual) {
+    const box = document.getElementById('uso-conteudo');
+    if (!box || !estadoUI.instanciaSelecionada) return;
+    if (manual) box.innerHTML = '<div class="qrcode-loading">Consultando uso...</div>';
+    try {
+      const resp = await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/uso');
+      if (resp?.dados) renderizarUso(resp.dados);
+    } catch(err) {
+      box.className = 'webhook-delivery-list empty-state';
+      box.textContent = 'Erro ao carregar uso: ' + err.message;
+    }
+  }
+
+  function numeroUso(v) { return String(Number(v) || 0); }
+
+  function contatoUso(jid) {
+    const [usuario, servidor] = String(jid || '').split('@');
+    return textoSeguro(usuario || '-') + (servidor === 'lid' ? ' <span class="uso-nota">(ID interno)</span>' : '');
+  }
+
+  function listaContatosUso(titulo, ajuda, lista, sufixo) {
+    const itens = lista.length
+      ? lista.map(c => '<li><span>'+contatoUso(c.chat_jid)+'</span><strong>'+numeroUso(c.envios)+sufixo+'</strong></li>').join('')
+      : '<li class="uso-vazio">Nenhum hoje.</li>';
+    return '<div class="uso-bloco"><h4>'+titulo+'</h4><p class="helper-text">'+ajuda+'</p><ul class="uso-lista">'+itens+'</ul></div>';
+  }
+
+  function renderizarUso(u) {
+    const box = document.getElementById('uso-conteudo');
+    const limite = u.limite_por_minuto || 0;
+    const nivelMinuto = limite && u.ultimo_minuto >= limite * 0.8 ? 'warn' : '';
+    const pico = u.pico_minuto_hoje ? numeroUso(u.pico_minuto_hoje) + (u.pico_minuto_em ? ' <small>as '+new Date(u.pico_minuto_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small>' : '') : '0';
+    const dias = (u.dias || []).slice().reverse().map(d =>
+      '<tr><td>'+textoSeguro(new Date(d.dia+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}))+'</td>' +
+      '<td>'+numeroUso(d.envios)+'</td><td>'+numeroUso(d.contatos_novos)+'</td><td class="'+(d.limitados?'warn':'')+'">'+numeroUso(d.limitados)+'</td></tr>'
+    ).join('');
+    box.className = 'uso-conteudo';
+    box.innerHTML =
+      '<div class="delivery-summary uso-resumo">' +
+        '<div><span>Ultimo minuto</span><strong class="'+nivelMinuto+'">'+numeroUso(u.ultimo_minuto)+(limite?'<small> / '+limite+'</small>':'')+'</strong></div>' +
+        '<div><span>Ultima hora</span><strong>'+numeroUso(u.ultima_hora)+'</strong></div>' +
+        '<div><span>Envios hoje</span><strong>'+numeroUso(u.hoje.envios)+'</strong></div>' +
+        '<div><span>Pico por minuto</span><strong>'+pico+'</strong></div>' +
+        '<div><span>Contatos novos hoje</span><strong>'+numeroUso(u.hoje.contatos_novos)+'</strong></div>' +
+        '<div><span>Barrados pelo limite</span><strong class="'+(u.hoje.limitados?'warn':'')+'">'+numeroUso(u.hoje.limitados)+'</strong></div>' +
+      '</div>' +
+      '<p class="helper-text">Contato novo e a primeira mensagem para quem nunca conversou com este numero. Muitos contatos novos por dia e muitas mensagens seguidas para a mesma pessoa sao os principais motivos de bloqueio pelo WhatsApp.</p>' +
+      '<div class="uso-colunas">' +
+        listaContatosUso('Rajadas hoje', '5 ou mais mensagens para a mesma pessoa no mesmo minuto.', u.rajadas || [], ' / min') +
+        listaContatosUso('Quem mais recebeu hoje', 'Destinatarios com mais envios no dia.', u.top_destinatarios || [], '') +
+      '</div>' +
+      '<div class="uso-bloco"><h4>Ultimos 7 dias</h4><table class="uso-tabela"><thead><tr><th>Dia</th><th>Envios</th><th>Contatos novos</th><th>Barrados</th></tr></thead><tbody>'+dias+'</tbody></table></div>';
   }
 
   async function carregarAuditoria(manual) {

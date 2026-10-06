@@ -9,6 +9,7 @@ import (
 	"io"
 	nethttp "net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -695,6 +696,22 @@ func (h *APIHandler) ListarEntregasWebhook(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Entregas de webhook listadas com sucesso", gin.H{"entregas": entregas}))
 }
 
+// UsoInstancia devolve os numeros de uso da instancia (envios, contatos novos,
+// rajadas, limites) para o painel.
+func (h *APIHandler) UsoInstancia(c *gin.Context) {
+	if !h.garantirInstancia(c, c.Param("id")) {
+		return
+	}
+	resumo, err := h.mensagemService.ResumoUso(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	resumo.LimitePorMinuto = h.cfg.LimiteEnviosPorMinuto
+	resumo.RetencaoDias = h.cfg.UsoRetencaoDias
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Uso da instancia consultado com sucesso", resumo))
+}
+
 func (h *APIHandler) EnviarTexto(c *gin.Context) {
 	var req models.EnvioTextoRequest
 	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: mensagem e numero ou chat_jid") {
@@ -1065,6 +1082,7 @@ func (h *APIHandler) lerEnvio(c *gin.Context, req any, instanciaID *string, mens
 		return false
 	}
 	if ok, espera := h.limiteEnvios.consumir(*instanciaID); !ok {
+		h.mensagemService.RegistrarEnvioLimitado(*instanciaID, path.Base(c.FullPath()))
 		responderLimite(c, "limite_envios", fmt.Sprintf("Limite de %d envios por minuto atingido para esta instancia", h.cfg.LimiteEnviosPorMinuto), espera)
 		return false
 	}

@@ -428,6 +428,21 @@ CREATE TABLE IF NOT EXISTS midias_recebidas (
 );
 CREATE INDEX IF NOT EXISTS idx_midias_recebidas_instancia ON midias_recebidas(instancia_id, recebida_em DESC);
 
+CREATE TABLE IF NOT EXISTS envios_registro (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    resultado TEXT NOT NULL,
+    contato_novo INTEGER NOT NULL DEFAULT 0,
+    dia TEXT NOT NULL,
+    minuto INTEGER NOT NULL,
+    criado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_dia ON envios_registro(instancia_id, dia);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_chat ON envios_registro(instancia_id, chat_jid);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_criado ON envios_registro(criado_em);
+
 CREATE TABLE IF NOT EXISTS sistema_proxy (
     id TEXT PRIMARY KEY,
     url TEXT NOT NULL DEFAULT '',
@@ -567,6 +582,21 @@ CREATE TABLE IF NOT EXISTS midias_recebidas (
     UNIQUE(instancia_id, mensagem_id)
 );
 CREATE INDEX IF NOT EXISTS idx_midias_recebidas_instancia ON midias_recebidas(instancia_id, recebida_em DESC);
+
+CREATE TABLE IF NOT EXISTS envios_registro (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    resultado TEXT NOT NULL,
+    contato_novo BOOLEAN NOT NULL DEFAULT FALSE,
+    dia TEXT NOT NULL,
+    minuto BIGINT NOT NULL,
+    criado_em TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_dia ON envios_registro(instancia_id, dia);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_chat ON envios_registro(instancia_id, chat_jid);
+CREATE INDEX IF NOT EXISTS idx_envios_registro_criado ON envios_registro(criado_em);
 
 CREATE TABLE IF NOT EXISTS sistema_proxy (
     id TEXT PRIMARY KEY,

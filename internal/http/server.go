@@ -97,7 +97,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 		fmt.Println("aviso: nenhum servidor ICE configurado (WEBRTC_ICE_SERVERS/TURN_URLS). O audio da chamada depende do STUN do proprio navegador e falha em rede com NAT restritivo.")
 	}
 	instanciaService := service.NovoInstanciaService(storeSQL, gerenciador)
-	mensagemService := service.NovoMensagemService(storeSQL, gerenciador)
+	mensagemService := service.NovoMensagemService(storeSQL, storeSQL, gerenciador)
 	chamadaService := service.NovoChamadaService(storeSQL, gerenciador)
 	midiaService := service.NovoMidiaService(storeSQL)
 	webhookService := service.NovoWebhookService(storeSQL, storeSQL, storeSQL)
@@ -107,6 +107,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	registrarRecuperacaoWebhook(context.Background(), cfg, storeSQL, gerenciador)
 	iniciarHeartbeatRuntime(context.Background(), storeSQL, time.Duration(cfg.HeartbeatIntervaloSegundos)*time.Second)
 	iniciarLimpezaWebhookEntregas(context.Background(), storeSQL, cfg.WebhookEntregaRetencaoDias)
+	iniciarLimpezaUso(context.Background(), storeSQL, cfg.UsoRetencaoDias)
 	iniciarLimpezaMidiasLocais(context.Background(), storeSQL, cfg.MidiaRetencaoLocalDias)
 	gerenciador.IniciarRenovacaoOwnership(context.Background(), time.Duration(cfg.HeartbeatIntervaloSegundos)*time.Second)
 	sistemaService.IniciarMonitoramento(context.Background())
@@ -373,4 +374,31 @@ func registrarRecuperacaoWebhook(ctx context.Context, cfg *config.Config, runtim
 		gerenciador.RegistrarJanelaRecuperacao(instancia.ID, inicio, fim, cfg.RecuperacaoHistoricoMensagens)
 	}
 	fmt.Printf("recuperacao de webhook agendada: API ficou sem heartbeat de %s a %s; janela aplicada em %d instancias\n", inicio.Format(time.RFC3339), fim.Format(time.RFC3339), len(instancias))
+}
+
+// iniciarLimpezaUso apaga, uma vez por dia, o historico de envios mais antigo
+// que a retencao. Contatos sem envio dentro da retencao voltam a contar como
+// novos, o que e o esperado para medir risco.
+func iniciarLimpezaUso(ctx context.Context, usoStore store.UsoStore, retencaoDias int) {
+	limpar := func() {
+		apagadas, err := usoStore.LimparEnviosAntigos(context.Background(), time.Now().AddDate(0, 0, -retencaoDias))
+		if err != nil {
+			fmt.Printf("uso: erro ao limpar historico de envios: %v\n", err)
+		} else if apagadas > 0 {
+			fmt.Printf("uso: %d registros de envio antigos removidos (retencao %dd)\n", apagadas, retencaoDias)
+		}
+	}
+	go func() {
+		limpar()
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				limpar()
+			}
+		}
+	}()
 }
