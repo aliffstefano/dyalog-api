@@ -245,7 +245,7 @@ func (g *GerenciadorInstancias) obterRuntimeConectado(ctx context.Context, insta
 		return nil, err
 	}
 	if runtime.client == nil || !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return nil, fmt.Errorf("instancia nao conectada")
+		return nil, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	return runtime, nil
 }

@@ -970,12 +970,9 @@ func statusTransitorioPersistente(status string) bool {
 }
 
 func (g *GerenciadorInstancias) EnviarTexto(ctx context.Context, req models.EnvioTextoRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1027,12 +1024,9 @@ func (g *GerenciadorInstancias) EnviarTexto(ctx context.Context, req models.Envi
 }
 
 func (g *GerenciadorInstancias) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1073,12 +1067,9 @@ func (g *GerenciadorInstancias) EditarTexto(ctx context.Context, req models.Edit
 }
 
 func (g *GerenciadorInstancias) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1127,12 +1118,9 @@ func (g *GerenciadorInstancias) ApagarMensagem(ctx context.Context, req models.A
 }
 
 func (g *GerenciadorInstancias) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1189,12 +1177,9 @@ func (g *GerenciadorInstancias) jidRemetenteReacao(chat types.JID, req models.Re
 }
 
 func (g *GerenciadorInstancias) EnviarBotoes(ctx context.Context, req models.EnvioBotoesRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1293,12 +1278,9 @@ func (g *GerenciadorInstancias) enviarBotoesComoTexto(ctx context.Context, clien
 }
 
 func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.EnvioListaRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1398,12 +1380,9 @@ func (g *GerenciadorInstancias) enviarListaComoTexto(ctx context.Context, client
 }
 
 func (g *GerenciadorInstancias) EnviarEnquete(ctx context.Context, req models.EnvioEnqueteRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1493,12 +1472,9 @@ func (g *GerenciadorInstancias) resolverOpcoesVotoEnquete(instanciaID string, vo
 }
 
 func (g *GerenciadorInstancias) EnviarLocalizacao(ctx context.Context, req models.EnvioLocalizacaoRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1548,12 +1524,9 @@ func (g *GerenciadorInstancias) EnviarLocalizacao(ctx context.Context, req model
 }
 
 func (g *GerenciadorInstancias) EnviarContato(ctx context.Context, req models.EnvioContatoRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1658,12 +1631,9 @@ func nomeContatoDoVCard(vcard string) string {
 // de entrega/renderizacao fora do app oficial, entao aplicamos o mesmo fallback
 // para texto usado em botoes/lista quando o servidor rejeita com 405.
 func (g *GerenciadorInstancias) EnviarCobrancaPix(ctx context.Context, req models.EnvioCobrancaPixRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
 	if err != nil {
@@ -1927,12 +1897,9 @@ func gerarReferenciaCobrancaPix() string {
 }
 
 func (g *GerenciadorInstancias) EnviarPresenca(ctx context.Context, req models.EnvioPresencaRequest) (models.ResultadoPresenca, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoPresenca{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoPresenca{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	acao, estado, media, presencaGlobal, estadoGlobal, err := mapearAcaoPresencaEnvio(req.Acao)
@@ -2045,12 +2012,9 @@ func pausarPresencaTexto(client *whatsmeow.Client, jids []types.JID) func() {
 }
 
 func (g *GerenciadorInstancias) MarcarLida(ctx context.Context, req models.MarcarLidaRequest) (models.ResultadoMarcarLida, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoMarcarLida{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoMarcarLida{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	jids, err := g.resolverDestinosEnvio(ctx, runtime.client, req.ChatJID, req.Numero, req.Grupo)
@@ -2114,12 +2078,9 @@ func mapearAcaoPresencaEnvio(acao string) (string, types.ChatPresence, types.Cha
 }
 
 func (g *GerenciadorInstancias) EnviarImagem(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	dados, mimeType, err := carregarImagemEnvio(ctx, req)
@@ -2161,12 +2122,9 @@ func (g *GerenciadorInstancias) EnviarImagem(ctx context.Context, req models.Env
 }
 
 func (g *GerenciadorInstancias) EnviarAudio(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	dados, mimeType, err := carregarAudioEnvio(ctx, req)
@@ -2211,12 +2169,9 @@ func (g *GerenciadorInstancias) EnviarAudio(ctx context.Context, req models.Envi
 }
 
 func (g *GerenciadorInstancias) EnviarDocumento(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	dados, nomeArquivo, mimeType, err := carregarDocumentoEnvio(ctx, req)
@@ -2257,12 +2212,9 @@ func (g *GerenciadorInstancias) EnviarDocumento(ctx context.Context, req models.
 }
 
 func (g *GerenciadorInstancias) EnviarFigurinha(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
+	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {
 		return models.ResultadoEnvio{}, err
-	}
-	if !runtime.client.IsConnected() || !runtime.client.IsLoggedIn() {
-		return models.ResultadoEnvio{}, fmt.Errorf("instancia nao esta conectada ao WhatsApp")
 	}
 
 	dados, mimeType, err := carregarFigurinhaEnvio(ctx, req)
