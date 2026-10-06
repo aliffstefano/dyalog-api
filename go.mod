@@ -15,6 +15,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/whatsmeow v0.0.0-20260929112325-8b41cfe6d9c4
+	golang.org/x/time v0.14.0
 	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.47.0
 )
@@ -90,7 +91,6 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

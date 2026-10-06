@@ -57,6 +57,15 @@ type Config struct {
 	RuntimeNodeEndereco           string
 	RuntimeLockTTLSeconds         int
 	HeartbeatIntervaloSegundos    int
+	// LimiteEnviosPorMinuto e o maximo de mensagens por instancia por minuto
+	// (0 desliga). LimiteFalhasAuthPorMinuto e o maximo de tokens invalidos
+	// por IP por minuto antes de bloquear (0 desliga).
+	LimiteEnviosPorMinuto     int
+	LimiteFalhasAuthPorMinuto int
+	// ProxiesConfiaveis sao as redes cujo X-Forwarded-For e aceito para achar o
+	// IP real do cliente. IPClienteCloudflare usa o CF-Connecting-IP.
+	ProxiesConfiaveis             []string
+	IPClienteCloudflare           bool
 	ReconexaoIntervaloSegundos    int
 	RecuperacaoWebhookHabilitada  bool
 	RecuperacaoMargemSegundos     int
@@ -132,6 +141,10 @@ func Carregar() (*Config, error) {
 		RuntimeNodeEndereco:           obterRuntimeNodeEndereco(obterInt("APP_PORT", 8080)),
 		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),
 		HeartbeatIntervaloSegundos:    obterInt("RUNTIME_HEARTBEAT_INTERVAL_SECONDS", 30),
+		LimiteEnviosPorMinuto:         obterInt("RATE_LIMIT_ENVIOS_POR_MINUTO", 100),
+		LimiteFalhasAuthPorMinuto:     obterInt("RATE_LIMIT_FALHAS_AUTH_POR_MINUTO", 10),
+		ProxiesConfiaveis:             strings.FieldsFunc(obter("TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,::1/128,fc00::/7"), func(r rune) bool { return r == ',' || r == ' ' }),
+		IPClienteCloudflare:           obterBool("CLIENT_IP_CLOUDFLARE", false),
 		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),
 		RecuperacaoWebhookHabilitada:  obterBool("WEBHOOK_RECOVERY_ENABLED", true),
 		RecuperacaoMargemSegundos:     obterInt("WEBHOOK_RECOVERY_MARGIN_SECONDS", 120),

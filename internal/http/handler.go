@@ -32,6 +32,10 @@ type APIHandler struct {
 	webhookService   *service.WebhookService
 	sistemaService   *service.SistemaService
 	authService      *service.AuthService
+	// limiteEnvios conta mensagens por instancia; limiteFalhasAuth conta
+	// tokens invalidos por IP.
+	limiteEnvios     *limitador
+	limiteFalhasAuth *limitador
 }
 
 type criarInstanciaRequest struct {
@@ -87,7 +91,10 @@ type atualizarProxyGlobalRequest struct {
 }
 
 func NovoAPIHandler(cfg *config.Config, instanciaService *service.InstanciaService, mensagemService *service.MensagemService, chamadaService *service.ChamadaService, midiaService *service.MidiaService, webhookService *service.WebhookService, sistemaService *service.SistemaService, authService *service.AuthService) *APIHandler {
-	return &APIHandler{cfg: cfg, instanciaService: instanciaService, mensagemService: mensagemService, chamadaService: chamadaService, midiaService: midiaService, webhookService: webhookService, sistemaService: sistemaService, authService: authService}
+	return &APIHandler{cfg: cfg, instanciaService: instanciaService, mensagemService: mensagemService, chamadaService: chamadaService, midiaService: midiaService, webhookService: webhookService, sistemaService: sistemaService, authService: authService,
+		limiteEnvios:     novoLimitador(cfg.LimiteEnviosPorMinuto),
+		limiteFalhasAuth: novoLimitador(cfg.LimiteFalhasAuthPorMinuto),
+	}
 }
 
 func (h *APIHandler) LoginDashboard(c *gin.Context) {
@@ -95,8 +102,13 @@ func (h *APIHandler) LoginDashboard(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Informe o token de acesso") {
 		return
 	}
+	if bloqueado, espera := h.limiteFalhasAuth.bloqueado(c.ClientIP()); bloqueado {
+		responderLimite(c, "muitas_tentativas", "Muitas tentativas com token invalido", espera)
+		return
+	}
 	acesso, err := h.authService.Autenticar(c.Request.Context(), req.Token)
 	if err != nil {
+		h.limiteFalhasAuth.consumir(c.ClientIP())
 		h.responderErro(c, nethttp.StatusUnauthorized, "nao_autenticado", "Token invalido")
 		return
 	}
@@ -685,7 +697,7 @@ func (h *APIHandler) ListarEntregasWebhook(c *gin.Context) {
 
 func (h *APIHandler) EnviarTexto(c *gin.Context) {
 	var req models.EnvioTextoRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: mensagem e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarTexto(c.Request.Context(), req)
@@ -698,7 +710,7 @@ func (h *APIHandler) EnviarTexto(c *gin.Context) {
 
 func (h *APIHandler) EditarTexto(c *gin.Context) {
 	var req models.EditarTextoRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, mensagem e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, mensagem e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EditarTexto(c.Request.Context(), req)
@@ -711,7 +723,7 @@ func (h *APIHandler) EditarTexto(c *gin.Context) {
 
 func (h *APIHandler) ApagarMensagem(c *gin.Context) {
 	var req models.ApagarMensagemRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.ApagarMensagem(c.Request.Context(), req)
@@ -750,7 +762,7 @@ func (h *APIHandler) MarcarMensagemLida(c *gin.Context) {
 
 func (h *APIHandler) EnviarBotoes(c *gin.Context) {
 	var req models.EnvioBotoesRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: texto ou mensagem, botoes e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: texto ou mensagem, botoes e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarBotoes(c.Request.Context(), req)
@@ -769,7 +781,7 @@ func (h *APIHandler) EnviarBotoes(c *gin.Context) {
 
 func (h *APIHandler) EnviarLista(c *gin.Context) {
 	var req models.EnvioListaRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: descricao ou mensagem, botao_texto e opcoes/secoes, com numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: descricao ou mensagem, botao_texto e opcoes/secoes, com numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarLista(c.Request.Context(), req)
@@ -788,7 +800,7 @@ func (h *APIHandler) EnviarLista(c *gin.Context) {
 
 func (h *APIHandler) EnviarEnquete(c *gin.Context) {
 	var req models.EnvioEnqueteRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: nome ou pergunta, opcoes (2 a 12) e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: nome ou pergunta, opcoes (2 a 12) e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarEnquete(c.Request.Context(), req)
@@ -805,7 +817,7 @@ func (h *APIHandler) EnviarEnquete(c *gin.Context) {
 
 func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
 	var req models.EnvioCobrancaPixRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarCobrancaPix(c.Request.Context(), req)
@@ -824,7 +836,7 @@ func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
 
 func (h *APIHandler) EnviarLocalizacao(c *gin.Context) {
 	var req models.EnvioLocalizacaoRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: latitude, longitude e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: latitude, longitude e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarLocalizacao(c.Request.Context(), req)
@@ -837,7 +849,7 @@ func (h *APIHandler) EnviarLocalizacao(c *gin.Context) {
 
 func (h *APIHandler) EnviarContato(c *gin.Context) {
 	var req models.EnvioContatoRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: nome e telefone (ou vcard, ou lista contatos), e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: nome e telefone (ou vcard, ou lista contatos), e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.EnviarContato(c.Request.Context(), req)
@@ -979,7 +991,7 @@ func (h *APIHandler) SinalizarWebRTCChamada(c *gin.Context) {
 
 func (h *APIHandler) ReagirMensagem(c *gin.Context) {
 	var req models.ReagirMensagemRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, emoji e numero ou chat_jid") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: mensagem_id, emoji e numero ou chat_jid") {
 		return
 	}
 	resultado, err := h.mensagemService.ReagirMensagem(c.Request.Context(), req)
@@ -992,7 +1004,7 @@ func (h *APIHandler) ReagirMensagem(c *gin.Context) {
 
 func (h *APIHandler) enviarMidia(c *gin.Context, tipo string) {
 	var req models.EnvioMidiaRequest
-	if !h.lerJSON(c, &req, &req.Instancia, "Campos obrigatorios: numero ou chat_jid, e arquivo_url, arquivo_base64 ou caminho_local; use grupo=true para grupo") {
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: numero ou chat_jid, e arquivo_url, arquivo_base64 ou caminho_local; use grupo=true para grupo") {
 		return
 	}
 
@@ -1044,6 +1056,19 @@ func (h *APIHandler) lerJSON(c *gin.Context, req any, instanciaID *string, mensa
 		return false
 	}
 	return instanciaID == nil || h.preencherInstanciaDaRequisicao(c, instanciaID)
+}
+
+// lerEnvio e o lerJSON dos endpoints que mandam mensagem: alem de ler e
+// preencher a instancia, aplica o limite de envios por minuto da instancia.
+func (h *APIHandler) lerEnvio(c *gin.Context, req any, instanciaID *string, mensagemErro string) bool {
+	if !h.lerJSON(c, req, instanciaID, mensagemErro) {
+		return false
+	}
+	if ok, espera := h.limiteEnvios.consumir(*instanciaID); !ok {
+		responderLimite(c, "limite_envios", fmt.Sprintf("Limite de %d envios por minuto atingido para esta instancia", h.cfg.LimiteEnviosPorMinuto), espera)
+		return false
+	}
+	return true
 }
 
 func (h *APIHandler) preencherInstanciaDaRequisicao(c *gin.Context, instanciaID *string) bool {

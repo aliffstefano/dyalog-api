@@ -13,7 +13,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 	engine.GET("/", dashboardHandler.PaginaInicial)
 	engine.GET("/docs", dashboardHandler.Docs)
 
-	auth := middlewareAutenticacaoAPI(cfg, authService)
+	auth := middlewareAutenticacaoAPI(cfg, authService, apiHandler.limiteFalhasAuth)
 	proxyReplica := middlewareProxyReplica(gerenciador)
 
 	engine.POST("/api/v1/auth/login", apiHandler.LoginDashboard)

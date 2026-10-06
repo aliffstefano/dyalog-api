@@ -38,6 +38,34 @@ Regras:
 - o token nao deve ser enviado no body JSON
 - a documentacao tambem esta disponivel em `GET /api/v1/docs`
 
+### Limites de uso
+
+Para proteger o numero contra bloqueio do WhatsApp e a API contra tentativa de
+token, existem dois limites. Ao passar de qualquer um deles a API responde
+`429 Too Many Requests` com o header `Retry-After` (segundos) e nao executa a
+acao - nao ha fila; reenvie depois do tempo indicado.
+
+- **envios por instancia:** ate 100 mensagens por minuto por instancia
+  (`erro: "limite_envios"`). Contam texto, editar, apagar, reagir, botoes,
+  lista, enquete, cobranca Pix, localizacao, contato e midias. Presenca
+  (digitando) e marcar como lida nao contam.
+- **token invalido por IP:** depois de 10 tentativas com token errado em um
+  minuto, o IP fica bloqueado (`erro: "muitas_tentativas"`), inclusive com o
+  token certo, ate liberar.
+
+Exemplo de resposta:
+
+```json
+{
+  "sucesso": false,
+  "erro": "limite_envios",
+  "mensagem": "Limite de 100 envios por minuto atingido para esta instancia; tente novamente em 1 segundos"
+}
+```
+
+No n8n, trate o `429` esperando o `Retry-After` antes de tentar de novo (ou use
+"Retry On Fail" com intervalo de alguns segundos).
+
 ## Guia rapido para n8n e curl
 
 Use este guia quando estiver configurando um node **HTTP Request** no n8n.

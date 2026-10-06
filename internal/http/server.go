@@ -116,6 +116,15 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	engine := gin.New()
+	// IP real do cliente para o limite de tentativas: so aceita X-Forwarded-For
+	// vindo de proxy da rede interna (Traefik/Swarm), senao qualquer um
+	// trocaria de IP so mudando o cabecalho.
+	if err := engine.SetTrustedProxies(cfg.ProxiesConfiaveis); err != nil {
+		return nil, fmt.Errorf("TRUSTED_PROXIES invalido: %w", err)
+	}
+	if cfg.IPClienteCloudflare {
+		engine.TrustedPlatform = gin.PlatformCloudflare
+	}
 	aplicarLoggerHTTP(engine, cfg.HTTPLogMode)
 	engine.Use(gin.Recovery())
 	engine.Static("/static", "./static")
