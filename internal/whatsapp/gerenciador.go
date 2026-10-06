@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -1414,7 +1415,7 @@ func (g *GerenciadorInstancias) EnviarEnquete(ctx context.Context, req models.En
 		opcoes = append(opcoes, strings.TrimSpace(opcao))
 	}
 	msg := runtime.client.BuildPollCreation(strings.TrimSpace(req.Nome), opcoes, req.OpcoesSelecionaveis)
-	if contexto := contextInfoEnquete(req); contexto != nil && msg.PollCreationMessage != nil {
+	if contexto := contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante); contexto != nil && msg.PollCreationMessage != nil {
 		msg.PollCreationMessage.ContextInfo = contexto
 	}
 
@@ -1447,16 +1448,6 @@ func (g *GerenciadorInstancias) EnviarEnquete(ctx context.Context, req models.En
 		Tipo:       "enquete",
 		Observacao: "O WhatsApp retornou ID para a enquete; o voto sera resolvido para o texto da opcao quando o destinatario responder.",
 	}, nil
-}
-
-func contextInfoEnquete(req models.EnvioEnqueteRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return nil
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
 }
 
 func (g *GerenciadorInstancias) armazenarOpcoesEnquete(instanciaID, mensagemID string, opcoes []string) {
@@ -1517,7 +1508,7 @@ func (g *GerenciadorInstancias) EnviarLocalizacao(ctx context.Context, req model
 	localizacao := &waE2E.LocationMessage{
 		DegreesLatitude:  proto.Float64(req.Latitude),
 		DegreesLongitude: proto.Float64(req.Longitude),
-		ContextInfo:      contextInfoLocalizacao(req),
+		ContextInfo:      contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
 	}
 	if nome := strings.TrimSpace(req.Nome); nome != "" {
 		localizacao.Name = proto.String(nome)
@@ -1556,16 +1547,6 @@ func (g *GerenciadorInstancias) EnviarLocalizacao(ctx context.Context, req model
 	}, nil
 }
 
-func contextInfoLocalizacao(req models.EnvioLocalizacaoRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return nil
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
-}
-
 func (g *GerenciadorInstancias) EnviarContato(ctx context.Context, req models.EnvioContatoRequest) (models.ResultadoEnvio, error) {
 	runtime, err := g.obterOuCriarRuntime(ctx, req.Instancia)
 	if err != nil {
@@ -1598,14 +1579,14 @@ func (g *GerenciadorInstancias) EnviarContato(ctx context.Context, req models.En
 	var msg *waE2E.Message
 	tipo := "contato"
 	if len(contatos) == 1 {
-		contatos[0].ContextInfo = contextInfoContato(req)
+		contatos[0].ContextInfo = contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante)
 		msg = &waE2E.Message{ContactMessage: contatos[0]}
 	} else {
 		tipo = "contatos"
 		msg = &waE2E.Message{ContactsArrayMessage: &waE2E.ContactsArrayMessage{
 			DisplayName: proto.String(fmt.Sprintf("%d contatos", len(contatos))),
 			Contacts:    contatos,
-			ContextInfo: contextInfoContato(req),
+			ContextInfo: contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
 		}}
 	}
 
@@ -1636,16 +1617,6 @@ func (g *GerenciadorInstancias) EnviarContato(ctx context.Context, req models.En
 		Status:     "aceita_pelo_servidor",
 		Tipo:       tipo,
 	}, nil
-}
-
-func contextInfoContato(req models.EnvioContatoRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return nil
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
 }
 
 var regexNaoDigito = regexp.MustCompile(`\D+`)
@@ -1874,7 +1845,7 @@ func montarMensagemCobrancaPix(req models.EnvioCobrancaPixRequest) (*waE2E.Messa
 		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
 			NativeFlowMessage: nativeFlow,
 		},
-		ContextInfo: contextInfoCobrancaPix(req),
+		ContextInfo: contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
 	}
 	if corpo := strings.TrimSpace(req.Descricao); corpo != "" {
 		interactive.Body = &waE2E.InteractiveMessage_Body{Text: proto.String(corpo)}
@@ -1953,16 +1924,6 @@ func gerarReferenciaCobrancaPix() string {
 		return bruta[:11]
 	}
 	return bruta
-}
-
-func contextInfoCobrancaPix(req models.EnvioCobrancaPixRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return nil
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
 }
 
 func (g *GerenciadorInstancias) EnviarPresenca(ctx context.Context, req models.EnvioPresencaRequest) (models.ResultadoPresenca, error) {
@@ -5200,6 +5161,19 @@ func estadoPresencaTexto(estado types.ChatPresence) string {
 	return string(estado)
 }
 
+// contextInfoResposta marca a mensagem como resposta a outra. Devolve nil quando
+// nao ha mensagem citada.
+func contextInfoResposta(mensagemID, participante string) *waE2E.ContextInfo {
+	mensagemID, participante = strings.TrimSpace(mensagemID), strings.TrimSpace(participante)
+	if mensagemID == "" && participante == "" {
+		return nil
+	}
+	return &waE2E.ContextInfo{
+		StanzaID:    proto.String(mensagemID),
+		Participant: proto.String(participante),
+	}
+}
+
 func montarMensagemTexto(req models.EnvioTextoRequest, jid types.JID) *waE2E.Message {
 	msg := &waE2E.Message{Conversation: proto.String(req.Mensagem)}
 	if strings.TrimSpace(req.RespostaMensagemID) == "" {
@@ -5385,7 +5359,7 @@ func montarInteractiveBotoesNativeFlow(req models.EnvioBotoesRequest) (*waE2E.In
 				MessageVersion:    proto.Int32(1),
 			},
 		},
-		ContextInfo: contextInfoBotoes(req),
+		ContextInfo: cmp.Or(contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante), &waE2E.ContextInfo{}),
 	}
 	return interactive, nil
 }
@@ -5416,7 +5390,7 @@ func montarMensagemBotoesTemplate(req models.EnvioBotoesRequest) (*waE2E.Message
 			Format: &waE2E.TemplateMessage_HydratedFourRowTemplate_{
 				HydratedFourRowTemplate: template,
 			},
-			ContextInfo: contextInfoBotoes(req),
+			ContextInfo: cmp.Or(contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante), &waE2E.ContextInfo{}),
 		},
 	}, nil
 }
@@ -5494,7 +5468,7 @@ func montarMensagemBotoesLegacy(req models.EnvioBotoesRequest) *waE2E.Message {
 	if rodape := strings.TrimSpace(req.Rodape); rodape != "" {
 		buttonsMessage.FooterText = proto.String(rodape)
 	}
-	buttonsMessage.ContextInfo = contextInfoBotoes(req)
+	buttonsMessage.ContextInfo = cmp.Or(contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante), &waE2E.ContextInfo{})
 	return &waE2E.Message{ButtonsMessage: buttonsMessage}
 }
 
@@ -5527,16 +5501,6 @@ func urlBotaoEnvio(botao models.BotaoRequest) string {
 		return url
 	}
 	return strings.TrimSpace(botao.Url)
-}
-
-func contextInfoBotoes(req models.EnvioBotoesRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return &waE2E.ContextInfo{}
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
 }
 
 func usarFallbackTextoLista(req models.EnvioListaRequest) bool {
@@ -5671,7 +5635,7 @@ func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message 
 				MessageVersion:    proto.Int32(1),
 			},
 		},
-		ContextInfo: contextInfoLista(req),
+		ContextInfo: cmp.Or(contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante), &waE2E.ContextInfo{}),
 	}
 	return &waE2E.Message{
 		InteractiveMessage: interactive,
@@ -5757,7 +5721,7 @@ func montarListMessage(req models.EnvioListaRequest) *waE2E.ListMessage {
 		ListType:    waE2E.ListMessage_SINGLE_SELECT.Enum(),
 		Sections:    secoes,
 		FooterText:  proto.String(strings.TrimSpace(req.Rodape)),
-		ContextInfo: contextInfoLista(req),
+		ContextInfo: cmp.Or(contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante), &waE2E.ContextInfo{}),
 	}
 }
 
@@ -5795,16 +5759,6 @@ func textoFallbackLista(req models.EnvioListaRequest) string {
 		partes = append(partes, rodape)
 	}
 	return strings.Join(partes, "\n\n")
-}
-
-func contextInfoLista(req models.EnvioListaRequest) *waE2E.ContextInfo {
-	if strings.TrimSpace(req.RespostaMensagemID) == "" && strings.TrimSpace(req.RespostaParticipante) == "" {
-		return &waE2E.ContextInfo{}
-	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(strings.TrimSpace(req.RespostaMensagemID)),
-		Participant: proto.String(strings.TrimSpace(req.RespostaParticipante)),
-	}
 }
 
 func (g *GerenciadorInstancias) resolverDestinosEnvio(ctx context.Context, client *whatsmeow.Client, chatJID, numero string, grupo bool) ([]types.JID, error) {

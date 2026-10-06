@@ -54,12 +54,6 @@ func montarMensagemListaBiz(req models.EnvioListaRequest) *waE2E.Message {
 			Rows:  linhas,
 		})
 	}
-	// contextInfo so vai quando e resposta a outra mensagem; vazio, a empresa
-	// nao envia.
-	contexto := contextInfoLista(req)
-	if contexto != nil && proto.Size(contexto) == 0 {
-		contexto = nil
-	}
 	return &waE2E.Message{
 		ListMessage: &waE2E.ListMessage{
 			Title:       opcional(req.Titulo),
@@ -68,7 +62,8 @@ func montarMensagemListaBiz(req models.EnvioListaRequest) *waE2E.Message {
 			ListType:    waE2E.ListMessage_SINGLE_SELECT.Enum(),
 			Sections:    secoes,
 			FooterText:  opcional(req.Rodape),
-			ContextInfo: contexto,
+			// So vai quando e resposta; vazio, a empresa nao envia.
+			ContextInfo: contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
 		},
 		MessageContextInfo: &waE2E.MessageContextInfo{
 			DeviceListMetadataVersion: proto.Int32(2),
