@@ -384,14 +384,6 @@ func (g *GerenciadorInstancias) numeroChamadaPreferencial(info *call.CallInfo) s
 	return extrairNumeroJID(peer)
 }
 
-func numeroChamada(jidTexto string) string {
-	jid, err := types.ParseJID(jidTexto)
-	if err != nil {
-		return ""
-	}
-	return extrairNumeroJID(jid)
-}
-
 func callIDFromNode(node *waBinary.Node) string {
 	info := signaling.ExtractNodeInfo(node)
 	if info == nil {

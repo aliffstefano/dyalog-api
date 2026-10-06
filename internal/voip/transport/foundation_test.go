@@ -60,19 +60,15 @@ func TestStunBindingFingerprint(t *testing.T) {
 	if binary.BigEndian.Uint32(msg[4:]) != stunMagicCookie {
 		t.Fatal("missing STUN magic cookie")
 	}
-	info := ParseStunResponse(msg)
-	if info == nil {
-		t.Fatal("could not parse the binding request we built")
-	}
-	if info.Method != "binding" {
-		t.Fatalf("expected method binding, got %s", info.Method)
+	if binary.BigEndian.Uint16(msg[0:]) != 0x0001 {
+		t.Fatalf("expected binding request, got %04x", binary.BigEndian.Uint16(msg[0:]))
 	}
 
-	last := info.Attributes[len(info.Attributes)-1]
-	if last.TypeName != "FINGERPRINT" {
-		t.Fatalf("expected FINGERPRINT last, got %s", last.TypeName)
-	}
+	// FINGERPRINT (0x8028, 4 bytes) must be the last attribute.
 	fpStart := len(msg) - 8
+	if binary.BigEndian.Uint16(msg[fpStart:]) != 0x8028 {
+		t.Fatalf("expected FINGERPRINT last, got %04x", binary.BigEndian.Uint16(msg[fpStart:]))
+	}
 	want := crc32stun(msg[:fpStart]) ^ stunFingerprintXor
 	got := binary.BigEndian.Uint32(msg[len(msg)-4:])
 	if got != want {

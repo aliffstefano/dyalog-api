@@ -104,16 +104,8 @@ func TestRtpPacketRoundtrip(t *testing.T) {
 	sess := NewWhatsAppOpusSession(0x11223344)
 	payload := []byte{1, 2, 3, 4, 5, 6, 7, 8}
 	pkt := sess.CreatePacketWithDuration(payload, 960, true)
-	enc, err := pkt.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dec, err := DecodeRtpPacket(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(dec.Payload, payload) {
-		t.Fatalf("payload mismatch: %v", dec.Payload)
+	if !bytes.Equal(pkt.Payload, payload) {
+		t.Fatalf("payload mismatch: %v", pkt.Payload)
 	}
 
 	pkt2 := sess.CreatePacketWithDuration(payload, 960, false)

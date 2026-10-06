@@ -38,3 +38,6 @@ temp/
 docker-compose.yml
 docker-compose.override.yml
 !docker-compose.example.yml
+
+# Capturas de mensagens (CAPTURAR_MENSAGENS) - contem conteudo de conversas
+capturas/

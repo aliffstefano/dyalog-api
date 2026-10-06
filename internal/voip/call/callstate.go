@@ -79,10 +79,6 @@ func (c *CallInfo) IsEnded() bool { return c.StateData.State == core.CallStateEn
 
 func (c *CallInfo) CanAccept() bool { return c.StateData.State == core.CallStateIncomingRinging }
 
-func (c *CallInfo) CanReject() bool {
-	return c.StateData.State == core.CallStateIncomingRinging || c.StateData.State == core.CallStateRinging
-}
-
 type InvalidTransition struct {
 	CurrentState string
 	Attempted    string

@@ -52,8 +52,6 @@ type Cliente interface {
 	Conectar(ctx context.Context, instanciaID string) error
 	SolicitarCodigoPareamento(ctx context.Context, instanciaID, numero string) (string, string, error)
 	Desconectar(ctx context.Context, instanciaID string) error
-	Status(ctx context.Context, instanciaID string) (string, error)
-	QRCode(ctx context.Context, instanciaID string) (string, error)
 	EnviarTexto(ctx context.Context, req models.EnvioTextoRequest) (models.ResultadoEnvio, error)
 	EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error)
 	ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error)
@@ -886,22 +884,6 @@ func (g *GerenciadorInstancias) ExcluirInstancia(ctx context.Context, instanciaI
 		return fmt.Errorf("erro ao remover diretorio da instancia: %w", err)
 	}
 	return nil
-}
-
-func (g *GerenciadorInstancias) Status(ctx context.Context, instanciaID string) (string, error) {
-	info, err := g.Info(ctx, instanciaID)
-	if err != nil {
-		return models.StatusInstanciaDesconectada, nil
-	}
-	if info.Status == "" {
-		return models.StatusInstanciaNaoInicializada, nil
-	}
-	return info.Status, nil
-}
-
-func (g *GerenciadorInstancias) QRCode(ctx context.Context, instanciaID string) (string, error) {
-	_, _ = g.obterOuCriarRuntime(ctx, instanciaID)
-	return g.obterEstado(instanciaID).qrCode, nil
 }
 
 func (g *GerenciadorInstancias) ConsultarAvatar(ctx context.Context, req models.ConsultaAvatarRequest) (models.AvatarContato, error) {

@@ -60,15 +60,6 @@ func NewSrtpContext(keying core.SrtpKeyingMaterial, authTagLen int) (*SrtpContex
 	}, nil
 }
 
-func (c *SrtpContext) SetAuthKeying(keying core.SrtpKeyingMaterial) error {
-	ak, err := deriveSrtpKey(keying.MasterKey, keying.MasterSalt, core.SRTPLabelAuth, 20)
-	if err != nil {
-		return err
-	}
-	c.authKey = ak
-	return nil
-}
-
 func (c *SrtpContext) Protect(packet *RtpPacket) ([]byte, error) {
 	c.updateRoc(packet.Header.SequenceNumber)
 	index := c.packetIndex(packet.Header.SequenceNumber)
@@ -188,10 +179,6 @@ func NewSrtpSession(sendKey, recvKey core.SrtpKeyingMaterial, sendAuthLen, recvA
 func (s *SrtpSession) Protect(packet *RtpPacket) ([]byte, error) { return s.sendCtx.Protect(packet) }
 
 func (s *SrtpSession) Unprotect(data []byte) (*RtpPacket, error) { return s.recvCtx.Unprotect(data) }
-
-func (s *SrtpSession) SetSendAuthKeying(keying core.SrtpKeyingMaterial) error {
-	return s.sendCtx.SetAuthKeying(keying)
-}
 
 func deriveSrtpKey(masterKey, masterSalt []byte, label byte, length int) ([]byte, error) {
 	iv := make([]byte, 16)

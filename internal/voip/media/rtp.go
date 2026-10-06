@@ -128,29 +128,6 @@ type RtpPacket struct {
 	Payload []byte
 }
 
-func (p *RtpPacket) Size() int {
-	return p.Header.Size() + len(p.Payload)
-}
-
-func (p *RtpPacket) Encode() ([]byte, error) {
-	buf := make([]byte, p.Size())
-	headerSize, err := p.Header.Encode(buf)
-	if err != nil {
-		return nil, err
-	}
-	copy(buf[headerSize:], p.Payload)
-	return buf, nil
-}
-
-func DecodeRtpPacket(buf []byte) (*RtpPacket, error) {
-	header, err := DecodeRtpHeader(buf)
-	if err != nil {
-		return nil, err
-	}
-	payload := append([]byte(nil), buf[header.Size():]...)
-	return &RtpPacket{Header: header, Payload: payload}, nil
-}
-
 type RtpSession struct {
 	ssrc             uint32
 	payloadType      uint8
@@ -173,10 +150,6 @@ func NewRtpSession(ssrc uint32, payloadType uint8, sampleRate, samplesPerPacket 
 
 func NewWhatsAppOpusSession(ssrc uint32) *RtpSession {
 	return NewRtpSession(ssrc, core.PayloadTypeWhatsAppOpus, 16000, 960)
-}
-
-func (s *RtpSession) CreatePacket(payload []byte, marker bool) *RtpPacket {
-	return s.CreatePacketWithDuration(payload, s.samplesPerPacket, marker)
 }
 
 func (s *RtpSession) CreatePacketWithDuration(payload []byte, durationSamples int, marker bool) *RtpPacket {

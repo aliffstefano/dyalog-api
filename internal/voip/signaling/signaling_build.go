@@ -160,63 +160,10 @@ func BuildPreacceptStanza(peerJid types.JID, callID string, callCreator types.JI
 	}
 }
 
-func CreateCallAck(nodeID string, peerJid types.JID, typ string) waBinary.Node {
-	return waBinary.Node{
-		Tag:   "ack",
-		Attrs: waBinary.Attrs{"id": nodeID, "to": peerJid, "class": "call", "type": typ},
-	}
-}
-
 type RelayLatencyEntry struct {
 	RelayName    string
 	Latency      int
 	AddressBytes []byte
-}
-
-func BuildRelayLatencyStanza(peerJid types.JID, callID string, callCreator types.JID, relays []RelayLatencyEntry, destinationJids []types.JID) waBinary.Node {
-	seen := map[string]bool{}
-	var teNodes []waBinary.Node
-	for _, r := range relays {
-		if r.RelayName == "" || seen[r.RelayName] {
-			continue
-		}
-		seen[r.RelayName] = true
-		encodedLatency := 0x2000000 + r.Latency
-		te := waBinary.Node{
-			Tag:   "te",
-			Attrs: waBinary.Attrs{"latency": fmt.Sprintf("%d", encodedLatency), "relay_name": r.RelayName},
-		}
-		if len(r.AddressBytes) > 0 {
-			te.Content = r.AddressBytes
-		}
-		teNodes = append(teNodes, te)
-	}
-
-	content := append([]waBinary.Node(nil), teNodes...)
-	if len(destinationJids) > 0 {
-		var dst []waBinary.Node
-		for _, jid := range destinationJids {
-			dst = append(dst, waBinary.Node{Tag: "to", Attrs: waBinary.Attrs{"jid": jid}})
-		}
-		content = append(content, waBinary.Node{Tag: "destination", Content: dst})
-	}
-
-	return callWrap(wanode.MustJID(wanode.CleanJID(peerJid.String())), waBinary.Node{
-		Tag:     "relaylatency",
-		Attrs:   waBinary.Attrs{"call-id": callID, "call-creator": callCreator},
-		Content: content,
-	})
-}
-
-func BuildTransportStanza(peerJid types.JID, callID string, callCreator types.JID) waBinary.Node {
-	return callWrap(wanode.MustJID(wanode.CleanJID(peerJid.String())), waBinary.Node{
-		Tag: "transport",
-		Attrs: waBinary.Attrs{
-			"call-id": callID, "call-creator": callCreator,
-			"transport-message-type": "0", "p2p-cand-round": "0",
-		},
-		Content: []waBinary.Node{{Tag: "net", Attrs: waBinary.Attrs{"medium": "2", "protocol": "0"}}},
-	})
 }
 
 func BuildMuteV2Stanza(peerDeviceJid types.JID, callID string, callCreator types.JID, muteState int) waBinary.Node {
