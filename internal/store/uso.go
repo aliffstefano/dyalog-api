@@ -15,6 +15,7 @@ type UsoStore interface {
 	RegistrarEnvio(ctx context.Context, envio models.EnvioRegistro) error
 	ResumoUso(ctx context.Context, instanciaID string, agora time.Time, dias int) (models.ResumoUso, error)
 	LimparEnviosAntigos(ctx context.Context, antesDe time.Time) (int64, error)
+	UsoHojePorInstancia(ctx context.Context, agora time.Time) ([]models.UsoInstanciaHoje, error)
 }
 
 // rajadaMinima e quantas mensagens para o mesmo contato no mesmo minuto contam
@@ -150,6 +151,63 @@ func (s *SQLStore) listarUsoContatos(ctx context.Context, query string, args ...
 		lista = append(lista, c)
 	}
 	return lista, rows.Err()
+}
+
+// UsoHojePorInstancia devolve os totais de hoje de cada instancia que teve
+// movimento. Rajadas e quantos contatos receberam 5+ mensagens no mesmo minuto.
+func (s *SQLStore) UsoHojePorInstancia(ctx context.Context, agora time.Time) ([]models.UsoInstanciaHoje, error) {
+	hoje := agora.Format(time.DateOnly)
+	enviada := models.EnvioResultadoEnviada
+	porInstancia := map[string]*models.UsoInstanciaHoje{}
+	ordem := []string{}
+	rows, err := s.db.QueryContext(ctx, s.q(`
+SELECT instancia_id,
+    SUM(CASE WHEN resultado = ? THEN 1 ELSE 0 END),
+    SUM(CASE WHEN contato_novo = ? THEN 1 ELSE 0 END),
+    SUM(CASE WHEN resultado = ? THEN 1 ELSE 0 END)
+FROM envios_registro WHERE dia = ?
+GROUP BY instancia_id`), enviada, s.boolDB(true), models.EnvioResultadoLimitada, hoje)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao resumir uso de hoje: %w", err)
+	}
+	for rows.Next() {
+		u := &models.UsoInstanciaHoje{}
+		if err := rows.Scan(&u.InstanciaID, &u.Envios, &u.ContatosNovos, &u.Limitados); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("erro ao ler uso de hoje: %w", err)
+		}
+		porInstancia[u.InstanciaID] = u
+		ordem = append(ordem, u.InstanciaID)
+	}
+	rows.Close()
+
+	rows, err = s.db.QueryContext(ctx, s.q(`
+SELECT instancia_id, COUNT(DISTINCT chat_jid) FROM (
+    SELECT instancia_id, chat_jid FROM envios_registro
+    WHERE dia = ? AND resultado = ? AND chat_jid <> ''
+    GROUP BY instancia_id, chat_jid, minuto HAVING COUNT(*) >= ?
+) rajadas GROUP BY instancia_id`), hoje, enviada, rajadaMinima)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao contar rajadas de hoje: %w", err)
+	}
+	for rows.Next() {
+		var id string
+		var total int
+		if err := rows.Scan(&id, &total); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("erro ao ler rajadas de hoje: %w", err)
+		}
+		if u, ok := porInstancia[id]; ok {
+			u.Rajadas = total
+		}
+	}
+	rows.Close()
+
+	lista := make([]models.UsoInstanciaHoje, 0, len(ordem))
+	for _, id := range ordem {
+		lista = append(lista, *porInstancia[id])
+	}
+	return lista, nil
 }
 
 func (s *SQLStore) LimparEnviosAntigos(ctx context.Context, antesDe time.Time) (int64, error) {

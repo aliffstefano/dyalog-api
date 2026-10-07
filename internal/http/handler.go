@@ -696,6 +696,22 @@ func (h *APIHandler) ListarEntregasWebhook(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Entregas de webhook listadas com sucesso", gin.H{"entregas": entregas}))
 }
 
+// UsoGeral devolve os totais de hoje por instancia para o dashboard. Token de
+// instancia ve so a propria.
+func (h *APIHandler) UsoGeral(c *gin.Context) {
+	acesso := obterAcessoDashboard(c)
+	filtro := ""
+	if acesso.Tipo == "instancia" {
+		filtro = acesso.InstanciaID
+	}
+	lista, err := h.mensagemService.UsoHoje(c.Request.Context(), filtro)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Uso de hoje consultado com sucesso", gin.H{"instancias": lista, "limite_por_minuto": h.cfg.LimiteEnviosPorMinuto}))
+}
+
 // UsoInstancia devolve os numeros de uso da instancia (envios, contatos novos,
 // rajadas, limites) para o painel.
 func (h *APIHandler) UsoInstancia(c *gin.Context) {

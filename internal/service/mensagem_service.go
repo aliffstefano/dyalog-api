@@ -53,6 +53,21 @@ func (s *MensagemService) anotarUso(envio models.EnvioRegistro) {
 	}()
 }
 
+// UsoHoje devolve os totais de hoje por instancia. Com instanciaID, so dela.
+func (s *MensagemService) UsoHoje(ctx context.Context, instanciaID string) ([]models.UsoInstanciaHoje, error) {
+	lista, err := s.usoStore.UsoHojePorInstancia(ctx, time.Now())
+	if err != nil || instanciaID == "" {
+		return lista, err
+	}
+	filtrada := []models.UsoInstanciaHoje{}
+	for _, u := range lista {
+		if u.InstanciaID == instanciaID {
+			filtrada = append(filtrada, u)
+		}
+	}
+	return filtrada, nil
+}
+
 // ResumoUso devolve os numeros de uso dos ultimos 7 dias da instancia.
 func (s *MensagemService) ResumoUso(ctx context.Context, instanciaID string) (models.ResumoUso, error) {
 	if _, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err != nil {

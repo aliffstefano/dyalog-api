@@ -46,3 +46,12 @@ type UsoContato struct {
 	ChatJID string `json:"chat_jid"`
 	Envios  int    `json:"envios"`
 }
+
+// UsoInstanciaHoje resume o dia de uma instancia, para o dashboard geral.
+type UsoInstanciaHoje struct {
+	InstanciaID   string `json:"instancia_id"`
+	Envios        int    `json:"envios"`
+	ContatosNovos int    `json:"contatos_novos"`
+	Limitados     int    `json:"limitados"`
+	Rajadas       int    `json:"rajadas"`
+}

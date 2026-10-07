@@ -75,6 +75,15 @@ func testarResumoUso(t *testing.T, s *SQLStore) {
 		t.Fatalf("dias = %+v", resumo.Dias)
 	}
 
+	porInstancia, err := s.UsoHojePorInstancia(ctx, agora)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(porInstancia) != 1 || porInstancia[0].InstanciaID != instancia || porInstancia[0].Envios != 10 ||
+		porInstancia[0].ContatosNovos != 2 || porInstancia[0].Limitados != 1 || porInstancia[0].Rajadas != 1 {
+		t.Fatalf("uso por instancia = %+v", porInstancia)
+	}
+
 	apagadas, err := s.LimparEnviosAntigos(ctx, agora.Add(-time.Hour))
 	if err != nil || apagadas != 1 {
 		t.Fatalf("limpeza: apagadas=%d err=%v", apagadas, err)

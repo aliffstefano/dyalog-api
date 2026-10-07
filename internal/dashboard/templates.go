@@ -9,123 +9,114 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('tema')||'');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
-  <main class="app-shell">
-    <header class="topbar glass-card">
-      <div class="brand-block">
-        <img src="/static/img/dyalog.png" alt="Dyalog" class="brand-logo">
-        <div>
-          <p class="eyebrow">Infrastructure Console</p>
-          <h1>Dyalog Connect</h1>
-        </div>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+    <symbol id="i-celular" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-atualizar" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></symbol>
+    <symbol id="i-livro" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2Z"/><path d="M6 18h14v3H6a2 2 0 0 1 0-4"/></symbol>
+    <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+    <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-contraste" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></symbol>
+    <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+    <symbol id="i-mensagem" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></symbol>
+    <symbol id="i-pessoa-mais" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M19 8v6M16 11h6"/></symbol>
+    <symbol id="i-online" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a14.5 14.5 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  </svg>
+  <div class="dc-layout">
+    <aside class="dc-sidebar">
+      <div class="dc-marca">
+        <img src="/static/img/dyalog.png" alt="" class="dc-marca-logo">
+        <div><strong>Dyalog Connect</strong><span>Painel de instancias</span></div>
       </div>
-      <nav class="topnav">
-        <button class="nav-link active" data-tab="dashboard"   onclick="trocarAba('dashboard')"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
-        <button class="nav-link"        data-tab="instancias"  onclick="trocarAba('instancias')"><span class="material-symbols-outlined">dns</span>Instancias</button>
-        <button class="nav-link"        data-tab="atualizacao" onclick="trocarAba('atualizacao')"><span class="material-symbols-outlined">system_update_alt</span>Atualizacao</button>
+      <nav class="dc-nav" aria-label="Menu principal">
+        <p class="dc-nav-secao">Visao geral</p>
+        <button class="nav-link" data-tab="dashboard" onclick="trocarAba('dashboard')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Dashboard</button>
+        <button class="nav-link" data-tab="instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-celular"/></svg>Instancias<span class="dc-nav-contador" id="nav-contador-instancias">0</span></button>
+        <p class="dc-nav-secao so-master">Sistema</p>
+        <button class="nav-link so-master" data-tab="atualizacao" onclick="trocarAba('atualizacao')"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizacao</button>
+        <a class="nav-link" href="/docs" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-livro"/></svg>Documentacao</a>
       </nav>
-      <div class="topbar-actions">
-        <div class="theme-switcher" role="group" aria-label="Tema">
-          <button class="theme-btn" data-tema=""      onclick="setTema('')"      title="Quente">&#9728;</button>
-          <button class="theme-btn" data-tema="clean" onclick="setTema('clean')" title="Clean">&#9711;</button>
-          <button class="theme-btn" data-tema="dark"  onclick="setTema('dark')"  title="Escuro">&#9790;</button>
+      <div class="dc-sidebar-rodape">
+        <div class="dc-tema" role="group" aria-label="Tema">
+          <button class="theme-btn" data-tema=""      onclick="setTema('')"      title="Azul"><svg class="dc-ico"><use href="#i-lua"/></svg></button>
+          <button class="theme-btn" data-tema="clean" onclick="setTema('clean')" title="Claro"><svg class="dc-ico"><use href="#i-sol"/></svg></button>
+          <button class="theme-btn" data-tema="dark"  onclick="setTema('dark')"  title="Escuro"><svg class="dc-ico"><use href="#i-contraste"/></svg></button>
         </div>
-        <a href="/docs" target="_blank" style="text-decoration:none"><button class="ghost small">Docs</button></a>
-        <button class="ghost" onclick="carregarTudo(true)">Atualizar</button>
-        <div class="logout-block">
-          <button class="ghost" onclick="sairDashboard()">Sair</button>
-          <span class="app-version-label">v1.0</span>
-        </div>
+        <button class="nav-link" onclick="sairDashboard()"><svg class="dc-ico"><use href="#i-sair"/></svg>Sair</button>
       </div>
-    </header>
+    </aside>
 
-    <section id="alerta-atualizacao" class="banner hidden"></section>
-    <section id="toast" class="toast hidden"></section>
+    <main class="dc-conteudo">
+      <header class="dc-cabecalho">
+        <nav class="dc-trilha" aria-label="Voce esta em"><span>Dyalog Connect</span><span class="dc-trilha-sep">/</span><span id="trilha-pagina">Dashboard</span></nav>
+        <button class="ghost small dc-botao-icone" onclick="carregarTudo(true)" title="Atualizar dados"><svg class="dc-ico"><use href="#i-atualizar"/></svg></button>
+      </header>
 
-    <!-- ===== TAB DASHBOARD ===== -->
-    <section class="tab-panel active" data-panel="dashboard">
-      <section class="hero-card glass-card">
-        <div>
-          <p class="eyebrow">Visao geral</p>
-          <h2>Operacao central das instancias WhatsApp</h2>
-          <p class="subtitle">Acompanhe a saude do sistema, conexoes ativas e situacao do whatsmeow antes de entrar no detalhe das instancias.</p>
+      <section id="alerta-atualizacao" class="banner hidden"></section>
+      <section id="toast" class="toast hidden"></section>
+
+      <!-- ===== DASHBOARD ===== -->
+      <section class="tab-panel active" data-panel="dashboard">
+        <div class="dc-pagina-topo">
+          <div><h1 id="dash-saudacao">Ola</h1><p>Resumo das instancias e dos envios de hoje.</p></div>
+          <button class="primary so-master" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
         </div>
-        <div class="hero-actions">
-          <button class="primary" onclick="trocarAba('instancias')">Abrir instancias</button>
-          <button class="ghost"   onclick="trocarAba('atualizacao')">Ver atualizacao</button>
+        <section class="dc-kpis">
+          <article class="dc-kpi"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-celular"/></svg></span><div><span>Instancias</span><strong id="contador-instancias">0</strong></div></article>
+          <article class="dc-kpi"><span class="dc-kpi-icone ok"><svg class="dc-ico"><use href="#i-online"/></svg></span><div><span>Conectadas</span><strong id="contador-online">0</strong></div></article>
+          <article class="dc-kpi"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-mensagem"/></svg></span><div><span>Mensagens hoje</span><strong id="kpi-envios">0</strong></div></article>
+          <article class="dc-kpi"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg></span><div><span>Contatos novos hoje</span><strong id="kpi-contatos">0</strong></div></article>
+        </section>
+        <section class="dc-dash-grade">
+          <article class="dc-card">
+            <div class="dc-card-topo"><h3>Precisa de atencao</h3><span class="helper-text">Instancias fora do ar ou com risco de bloqueio</span></div>
+            <div id="dash-atencao" class="dc-lista"></div>
+          </article>
+          <article class="dc-card">
+            <div class="dc-card-topo"><h3>Envios hoje por instancia</h3><span class="helper-text">Mensagens enviadas e contatos novos</span></div>
+            <div id="dash-uso" class="dc-lista"></div>
+          </article>
+        </section>
+        <article class="dc-card dc-sistema so-master">
+          <div class="dc-card-topo"><h3>Sistema</h3><button class="ghost small" onclick="trocarAba('atualizacao')">Ver atualizacao</button></div>
+          <div class="dc-sistema-grade">
+            <div><span>Aplicacao</span><strong id="app-versao">-</strong></div>
+            <div><span>Whatsmeow</span><strong id="wm-versao">-</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ===== INSTANCIAS ===== -->
+      <section class="tab-panel" data-panel="instancias">
+        <div class="dc-pagina-topo">
+          <div><h1>Instancias</h1><p>Gerencie as conexoes de WhatsApp.</p></div>
+          <button class="primary so-master" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
         </div>
+        <div class="dc-filtros">
+          <label class="dc-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="busca-instancias" placeholder="Buscar por nome ou ID" oninput="renderizarListaInstancias()"></label>
+          <div class="dc-chips" role="group" aria-label="Filtrar por status">
+            <button class="dc-chip ativo" data-filtro="todas" onclick="filtrarInstancias('todas')">Todas</button>
+            <button class="dc-chip" data-filtro="conectadas" onclick="filtrarInstancias('conectadas')">Conectadas</button>
+            <button class="dc-chip" data-filtro="conectando" onclick="filtrarInstancias('conectando')">Conectando</button>
+            <button class="dc-chip" data-filtro="desconectadas" onclick="filtrarInstancias('desconectadas')">Desconectadas</button>
+          </div>
+        </div>
+        <div id="lista-instancias" class="dc-instancias"></div>
       </section>
 
-      <section class="overview-grid">
-        <article class="glass-card stats-card emphasis">
-          <span class="stats-label">Aplicacao</span>
-          <strong id="app-versao" class="stats-value">-</strong>
-          <span class="stats-meta">Versao em execucao</span>
-        </article>
-        <article class="glass-card stats-card">
-          <span class="stats-label">Whatsmeow</span>
-          <strong id="wm-versao" class="stats-value">-</strong>
-          <span class="stats-meta">Nucleo de conexao</span>
-        </article>
-        <article class="glass-card stats-card">
-          <span class="stats-label">Instancias</span>
-          <strong id="contador-instancias" class="stats-value">0</strong>
-          <span class="stats-meta">Total cadastrado</span>
-        </article>
-        <article class="glass-card stats-card">
-          <span class="stats-label">Online</span>
-          <strong id="contador-online" class="stats-value">0</strong>
-          <span class="stats-meta">Conectadas agora</span>
-        </article>
-      </section>
-
-      <section class="dashboard-grid">
-        <article class="glass-card dashboard-card spotlight">
-          <div class="panel-header">
-            <div><p class="panel-kicker">Resumo ativo</p><h3>Instancia selecionada</h3></div>
-            <span id="status-badge-home" class="status-badge neutro">Sem selecao</span>
-          </div>
-          <div class="spotlight-grid">
-            <div><span class="mini-label">Nome</span><strong id="home-instancia-nome">Nenhuma instancia selecionada</strong></div>
-            <div><span class="mini-label">Status</span><strong id="home-instancia-status">-</strong></div>
-            <div><span class="mini-label">Atualizado</span><strong id="home-instancia-atualizado">-</strong></div>
-            <div><span class="mini-label">Erro</span><strong id="home-instancia-erro">-</strong></div>
-          </div>
-          <p id="home-status-copy" class="status-copy">Clique em uma instancia para ver QR code, status e acoes.</p>
-        </article>
-        <article class="glass-card dashboard-card">
-          <div class="panel-header">
-            <div><p class="panel-kicker">Atalhos</p><h3>Acoes rapidas</h3></div>
-          </div>
-          <div class="shortcut-grid">
-            <button class="shortcut-tile" onclick="trocarAba('instancias')"><strong>Gerenciar instancias</strong><span>Criar, conectar, configurar webhooks, proxy e enviar mensagens.</span></button>
-            <button class="shortcut-tile" onclick="trocarAba('instancias')"><strong>Auditar webhooks</strong><span>Abra uma instancia e veja a auditoria no mesmo painel.</span></button>
-            <button class="shortcut-tile" onclick="trocarAba('atualizacao')"><strong>Monitorar dependencias</strong><span>Verificar versao do whatsmeow e orientacao de update.</span></button>
-          </div>
-        </article>
-      </section>
-    </section>
-
-    <!-- ===== TAB INSTANCIAS ===== -->
-    <section class="tab-panel" data-panel="instancias">
-      <section class="workspace-grid">
-
-        <!-- Sidebar -->
-        <article class="glass-card sidebar-card">
-          <div class="panel-header">
-            <div><p class="panel-kicker">Instancias</p><h2>Operacao</h2></div>
-            <span id="auto-sync-status" class="sync-pill">auto</span>
-          </div>
-          <form id="form-instancia" class="stack-form compact-form">
-            <label><span>Nova instancia</span><input type="text" id="nome-instancia" placeholder="Ex.: Atendimento principal" required></label>
-            <button type="submit" class="primary">Criar instancia</button>
-          </form>
-          <div id="lista-instancias" class="instance-list empty-state">Nenhuma instancia cadastrada.</div>
-        </article>
-
+      <!-- ===== INSTANCIA (detalhe) ===== -->
+      <section class="tab-panel" data-panel="instancia">
+        <button class="ghost small dc-voltar" id="botao-voltar-instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Instancias</button>
         <!-- Painel principal -->
         <article class="glass-card main-card">
           <div class="panel-header">
@@ -278,7 +269,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
           </section>
         </article>
       </section>
-    </section>
 
     <!-- ===== TAB ATUALIZACAO ===== -->
     <section class="tab-panel" data-panel="atualizacao">
@@ -305,12 +295,12 @@ const paginaInicialHTML = `<!DOCTYPE html>
       </section>
     </section>
 
-    <!-- Log -->
-    <section class="glass-card log-card">
-      <div class="panel-header"><div><p class="panel-kicker">Inspecao</p><h2>Retorno da API</h2></div></div>
-      <pre id="retorno-api">Sem chamadas ainda.</pre>
-    </section>
-  </main>
+      <details class="dc-card dc-log">
+        <summary>Retorno da ultima chamada da API</summary>
+        <pre id="retorno-api">Sem chamadas ainda.</pre>
+      </details>
+    </main>
+  </div>
 
   <!-- ===== LOGIN ===== -->
   <div id="login-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
@@ -338,7 +328,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   </div>
 
   <script>
-  const estadoUI = { abaAtual:'dashboard', instanciaSelecionada:'', pollingConexao:null, refreshGeral:null, acesso:null, webhooks:[], entregasWebhook:[] };
+  const estadoUI = { abaAtual:'dashboard', instanciaSelecionada:'', pollingConexao:null, refreshGeral:null, acesso:null, webhooks:[], entregasWebhook:[], instancias:[], usoHoje:{}, filtroInstancias:'todas' };
 
   // ── Tema ─────────────────────────────────────────────────────────────────────
   function setTema(t) {
@@ -354,6 +344,18 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   // ── Modal ─────────────────────────────────────────────────────────────────────
   const MODAIS = {
+    'nova-instancia': {
+      kicker: 'Configure tudo antes de criar', titulo: 'Nova instancia', semInstancia: true, largo: true,
+      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
+      init: function() {
+        ['ni-webhook-ativo','ni-proxy-ativo','ni-rejeitar-chamadas'].forEach(id => document.getElementById(id).addEventListener('change', atualizarNovaInstancia));
+        passoNovaInstancia('geral');
+        document.getElementById('modal-form').addEventListener('input', () => { document.getElementById('mf-feedback').className = 'modal-feedback hidden'; });
+        atualizarNovaInstancia();
+        document.getElementById('ni-nome').focus();
+      },
+      submit: criarNovaInstancia
+    },
     texto: {
       kicker: 'Acao rapida', titulo: 'Enviar mensagem',
       html: '<form id="modal-form" class="stack-form"><div class="form-grid"><label><span>Numero destino</span><input type="text" id="mf-numero" placeholder="5511999999999" required autocomplete="off"></label><label><span>Instancia</span><input type="text" id="mf-instancia" readonly></label></div><label><span>Mensagem</span><textarea id="mf-texto" placeholder="Mensagem de teste..." required style="min-height:100px"></textarea></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Enviar</button></div></form>',
@@ -542,8 +544,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   let modalTipoAtual = '';
   function abrirModal(tipo) {
-    if (!estadoUI.instanciaSelecionada) { mostrarToast('Selecione uma instancia para usar as acoes.', 'error'); return; }
     const m = MODAIS[tipo]; if (!m) return;
+    if (!m.semInstancia && !estadoUI.instanciaSelecionada) { mostrarToast('Selecione uma instancia para usar as acoes.', 'error'); return; }
+    document.querySelector('#modal-overlay .modal-dialog').classList.toggle('dc-modal-largo', Boolean(m.largo));
     modalTipoAtual = tipo;
     document.getElementById('modal-kicker').textContent = m.kicker;
     document.getElementById('modal-titulo').textContent = m.titulo;
@@ -695,7 +698,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       atualizarEscopoAcesso(dados.dados);
       ocultarLogin();
       await carregarTudo(false);
-      if (estadoUI.acesso?.tipo === 'instancia') trocarAba('instancias');
+      if (estadoUI.acesso?.tipo === 'instancia' && estadoUI.instanciaSelecionada) trocarAba('instancia');
     } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro ao conectar ao servidor.'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
@@ -710,10 +713,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!resp.ok) throw new Error(dados?.mensagem || 'Erro na requisicao');
     return dados;
   }
+  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao' };
   function trocarAba(aba) {
     estadoUI.abaAtual = aba;
-    document.querySelectorAll('.nav-link').forEach(i => i.classList.toggle('active', i.dataset.tab === aba));
+    const menu = aba === 'instancia' ? 'instancias' : aba;
+    document.querySelectorAll('.nav-link').forEach(i => i.classList.toggle('active', i.dataset.tab === menu));
     document.querySelectorAll('.tab-panel').forEach(i => i.classList.toggle('active', i.dataset.panel === aba));
+    let trilha = TITULOS_ABA[aba] || aba;
+    if (aba === 'instancia') trilha += ' / ' + (document.getElementById('instancia-titulo').textContent || '');
+    document.getElementById('trilha-pagina').textContent = trilha;
+    window.scrollTo(0, 0);
   }
   function formatarData(v) { return v ? new Date(v).toLocaleString('pt-BR') : '-'; }
   function rotuloStatus(s) { return ({nao_inicializada:'Nao inicializada',desconectada:'Desconectada',conectando:'Conectando',aguardando_qrcode:'Aguardando QR',pareada:'Pareada',autenticando:'Autenticando',sincronizando_historico:'Sincronizando',conectada:'Conectada'})[s]||s||'-'; }
@@ -737,9 +746,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (instancia && estadoUI.acesso.instancia_id && !estadoUI.instanciaSelecionada) {
       estadoUI.instanciaSelecionada = estadoUI.acesso.instancia_id;
     }
-    document.getElementById('form-instancia').classList.toggle('hidden', instancia);
     document.getElementById('botao-excluir').classList.toggle('hidden', instancia);
-    document.querySelectorAll('[data-tab="atualizacao"]').forEach(el => el.classList.toggle('hidden', instancia));
+    document.querySelectorAll('.so-master').forEach(el => el.classList.toggle('hidden', instancia));
+    document.getElementById('botao-voltar-instancias').classList.toggle('hidden', instancia);
   }
   function gerarResumoStatus(s,e) { if(e) return 'Ultimo erro: '+e; return ({aguardando_qrcode:'QR code gerado. Escaneie com o WhatsApp para iniciar o pareamento.',pareada:'QR lido. Finalizando vinculo.',autenticando:'Autenticando sessao no WhatsApp.',sincronizando_historico:'Sincronizando historico inicial.',conectada:'Instancia conectada e pronta.',desconectada:'Desconectada. Conecte para usar.',conectando:'Abrindo conexao.'})[s]||'Estado atual da instancia.'; }
   function pairingDisponivel(status) { return ['nao_inicializada','desconectada','aguardando_qrcode'].includes(status); }
@@ -892,37 +901,110 @@ const paginaInicialHTML = `<!DOCTYPE html>
   async function carregarInstancias(manual) {
     const resp = await chamar('/api/v1/instancias');
     if (!resp) return;
-    const lista = resp.dados.instancias || [];
-    document.getElementById('contador-instancias').textContent = String(lista.length);
-    document.getElementById('contador-online').textContent     = String(lista.filter(i=>i.status==='conectada').length);
-    document.getElementById('auto-sync-status').textContent    = manual ? 'manual' : 'auto';
-    if (!lista.length) {
-      if (estadoUI.acesso?.tipo === 'instancia' && estadoUI.acesso.instancia_id) {
-        estadoUI.instanciaSelecionada = estadoUI.acesso.instancia_id;
-        document.getElementById('contador-instancias').textContent = '1';
-        document.getElementById('lista-instancias').className = 'instance-list';
-        document.getElementById('lista-instancias').innerHTML =
-          '<button class="instance-item selected" onclick="selecionarInstancia(\''+textoSeguro(estadoUI.acesso.instancia_id)+'\')">'+
-            '<span class="instance-top"><strong>'+textoSeguro(estadoUI.acesso.nome || 'Instancia vinculada')+'</strong><span class="mini-status neutro">Carregando</span></span>'+
-            '<span class="instance-id">'+textoSeguro(estadoUI.acesso.instancia_id)+'</span></button>';
-        await atualizarInstanciaSelecionada(false);
-        return;
-      }
-      document.getElementById('lista-instancias').className = 'instance-list empty-state';
-      document.getElementById('lista-instancias').innerHTML = 'Nenhuma instancia cadastrada.';
-      atualizarPainelSemSelecao(); return;
+    let lista = resp.dados.instancias || [];
+    if (!lista.length && estadoUI.acesso?.tipo === 'instancia' && estadoUI.acesso.instancia_id) {
+      lista = [{ id: estadoUI.acesso.instancia_id, nome: estadoUI.acesso.nome || 'Instancia vinculada', status: '' }];
     }
+    estadoUI.instancias = lista;
+    document.getElementById('contador-instancias').textContent = String(lista.length);
+    document.getElementById('contador-online').textContent = String(lista.filter(i => i.status === 'conectada').length);
+    document.getElementById('nav-contador-instancias').textContent = String(lista.length);
     if (!estadoUI.instanciaSelecionada && estadoUI.acesso?.tipo === 'instancia' && lista.length === 1) {
       estadoUI.instanciaSelecionada = lista[0].id;
     }
-    if (estadoUI.instanciaSelecionada && !lista.some(i=>i.id===estadoUI.instanciaSelecionada)) atualizarPainelSemSelecao();
-    document.getElementById('lista-instancias').className = 'instance-list';
-    document.getElementById('lista-instancias').innerHTML = lista.map(i =>
-      '<button class="instance-item'+(i.id===estadoUI.instanciaSelecionada?' selected':'')+'" onclick="selecionarInstancia(\''+i.id+'\')">'+
-        '<span class="instance-top"><strong>'+textoSeguro(i.nome)+'</strong><span class="mini-status '+classeStatus(i.status)+'">'+textoSeguro(rotuloStatus(i.status))+'</span></span>'+
-        '<span class="instance-id">'+textoSeguro(i.id)+'</span></button>'
-    ).join('');
+    if (estadoUI.instanciaSelecionada && !lista.some(i => i.id === estadoUI.instanciaSelecionada)) {
+      atualizarPainelSemSelecao();
+      if (estadoUI.abaAtual === 'instancia') trocarAba('instancias');
+    }
+    renderizarListaInstancias();
+    renderizarDashboard();
     if (estadoUI.instanciaSelecionada) await atualizarInstanciaSelecionada(false);
+  }
+
+  function grupoStatus(s) {
+    const c = classeStatus(s);
+    return c === 'online' ? 'conectadas' : c === 'processing' ? 'conectando' : 'desconectadas';
+  }
+
+  function filtrarInstancias(filtro) {
+    estadoUI.filtroInstancias = filtro;
+    document.querySelectorAll('.dc-chip').forEach(b => b.classList.toggle('ativo', b.dataset.filtro === filtro));
+    renderizarListaInstancias();
+  }
+
+  function renderizarListaInstancias() {
+    const box = document.getElementById('lista-instancias');
+    const todas = estadoUI.instancias || [];
+    if (!todas.length) {
+      box.className = 'dc-instancias dc-vazio';
+      box.innerHTML = '<svg class="dc-ico dc-vazio-icone"><use href="#i-celular"/></svg><h3>Nenhuma instancia ainda</h3><p>Crie a primeira instancia para conectar um WhatsApp e comecar a enviar mensagens.</p>' +
+        (estadoUI.acesso?.tipo === 'instancia' ? '' : '<button class="primary" onclick="abrirModal(\'nova-instancia\')"><svg class="dc-ico"><use href="#i-mais"/></svg>Criar primeira instancia</button>');
+      return;
+    }
+    const busca = (document.getElementById('busca-instancias').value || '').trim().toLowerCase();
+    const filtro = estadoUI.filtroInstancias;
+    const lista = todas.filter(i =>
+      (filtro === 'todas' || grupoStatus(i.status) === filtro) &&
+      (!busca || String(i.nome || '').toLowerCase().includes(busca) || String(i.id).toLowerCase().includes(busca)));
+    if (!lista.length) {
+      box.className = 'dc-instancias dc-vazio';
+      box.innerHTML = '<svg class="dc-ico dc-vazio-icone"><use href="#i-busca"/></svg><h3>Nada encontrado</h3><p>Nenhuma instancia com esse filtro.</p>';
+      return;
+    }
+    box.className = 'dc-instancias';
+    box.innerHTML = lista.map(i => {
+      const uso = estadoUI.usoHoje[i.id] || {};
+      return '<button class="dc-instancia" onclick="selecionarInstancia(\''+textoSeguro(i.id)+'\')">' +
+        '<span class="dc-instancia-topo"><span class="dc-instancia-icone '+classeStatus(i.status)+'"><svg class="dc-ico"><use href="#i-celular"/></svg></span>' +
+          '<span class="mini-status '+classeStatus(i.status)+'">'+textoSeguro(rotuloStatus(i.status))+'</span></span>' +
+        '<strong>'+textoSeguro(i.nome)+'</strong>' +
+        '<span class="dc-instancia-id">'+textoSeguro(String(i.id).slice(0, 8))+'</span>' +
+        '<span class="dc-instancia-rodape"><span>'+numeroUso(uso.envios)+' envios hoje</span><svg class="dc-ico"><use href="#i-seta"/></svg></span>' +
+      '</button>';
+    }).join('');
+  }
+
+  async function carregarUsoGeral() {
+    try {
+      const resp = await chamar('/api/v1/uso');
+      const mapa = {};
+      (resp?.dados?.instancias || []).forEach(u => { mapa[u.instancia_id] = u; });
+      estadoUI.usoHoje = mapa;
+    } catch(err) { estadoUI.usoHoje = {}; }
+    renderizarDashboard();
+    renderizarListaInstancias();
+  }
+
+  function renderizarDashboard() {
+    const hora = new Date().getHours();
+    document.getElementById('dash-saudacao').textContent = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const instancias = estadoUI.instancias || [];
+    const usos = Object.values(estadoUI.usoHoje || {});
+    document.getElementById('kpi-envios').textContent = numeroUso(usos.reduce((t, u) => t + (u.envios || 0), 0));
+    document.getElementById('kpi-contatos').textContent = numeroUso(usos.reduce((t, u) => t + (u.contatos_novos || 0), 0));
+    const nome = id => (instancias.find(i => i.id === id) || {}).nome || String(id).slice(0, 8);
+    const linha = (id, titulo, detalhe, classe) =>
+      '<button class="dc-linha" onclick="selecionarInstancia(\''+textoSeguro(id)+'\')"><span class="dc-ponto '+classe+'"></span><span class="dc-linha-texto"><strong>'+textoSeguro(titulo)+'</strong><span>'+detalhe+'</span></span><svg class="dc-ico"><use href="#i-seta"/></svg></button>';
+
+    const atencao = [];
+    instancias.filter(i => i.status && i.status !== 'conectada').forEach(i =>
+      atencao.push(linha(i.id, i.nome, textoSeguro(rotuloStatus(i.status)), classeStatus(i.status))));
+    usos.filter(u => u.rajadas || u.limitados).forEach(u => {
+      const partes = [];
+      if (u.rajadas) partes.push(u.rajadas + (u.rajadas === 1 ? ' contato recebeu rajada' : ' contatos receberam rajada'));
+      if (u.limitados) partes.push(u.limitados + ' envios barrados pelo limite');
+      atencao.push(linha(u.instancia_id, nome(u.instancia_id), textoSeguro(partes.join(' · ')), 'processing'));
+    });
+    document.getElementById('dash-atencao').innerHTML = atencao.length ? atencao.join('') :
+      '<div class="dc-lista-vazia"><svg class="dc-ico"><use href="#i-ok"/></svg>Tudo certo: instancias conectadas e sem sinal de risco hoje.</div>';
+
+    const maior = Math.max(1, ...usos.map(u => u.envios || 0));
+    const ordenados = usos.slice().sort((a, b) => (b.envios || 0) - (a.envios || 0)).slice(0, 8);
+    document.getElementById('dash-uso').innerHTML = ordenados.length ? ordenados.map(u =>
+      '<button class="dc-linha dc-uso-linha" onclick="selecionarInstancia(\''+textoSeguro(u.instancia_id)+'\')"><span class="dc-linha-texto"><strong>'+textoSeguro(nome(u.instancia_id))+'</strong>' +
+        '<span class="dc-barra"><span style="width:'+Math.round((u.envios || 0) * 100 / maior)+'%"></span></span></span>' +
+        '<span class="dc-uso-num"><strong>'+numeroUso(u.envios)+'</strong><span>'+numeroUso(u.contatos_novos)+' novos</span></span></button>').join('') :
+      '<div class="dc-lista-vazia">Nenhuma mensagem enviada hoje.</div>';
   }
 
   const BOTOES_INSTANCIA = ['botao-conectar','botao-desconectar','botao-ver-qr','botao-excluir','botao-pairing','botao-copiar-token','botao-enviar-texto','botao-teste-chamada','botao-config-token','botao-config-proxy','botao-config-historico','botao-novo-webhook','botao-salvar-avancado'];
@@ -931,13 +1013,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
   function atualizarPainelSemSelecao() {
     estadoUI.instanciaSelecionada = '';
     document.getElementById('instancia-titulo').textContent = 'Nenhuma instancia selecionada';
-    ['status-badge','status-badge-home'].forEach(id => { document.getElementById(id).className='status-badge neutro'; document.getElementById(id).textContent='Sem selecao'; });
+    document.getElementById('status-badge').className = 'status-badge neutro'; document.getElementById('status-badge').textContent = 'Sem selecao';
     ['detalhe-id','detalhe-status','detalhe-atualizado','detalhe-erro'].forEach(id => document.getElementById(id).textContent='-');
     atualizarTokenDetalhado('', false);
     document.getElementById('status-copy').textContent = 'Clique em uma instancia da lista para operar.';
-    document.getElementById('home-instancia-nome').textContent = 'Nenhuma instancia selecionada';
-    ['home-instancia-status','home-instancia-atualizado','home-instancia-erro'].forEach(id => document.getElementById(id).textContent='-');
-    document.getElementById('home-status-copy').textContent = 'Clique em uma instancia para ver QR code e acoes.';
     document.getElementById('qrcode-box').textContent = 'Clique em uma instancia para visualizar o QR code.';
     document.getElementById('lista-webhooks').className = 'webhook-list empty-state';
     document.getElementById('lista-webhooks').textContent = 'Selecione uma instancia para ver os webhooks.';
@@ -970,7 +1049,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   async function selecionarInstancia(id) {
     estadoUI.instanciaSelecionada = id;
-    trocarAba('instancias');
+    const item = (estadoUI.instancias || []).find(i => i.id === id);
+    if (item) document.getElementById('instancia-titulo').textContent = item.nome;
+    trocarAba('instancia');
     await carregarInstancias(true);
     await carregarWebhooks();
     if (auditoriaAberta()) await carregarAuditoria(false);
@@ -984,15 +1065,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
       if (!resp) return;
       const d = resp.dados, cls = classeStatus(d.status), rot = rotuloStatus(d.status);
       document.getElementById('instancia-titulo').textContent = d.nome;
-      ['status-badge','status-badge-home'].forEach(id => { document.getElementById(id).className='status-badge '+cls; document.getElementById(id).textContent=rot; });
+      document.getElementById('status-badge').className = 'status-badge '+cls; document.getElementById('status-badge').textContent = rot;
       ['detalhe-id','detalhe-status','detalhe-atualizado','detalhe-erro'].forEach((id,i) => document.getElementById(id).textContent=[d.id, rot, formatarData(d.atualizado_em), d.erro||'-'][i]);
       atualizarTokenDetalhado(d.token, false);
       document.getElementById('status-copy').textContent = gerarResumoStatus(d.status, d.erro);
-      document.getElementById('home-instancia-nome').textContent      = d.nome;
-      document.getElementById('home-instancia-status').textContent    = rot;
-      document.getElementById('home-instancia-atualizado').textContent= formatarData(d.atualizado_em);
-      document.getElementById('home-instancia-erro').textContent      = d.erro||'-';
-      document.getElementById('home-status-copy').textContent         = gerarResumoStatus(d.status, d.erro);
+      if (estadoUI.abaAtual === 'instancia') document.getElementById('trilha-pagina').textContent = 'Instancias / ' + d.nome;
       BOTOES_INSTANCIA.forEach(id => document.getElementById(id).disabled = false);
       const botaoAuditoria = document.getElementById('botao-atualizar-auditoria');
       if (botaoAuditoria) botaoAuditoria.disabled = false;
@@ -1092,7 +1169,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   async function conectarSelecionada()    { if (!estadoUI.instanciaSelecionada) return; document.getElementById('qrcode-box').innerHTML='<div class="qrcode-loading">Gerando QR code...</div>'; const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/conectar',{method:'POST'}); if(r){await carregarInstancias(true);iniciarPollingConexao();} }
   async function desconectarSelecionada() { if (!estadoUI.instanciaSelecionada) return; const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/desconectar',{method:'POST'}); if(r){mostrarToast('Instancia desconectada.','info');document.getElementById('qrcode-box').textContent='Instancia desconectada.';pararPollingConexao();await carregarInstancias(true);} }
-  async function excluirSelecionada()     { if (!estadoUI.instanciaSelecionada) return; if (!window.confirm('Excluir esta instancia e remover a sessao local?')) return; const id=estadoUI.instanciaSelecionada; const r=await chamar('/api/v1/instancias/'+id,{method:'DELETE'}); if(r){mostrarToast('Instancia excluida.','success');atualizarPainelSemSelecao();await carregarInstancias(true);} }
+  async function excluirSelecionada()     { if (!estadoUI.instanciaSelecionada) return; if (!window.confirm('Excluir esta instancia e remover a sessao local?')) return; const id=estadoUI.instanciaSelecionada; const r=await chamar('/api/v1/instancias/'+id,{method:'DELETE'}); if(r){mostrarToast('Instancia excluida.','success');atualizarPainelSemSelecao();trocarAba('instancias');await carregarInstancias(true);} }
   async function mostrarQRCodeSelecionado() {
     if (!estadoUI.instanciaSelecionada) return;
     const resp=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/qrcode');
@@ -1311,20 +1388,87 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if(r){mostrarToast('Webhook excluido.','success');await carregarWebhooks();}
   }
 
+  // ── Nova instancia ────────────────────────────────────────────────────────────
+  function passoNovaInstancia(passo) {
+    document.querySelectorAll('.dc-wizard-nav button').forEach(b => b.classList.toggle('ativo', b.dataset.passo === passo));
+    document.querySelectorAll('.dc-wizard-corpo section').forEach(sec => sec.classList.toggle('hidden', sec.dataset.passo !== passo));
+  }
+  function atualizarNovaInstancia() {
+    const webhook = document.getElementById('ni-webhook-ativo').checked;
+    const proxy = document.getElementById('ni-proxy-ativo').checked;
+    document.getElementById('ni-webhook-campos').classList.toggle('dc-desativado', !webhook);
+    document.getElementById('ni-proxy-campos').classList.toggle('dc-desativado', !proxy);
+    document.getElementById('ni-tag-webhook').classList.toggle('hidden', !webhook);
+    document.getElementById('ni-tag-proxy').classList.toggle('hidden', !proxy);
+    document.getElementById('ni-mensagem-wrap').classList.toggle('hidden', !document.getElementById('ni-rejeitar-chamadas').checked);
+  }
+  function gerarTokenNovaInstancia() {
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    document.getElementById('ni-token').value = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function criarNovaInstancia(e) {
+    e.preventDefault();
+    const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+    const valor = id => document.getElementById(id).value.trim();
+    const marcado = id => document.getElementById(id).checked;
+    const falhar = (passo, msg) => { passoNovaInstancia(passo); fb.className = 'modal-feedback error'; fb.textContent = msg; };
+    const nome = valor('ni-nome');
+    if (!nome) return falhar('geral', 'Informe o nome da instancia.');
+    const webhook = marcado('ni-webhook-ativo');
+    const eventos = Array.from(document.querySelectorAll('.ni-evento:checked')).map(el => el.value);
+    if (webhook && (!valor('ni-webhook-url') || !eventos.length)) return falhar('webhook', 'Informe a URL e ao menos um evento do webhook.');
+    const proxy = marcado('ni-proxy-ativo');
+    if (proxy && (!valor('ni-proxy-host') || !valor('ni-proxy-porta'))) return falhar('proxy', 'Informe host e porta do proxy.');
+
+    btn.disabled = true; btn.textContent = 'Criando...'; fb.className = 'modal-feedback hidden';
+    let id = '';
+    const pendencias = [];
+    try {
+      const r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify({ nome }) });
+      if (!r) return;
+      id = r.dados.id;
+      const base = '/api/v1/instancias/' + id;
+      // Cada ajuste e uma chamada propria: se um falhar, a instancia ja existe e o resto segue.
+      const etapa = async (rotulo, url, metodo, corpo) => {
+        try { await chamar(url, { method: metodo, body: JSON.stringify(corpo) }); }
+        catch (err) { pendencias.push(rotulo + ': ' + err.message); }
+      };
+      if (valor('ni-token')) await etapa('Token', base + '/token', 'PUT', { token: valor('ni-token') });
+      await etapa('Comportamento', base + '/avancado', 'PUT', {
+        manter_online: marcado('ni-manter-online'), rejeitar_chamadas: marcado('ni-rejeitar-chamadas'),
+        mensagem_rejeitar_chamadas: valor('ni-mensagem-rejeitar'), marcar_lida_automatico: marcado('ni-marcar-lida'),
+        ignorar_grupos: marcado('ni-ignorar-grupos'), ignorar_status: marcado('ni-ignorar-status') });
+      const dias = parseInt(valor('ni-historico')) || 0;
+      if (dias > 0) await etapa('Historico', base + '/historico', 'PUT', { dias });
+      if (webhook) await etapa('Webhook', base + '/webhooks', 'POST', { nome: 'Principal', url: valor('ni-webhook-url'), eventos });
+      if (proxy) {
+        const protocolo = document.querySelector('input[name="ni-proxy-protocolo"]:checked').value;
+        const usuario = valor('ni-proxy-usuario'), senha = document.getElementById('ni-proxy-senha').value;
+        const credencial = usuario ? encodeURIComponent(usuario) + (senha ? ':' + encodeURIComponent(senha) : '') + '@' : '';
+        await etapa('Proxy', base + '/proxy', 'PUT', { modo: protocolo, url: protocolo + '://' + credencial + valor('ni-proxy-host') + ':' + valor('ni-proxy-porta') });
+      }
+    } catch (err) {
+      fb.className = 'modal-feedback error'; fb.textContent = 'Erro ao criar: ' + err.message;
+      return;
+    } finally { btn.disabled = false; btn.textContent = 'Criar instancia'; }
+    fecharModal();
+    await carregarTudo(true);
+    if (pendencias.length) mostrarToast('Instancia criada, mas falhou: ' + pendencias.join(' | ') + '. Ajuste na pagina da instancia.', 'error');
+    else mostrarToast('Instancia criada. Conecte para ler o QR code.', 'success');
+    await selecionarInstancia(id);
+  }
+
+
   // ── Carregamento geral ────────────────────────────────────────────────────────
   async function carregarTudo(manual) {
     if (estadoUI.acesso?.tipo === 'master') await carregarSistema();
     await carregarInstancias(Boolean(manual));
+    await carregarUsoGeral();
     if (estadoUI.instanciaSelecionada) await carregarWebhooks();
     if (estadoUI.instanciaSelecionada && auditoriaAberta()) await carregarAuditoria(false);
   }
 
-  document.getElementById('form-instancia').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const nome = document.getElementById('nome-instancia').value;
-    const r = await chamar('/api/v1/instancias', {method:'POST', body:JSON.stringify({nome})});
-    if (r) { document.getElementById('nome-instancia').value=''; mostrarToast('Instancia criada. Clique nela para abrir.','success'); await carregarTudo(true); trocarAba('instancias'); }
-  });
   document.getElementById('adv-rejeitar-chamadas').addEventListener('change', atualizarVisibilidadeMensagemChamada);
   document.getElementById('form-avancado').addEventListener('submit', salvarConfiguracaoAvancada);
 
@@ -1338,7 +1482,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const sessao = await r.json();
     atualizarEscopoAcesso(sessao.dados);
     await carregarTudo(false);
-    if (estadoUI.acesso?.tipo === 'instancia') trocarAba('instancias');
+    if (estadoUI.acesso?.tipo === 'instancia' && estadoUI.instanciaSelecionada) trocarAba('instancia');
   })();
   </script>
 </body>

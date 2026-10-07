@@ -62,6 +62,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.DELETE("/instancias/:id/webhooks/:webhookId", apiHandler.ExcluirWebhook)
 		apiAuth.GET("/instancias/:id/webhook-entregas", apiHandler.ListarEntregasWebhook)
 		apiAuth.GET("/instancias/:id/uso", apiHandler.UsoInstancia)
+		apiAuth.GET("/uso", apiHandler.UsoGeral)
 
 		apiAuth.GET("/instancias/:id/chamadas", apiHandler.ListarChamadas)
 		apiAuth.POST("/instancias/:id/chamadas/:chamadaId/aceitar", apiHandler.AceitarChamada)
