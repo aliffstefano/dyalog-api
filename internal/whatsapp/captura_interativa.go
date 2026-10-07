@@ -158,10 +158,12 @@ func noParaJSON(no *waBinary.Node) map[string]interface{} {
 	return saida
 }
 
-// capturarMensagem grava tudo o que se sabe de uma mensagem recebida. Pula as
-// que a propria instancia enviou.
+// capturarMensagem grava tudo o que se sabe de uma mensagem recebida. Inclui as
+// enviadas pelo celular do proprio numero, que chegam aqui como copia: e o
+// jeito de capturar o formato exato de um recurso criado no app oficial (por
+// exemplo, um evento).
 func (g *GerenciadorInstancias) capturarMensagem(instanciaID string, evento *events.Message) {
-	if !capturaMensagensAtiva() || evento.Info.IsFromMe {
+	if !capturaMensagensAtiva() {
 		return
 	}
 	registro := map[string]interface{}{

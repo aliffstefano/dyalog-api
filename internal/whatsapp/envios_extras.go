@@ -63,6 +63,7 @@ func montarMensagemEvento(req models.EnvioEventoRequest) (*waE2E.Message, error)
 		Name:               proto.String(strings.TrimSpace(req.Nome)),
 		StartTime:          proto.Int64(req.InicioEm.Unix()),
 		IsCanceled:         proto.Bool(false),
+		IsScheduleCall:     proto.Bool(false),
 		ExtraGuestsAllowed: proto.Bool(req.PermitirAcompanhantes),
 		ContextInfo:        contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
 	}
@@ -77,9 +78,11 @@ func montarMensagemEvento(req models.EnvioEventoRequest) (*waE2E.Message, error)
 	}
 	local, endereco := strings.TrimSpace(req.Local), strings.TrimSpace(req.Endereco)
 	if local != "" || endereco != "" || req.Latitude != 0 || req.Longitude != 0 {
-		evento.Location = &waE2E.LocationMessage{
-			DegreesLatitude:  proto.Float64(req.Latitude),
-			DegreesLongitude: proto.Float64(req.Longitude),
+		evento.Location = &waE2E.LocationMessage{}
+		// Sem coordenadas, so nome/endereco: 0,0 colocaria o evento no oceano.
+		if req.Latitude != 0 || req.Longitude != 0 {
+			evento.Location.DegreesLatitude = proto.Float64(req.Latitude)
+			evento.Location.DegreesLongitude = proto.Float64(req.Longitude)
 		}
 		if local != "" {
 			evento.Location.Name = proto.String(local)
