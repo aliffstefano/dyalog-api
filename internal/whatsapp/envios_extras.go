@@ -95,9 +95,14 @@ func montarMensagemEvento(req models.EnvioEventoRequest) (*waE2E.Message, error)
 			evento.Location.Address = proto.String(endereco)
 		}
 	}
+	// MessageContextInfo igual ao do evento criado no app oficial (capturado):
+	// segredo + deviceListMetadataVersion 2.
 	return &waE2E.Message{
-		EventMessage:       evento,
-		MessageContextInfo: &waE2E.MessageContextInfo{MessageSecret: segredo},
+		EventMessage: evento,
+		MessageContextInfo: &waE2E.MessageContextInfo{
+			MessageSecret:             segredo,
+			DeviceListMetadataVersion: proto.Int32(2),
+		},
 	}, nil
 }
 
