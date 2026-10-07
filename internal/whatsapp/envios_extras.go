@@ -19,6 +19,10 @@ import (
 // EnviarEvento manda um convite de evento (o mesmo do menu "Evento" do app),
 // com nome, horario, local e link de chamada opcionais. O destinatario
 // responde "Vou"/"Nao vou" no proprio cartao.
+//
+// Depende do ajuste de build (tools/whatsmeow-overlay): o stanza precisa sair
+// com type="event" e <meta event_type="creation"/>; o whatsmeow puro manda
+// como texto e o evento nao aparece.
 func (g *GerenciadorInstancias) EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error) {
 	runtime, err := g.obterRuntimeConectado(ctx, req.Instancia)
 	if err != nil {

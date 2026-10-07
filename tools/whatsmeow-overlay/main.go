@@ -1,11 +1,15 @@
 // whatsmeow-overlay copia o whatsmeow do cache de modulos para um diretorio e
-// aplica um ajuste minimo: quando a mensagem ja traz um no <biz> proprio em
-// SendRequestExtra.AdditionalNodes, o whatsmeow deixa de anexar o <biz> dele.
+// aplica ajustes minimos no send.go:
 //
-// Sem isso nao ha como enviar uma ListMessage com o mesmo envelope que as
-// empresas usam (<biz actual_actors host_storage privacy_mode_ts><list
-// type="single_select" v="1"/><quality_control/></biz>): o whatsmeow sempre
-// acrescenta <biz><list v="2"/></biz>, e dois <biz> no stanza dao erro 479.
+//  1. Quando a mensagem ja traz um no <biz> proprio em
+//     SendRequestExtra.AdditionalNodes, o whatsmeow deixa de anexar o <biz>
+//     dele. Sem isso nao ha como enviar uma ListMessage com o mesmo envelope
+//     que as empresas usam: o whatsmeow sempre acrescenta <biz><list v="2"/>,
+//     e dois <biz> no stanza dao erro 479.
+//  2. Evento (EventMessage) sai com type="event" e <meta event_type="creation"/>,
+//     como o app oficial e o Baileys mandam. O whatsmeow manda como texto e o
+//     evento nao chega. Vale tambem para os reenvios (retry), que passam pelas
+//     mesmas funcoes.
 //
 // Uso (ver Dockerfile):
 //
@@ -15,7 +19,7 @@
 //
 // O replace so existe dentro do build; o go.mod do repositorio nao muda. Sem o
 // ajuste (go build direto) tudo funciona, exceto o modo de lista "lista_biz",
-// que sai com <biz> duplicado e e recusado pelo servidor.
+// que sai com <biz> duplicado e e recusado pelo servidor, e o envio de evento.
 //
 // Falha (e derruba o build) se o trecho esperado sumir numa versao nova do
 // whatsmeow, para o ajuste nunca se perder em silencio.
@@ -29,9 +33,27 @@ import (
 	"strings"
 )
 
-const alvo = `if buttonType := getButtonTypeFromMessage(message); buttonType != "" {`
-
-const substituto = `if buttonType := getButtonTypeFromMessage(message); buttonType != "" && !dyalogTemBiz(extraParams.additionalNodes) {`
+// ajustes sao as trocas feitas no send.go. Cada trecho original precisa
+// aparecer exatamente uma vez.
+var ajustes = []struct{ alvo, substituto string }{
+	{
+		`if buttonType := getButtonTypeFromMessage(message); buttonType != "" {`,
+		`if buttonType := getButtonTypeFromMessage(message); buttonType != "" && !dyalogTemBiz(extraParams.additionalNodes) {`,
+	},
+	{
+		`case msg.PollCreationMessage != nil, msg.PollUpdateMessage != nil:`,
+		`case msg.EventMessage != nil:
+		return "event"
+	case msg.PollCreationMessage != nil, msg.PollUpdateMessage != nil:`,
+	},
+	{
+		`if extraParams.botNode != nil {`,
+		`if msgAttrs["type"] == "event" {
+		content = append(content, waBinary.Node{Tag: "meta", Attrs: waBinary.Attrs{"event_type": "creation"}})
+	}
+	if extraParams.botNode != nil {`,
+	},
+}
 
 const funcaoExtra = `
 
@@ -79,11 +101,13 @@ func gerar(saida string) error {
 		return err
 	}
 	texto := string(conteudo)
-	if strings.Count(texto, alvo) != 1 {
-		return fmt.Errorf("trecho esperado nao encontrado em %s; o whatsmeow mudou e o ajuste precisa ser revisto", filepath.Join(origem, "send.go"))
+	for _, ajuste := range ajustes {
+		if strings.Count(texto, ajuste.alvo) != 1 {
+			return fmt.Errorf("trecho %q nao encontrado em %s; o whatsmeow mudou e o ajuste precisa ser revisto", ajuste.alvo, filepath.Join(origem, "send.go"))
+		}
+		texto = strings.Replace(texto, ajuste.alvo, ajuste.substituto, 1)
 	}
-	texto = strings.Replace(texto, alvo, substituto, 1) + funcaoExtra
-	return os.WriteFile(arquivo, []byte(texto), 0o644)
+	return os.WriteFile(arquivo, []byte(texto+funcaoExtra), 0o644)
 }
 
 // copiarDiretorio copia a arvore com permissoes de escrita (o cache de modulos
