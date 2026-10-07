@@ -54,8 +54,12 @@ func (e *Enviador) enviar(ctx context.Context, instanciaID, numero, chatJID, tip
 	}
 	resp, err := e.cliente.Enviar(ctx, cred, mensagem)
 	if err != nil {
+		fmt.Printf("meta: envio de %s para %s recusado na instancia %s: %v\n", tipo, para, instanciaID, err)
 		return models.ResultadoEnvio{}, err
 	}
+	// A Meta aceita e so depois confirma a entrega (recibos no webhook); o
+	// wa_id mostra para qual numero ela realmente vai entregar.
+	fmt.Printf("meta: %s aceito para %s (wa_id %s) na instancia %s: %s\n", tipo, para, resp.WaID(), instanciaID, resp.MensagemID())
 	return models.ResultadoEnvio{
 		Instancia:  instanciaID,
 		Numero:     numero,

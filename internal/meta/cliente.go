@@ -93,7 +93,7 @@ func dicaErro(codigo int) string {
 	case 10, 200:
 		return "o token nao tem permissao whatsapp_business_messaging para este numero"
 	case 131030:
-		return "numero fora da lista de teste do app; adicione o destinatario no painel da Meta"
+		return "numero fora da lista de teste do app; adicione o destinatario no painel da Meta (numero do Brasil: a Meta pode guardar sem o 9, use o wa_id que chega no webhook)"
 	case 132001:
 		return "template nao existe ou nao foi aprovado neste idioma"
 	case 131026:

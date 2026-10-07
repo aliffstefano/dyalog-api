@@ -109,6 +109,8 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 				if status.Status == "failed" {
 					erros, _ := json.Marshal(status.Erros)
 					fmt.Printf("meta: mensagem %s para %s nao entregue na instancia %s: %s\n", status.ID, status.Destinatario, instancia.ID, erros)
+				} else {
+					fmt.Printf("meta: mensagem %s para %s %s\n", status.ID, status.Destinatario, status.Status)
 				}
 				s.dispatcher.DispararEvento(ctx, instancia.ID, models.EventoWebhookRecibos, meta.DadosRecibo(status))
 			}
