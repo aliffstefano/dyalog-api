@@ -5,17 +5,19 @@ const paginaLoginHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/static/img/dyalog-connect.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/img/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/static/img/favicon-64.png" sizes="64x64" type="image/png">
+  <link rel="apple-touch-icon" href="/static/img/dyalog-connect.png">
   <title>{{ .Titulo }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007b">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007c">
 </head>
 <body>
   <main class="login-shell">
     <section class="login-card glass-card">
-      <div class="login-marca"><img src="/static/img/dyalog-connect.svg" alt="" class="login-marca-icone"><div class="login-marca-nome"><strong>Dyalog</strong><span>Connect</span></div></div>
+      <div class="login-marca"><img src="/static/img/dyalog-connect.png" alt="" class="login-marca-icone"><div class="login-marca-nome"><strong>Dyalog</strong><span>Connect</span></div></div>
       <p class="login-slogan">Comunicacao que conecta seu negocio</p>
       <p class="login-copy">Entre com o token master para administrar todas as instancias ou com o token da sua instancia para abrir apenas o seu painel.</p>
       <form id="form-login" class="stack-form login-form">

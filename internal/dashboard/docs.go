@@ -7,7 +7,9 @@ const paginaDocsHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/static/img/dyalog-connect.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/img/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/static/img/favicon-64.png" sizes="64x64" type="image/png">
+  <link rel="apple-touch-icon" href="/static/img/dyalog-connect.png">
   <title>Dyalog Connect - Documentacao</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
   <style>
