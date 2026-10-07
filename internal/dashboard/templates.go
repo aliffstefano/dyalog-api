@@ -37,6 +37,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
     <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
     <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></symbol>
     <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 21v-.01"/></symbol>
+    <symbol id="i-engrenagem" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
   </svg>
   <div class="dc-layout">
     <aside class="dc-sidebar">
@@ -44,7 +46,22 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <img src="/static/img/dyalog.png" alt="" class="dc-marca-logo">
         <div><strong>Dyalog Connect</strong><span>Painel de instancias</span></div>
       </div>
-      <nav class="dc-nav" aria-label="Menu principal">
+      <nav class="dc-nav hidden" id="nav-instancia" aria-label="Menu da instancia">
+        <div class="dc-nav-inst">
+          <div class="dc-avatar dc-avatar-mini" id="nav-inst-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></div>
+          <div class="dc-nav-inst-texto"><strong id="nav-inst-nome">-</strong><span id="nav-inst-sub">-</span></div>
+        </div>
+        <button class="nav-link so-master" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Voltar</button>
+        <p class="dc-nav-secao">Geral</p>
+        <button class="nav-link" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Visao geral</button>
+        <p class="dc-nav-secao">Conexoes</p>
+        <button class="nav-link" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')"><svg class="dc-ico"><use href="#i-link"/></svg>Webhooks</button>
+        <p class="dc-nav-secao">Gerenciar</p>
+        <button class="nav-link" data-aba-inst="config" onclick="trocarAbaInstancia('config')"><svg class="dc-ico"><use href="#i-engrenagem"/></svg>Configuracoes</button>
+        <button class="nav-link" data-aba-inst="ferramentas" onclick="trocarAbaInstancia('ferramentas')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Ferramentas</button>
+        <a class="nav-link" href="/docs" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-livro"/></svg>Documentacao</a>
+      </nav>
+      <nav class="dc-nav" id="nav-principal" aria-label="Menu principal">
         <p class="dc-nav-secao">Visao geral</p>
         <button class="nav-link" data-tab="dashboard" onclick="trocarAba('dashboard')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Dashboard</button>
         <button class="nav-link" data-tab="instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-celular"/></svg>Instancias<span class="dc-nav-contador" id="nav-contador-instancias">0</span></button>
@@ -122,7 +139,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
       <!-- ===== INSTANCIA (detalhe) ===== -->
       <section class="tab-panel" data-panel="instancia">
-        <button class="ghost small dc-voltar" id="botao-voltar-instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Instancias</button>
         <!-- Painel principal -->
         <article class="dc-inst">
           <header class="dc-card dc-inst-topo">
@@ -147,13 +163,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
               <button class="primary" id="botao-conectar" onclick="abrirConexao()">Conectar</button>
             </div>
           </header>
-
-          <nav class="dc-abas" role="tablist" aria-label="Secoes da instancia">
-            <button class="dc-aba ativa" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')">Visao geral</button>
-            <button class="dc-aba" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')">Webhooks</button>
-            <button class="dc-aba" data-aba-inst="config" onclick="trocarAbaInstancia('config')">Configuracoes</button>
-            <button class="dc-aba" data-aba-inst="ferramentas" onclick="trocarAbaInstancia('ferramentas')">Ferramentas</button>
-          </nav>
 
           <!-- Visao geral -->
           <section class="dc-aba-painel" data-painel-inst="geral">
@@ -680,8 +689,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
   const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao' };
   function trocarAba(aba) {
     estadoUI.abaAtual = aba;
-    const menu = aba === 'instancia' ? 'instancias' : aba;
-    document.querySelectorAll('.nav-link').forEach(i => i.classList.toggle('active', i.dataset.tab === menu));
+    // Dentro de uma instancia o menu lateral vira o menu dela.
+    const menuInstancia = aba === 'instancia';
+    document.getElementById('nav-principal').classList.toggle('hidden', menuInstancia);
+    document.getElementById('nav-instancia').classList.toggle('hidden', !menuInstancia);
+    document.querySelectorAll('#nav-principal .nav-link').forEach(i => i.classList.toggle('active', i.dataset.tab === aba));
     document.querySelectorAll('.tab-panel').forEach(i => i.classList.toggle('active', i.dataset.panel === aba));
     let trilha = TITULOS_ABA[aba] || aba;
     if (aba === 'instancia') trilha += ' / ' + (document.getElementById('instancia-titulo').textContent || '');
@@ -712,7 +724,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
     }
     document.getElementById('botao-excluir').classList.toggle('hidden', instancia);
     document.querySelectorAll('.so-master').forEach(el => el.classList.toggle('hidden', instancia));
-    document.getElementById('botao-voltar-instancias').classList.toggle('hidden', instancia);
   }
   function gerarResumoStatus(s,e) { if(e) return 'Ultimo erro: '+e; return ({aguardando_qrcode:'QR code gerado. Escaneie com o WhatsApp para iniciar o pareamento.',pareada:'QR lido. Finalizando vinculo.',autenticando:'Autenticando sessao no WhatsApp.',sincronizando_historico:'Sincronizando historico inicial.',conectada:'Instancia conectada e pronta.',desconectada:'Desconectada. Conecte para usar.',conectando:'Abrindo conexao.'})[s]||'Estado atual da instancia.'; }
   function pairingDisponivel(status) { return ['nao_inicializada','desconectada','aguardando_qrcode'].includes(status); }
@@ -1008,6 +1019,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   async function selecionarInstancia(id) {
     estadoUI.instanciaSelecionada = id;
     const item = (estadoUI.instancias || []).find(i => i.id === id);
+    if (item) renderizarCabecalhoInstancia(item);
     if (item) document.getElementById('instancia-titulo').textContent = item.nome;
     estadoUI.qrAtual = '';
     trocarAba('instancia');
@@ -1116,7 +1128,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   // ── Pagina da instancia ───────────────────────────────────────────────────────
   function trocarAbaInstancia(aba) {
     estadoUI.abaInstancia = aba;
-    document.querySelectorAll('.dc-aba').forEach(b => b.classList.toggle('ativa', b.dataset.abaInst === aba));
+    document.querySelectorAll('#nav-instancia [data-aba-inst]').forEach(b => b.classList.toggle('active', b.dataset.abaInst === aba));
     document.querySelectorAll('.dc-aba-painel').forEach(p => p.classList.toggle('hidden', p.dataset.painelInst !== aba));
     if (!estadoUI.instanciaSelecionada) return;
     if (aba === 'geral') carregarUso(false);
@@ -1148,6 +1160,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('inst-business').classList.toggle('hidden', !perfil.business);
     const partes = [perfil.nome_empresa || perfil.nome, formatarTelefone(perfil.numero)].filter(Boolean);
     document.getElementById('inst-perfil').textContent = partes.length ? partes.join(' · ') : 'Conecte para ver o perfil';
+    const navAvatar = document.getElementById('nav-inst-avatar');
+    navAvatar.innerHTML = d.id ? avatarHTML(perfil, d.nome) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
+    navAvatar.classList.toggle('online', conectada);
+    document.getElementById('nav-inst-nome').textContent = d.nome || '-';
+    document.getElementById('nav-inst-sub').textContent = perfil.nome_empresa || perfil.nome || rotuloStatus(d.status);
     document.getElementById('botao-conectar').classList.toggle('hidden', conectada);
     document.getElementById('botao-desconectar').classList.toggle('hidden', !conectada || !d.id);
     document.getElementById('botao-conectar').textContent = ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';

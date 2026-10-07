@@ -1540,6 +1540,54 @@ body::before {
   flex: 1;
 }
 
+/* Cartao da instancia no topo do menu dela */
+.dc-nav-inst {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+}
+
+.dc-nav-inst-texto {
+  display: grid;
+  min-width: 0;
+}
+
+.dc-nav-inst-texto strong,
+.dc-nav-inst-texto span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-nav-inst-texto strong {
+  font-size: 14px;
+}
+
+.dc-nav-inst-texto span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dc-avatar.dc-avatar-mini {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.dc-avatar.dc-avatar-mini .dc-ico {
+  width: 18px;
+  height: 18px;
+}
+
+.dc-avatar.dc-avatar-mini.online {
+  box-shadow: 0 0 0 2px var(--success-soft);
+}
+
 .dc-nav-secao {
   margin: 14px 10px 6px;
   color: var(--muted);
@@ -1620,7 +1668,7 @@ body::before {
   align-content: start;
   gap: 22px;
   width: 100%;
-  max-width: 1320px;
+  min-width: 0;
   padding: 18px 32px 48px;
 }
 
@@ -2022,13 +2070,6 @@ body::before {
   color: var(--accent-2);
 }
 
-.dc-voltar {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: start;
-}
-
 .dc-log summary {
   color: var(--muted);
   font-size: 14px;
@@ -2311,7 +2352,8 @@ body::before {
     overflow-x: auto;
   }
 
-  .dc-nav-secao {
+  .dc-nav-secao,
+  .dc-nav-inst {
     display: none;
   }
 
@@ -2546,34 +2588,6 @@ body::before {
   color: var(--danger);
   background: var(--danger-soft);
   font-weight: 700;
-}
-
-.dc-abas {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--line);
-}
-
-.dc-aba {
-  padding: 10px 14px;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  color: var(--muted);
-  background: transparent;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.dc-aba:hover {
-  color: var(--ink);
-  transform: none;
-  box-shadow: none;
-}
-
-.dc-aba.ativa {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
 }
 
 .dc-aba-painel {
