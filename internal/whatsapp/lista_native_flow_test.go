@@ -41,6 +41,9 @@ func TestMontarMensagemListaNativeFlowUsaSingleSelect(t *testing.T) {
 	if err := json.Unmarshal([]byte(botao.GetButtonParamsJSON()), &params); err != nil {
 		t.Fatalf("buttonParamsJSON invalido: %v", err)
 	}
+	if params["button_text"] != "Abrir menu" {
+		t.Fatalf("button_text = %v, esperado 'Abrir menu'", params["button_text"])
+	}
 	if params["title"] != "Abrir menu" {
 		t.Fatalf("title = %v, esperado 'Abrir menu' (texto do botao)", params["title"])
 	}

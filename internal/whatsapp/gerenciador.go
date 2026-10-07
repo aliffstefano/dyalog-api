@@ -5349,8 +5349,11 @@ func montarMensagemListaNativeFlow(req models.EnvioListaRequest) *waE2E.Message 
 		})
 	}
 	params := map[string]interface{}{
-		"title":    strings.TrimSpace(req.BotaoTexto),
-		"sections": secoes,
+		"title": strings.TrimSpace(req.BotaoTexto),
+		// Formato da Cloud API (button_text) junto com o do Baileys (title):
+		// cada cliente le uma das chaves.
+		"button_text": strings.TrimSpace(req.BotaoTexto),
+		"sections":    secoes,
 	}
 	payload, err := json.Marshal(params)
 	if err != nil {
