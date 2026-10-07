@@ -45,3 +45,21 @@ func TestNormalizarListaCompatFormatoSections(t *testing.T) {
 		t.Fatalf("linha = %#v", linha)
 	}
 }
+
+func TestVersaoMaisNova(t *testing.T) {
+	casos := []struct {
+		disponivel, emUso string
+		esperado          bool
+	}{
+		{"v0.0.0-20261006124319-9399289b022b", "v0.0.0-20260929112325-8b41cfe6d9c4", true},
+		{"v0.0.0-20260929112325-8b41cfe6d9c4", "v0.0.0-20261006124319-9399289b022b", false},
+		{"v0.0.0-20261006124319-9399289b022b", "v0.0.0-20261006124319-9399289b022b", false},
+		{"", "v0.0.0-20261006124319-9399289b022b", false},
+		{"v0.1.0", "(devel)", true},
+	}
+	for _, caso := range casos {
+		if got := versaoMaisNova(caso.disponivel, caso.emUso); got != caso.esperado {
+			t.Errorf("versaoMaisNova(%q, %q) = %v", caso.disponivel, caso.emUso, got)
+		}
+	}
+}

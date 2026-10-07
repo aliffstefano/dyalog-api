@@ -110,7 +110,7 @@ func (s *SistemaService) VerificarAtualizacao(ctx context.Context) (models.Statu
 
 	status.UltimaVerificacaoEm = &agora
 	status.UltimaVersaoDisponivel = latest.Version
-	status.AtualizacaoDisponivel = latest.Version != "" && latest.Version != status.VersaoEmUso
+	status.AtualizacaoDisponivel = versaoMaisNova(latest.Version, status.VersaoEmUso)
 	if status.AtualizacaoDisponivel {
 		status.StatusAtualizacao = models.StatusAtualizacaoDisponivel
 	} else {
@@ -259,7 +259,27 @@ func (s *SistemaService) sincronizarEstado(ctx context.Context) error {
 
 	status.VersaoEmUso = versaoAtual
 	status.ModoOperacao = s.cfg.AtualizacaoModo
+	// Depois de subir uma imagem nova, a ultima verificacao salva pode apontar
+	// uma versao igual ou mais antiga que a em uso: nao e mais atualizacao.
+	if status.AtualizacaoDisponivel && !versaoMaisNova(status.UltimaVersaoDisponivel, versaoAtual) {
+		status.AtualizacaoDisponivel = false
+		status.StatusAtualizacao = models.StatusAtualizacaoAtualizado
+	}
 	return s.store.SalvarStatusDependencia(ctx, status)
+}
+
+// versaoMaisNova diz se disponivel e mais nova que emUso. O whatsmeow so
+// publica pseudo-versoes (v0.0.0-AAAAMMDDhhmmss-hash), que ordenam como texto;
+// fora desse formato, qualquer diferenca conta como atualizacao.
+func versaoMaisNova(disponivel, emUso string) bool {
+	if disponivel == "" || disponivel == emUso {
+		return false
+	}
+	const pseudo = "v0.0.0-"
+	if strings.HasPrefix(disponivel, pseudo) && strings.HasPrefix(emUso, pseudo) {
+		return disponivel > emUso
+	}
+	return true
 }
 
 func (s *SistemaService) buscarUltimaVersao(ctx context.Context) (latestModuleResponse, error) {
@@ -293,7 +313,10 @@ func versaoWhatsmeowAtual() string {
 	}
 	for _, dep := range info.Deps {
 		if dep.Path == models.DependenciaWhatsmeow {
-			if dep.Replace != nil && dep.Replace.Version != "" {
+			// O Dockerfile substitui o whatsmeow por uma copia local com o ajuste
+			// da lista (tools/whatsmeow-overlay); copia local aparece como
+			// "(devel)", entao vale a versao original do go.mod.
+			if dep.Replace != nil && dep.Replace.Version != "" && dep.Replace.Version != "(devel)" {
 				return dep.Replace.Version
 			}
 			if dep.Version != "" {
