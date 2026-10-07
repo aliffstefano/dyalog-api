@@ -161,6 +161,10 @@ type GerenciadorInstancias struct {
 	// reconectada automaticamente. Usado para banimento temporario e cliente
 	// desatualizado, onde insistir so piora a situacao.
 	reconexaoBloqueada map[string]time.Time
+	// fotosPerfil guarda a foto do proprio numero de cada instancia (o link
+	// expira, entao e renovado de tempos em tempos).
+	fotosPerfil   map[string]fotoPerfil
+	fotosPerfilMu sync.Mutex
 
 	whatsAppStoreDriver    string
 	whatsAppStoreDSN       string
@@ -226,6 +230,7 @@ func NovoGerenciadorInstancias(diretorioBase, diretorioMidias, baseURL, nomeDisp
 		recuperacoes:       make(map[string]*janelaRecuperacao),
 		quedasConexao:      make(map[string]time.Time),
 		reconexaoBloqueada: make(map[string]time.Time),
+		fotosPerfil:        make(map[string]fotoPerfil),
 
 		whatsAppStoreDriver: whatsAppStoreDriver,
 		whatsAppStoreDSN:    strings.TrimSpace(whatsAppStoreDSN),

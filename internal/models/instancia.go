@@ -35,6 +35,8 @@ type Instancia struct {
 	IgnorarStatus            bool      `json:"ignorar_status" db:"ignorar_status"`
 	CriadoEm                 time.Time `json:"criado_em" db:"criado_em"`
 	AtualizadoEm             time.Time `json:"atualizado_em" db:"atualizado_em"`
+	// Perfil so vem preenchido pela replica que mantem a instancia conectada.
+	Perfil *PerfilInstancia `json:"perfil,omitempty" db:"-"`
 }
 
 type ConfiguracaoAvancadaInstancia struct {
@@ -56,4 +58,14 @@ type AcessoDashboard struct {
 	Tipo        string `json:"tipo"`
 	InstanciaID string `json:"instancia_id,omitempty"`
 	Nome        string `json:"nome,omitempty"`
+}
+
+// PerfilInstancia e o proprio numero conectado na instancia, para o painel.
+type PerfilInstancia struct {
+	Numero      string `json:"numero,omitempty"`
+	Nome        string `json:"nome,omitempty"`
+	NomeEmpresa string `json:"nome_empresa,omitempty"`
+	Plataforma  string `json:"plataforma,omitempty"`
+	Business    bool   `json:"business"`
+	FotoURL     string `json:"foto_url,omitempty"`
 }

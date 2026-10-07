@@ -31,6 +31,12 @@ const paginaInicialHTML = `<!DOCTYPE html>
     <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
     <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
     <symbol id="i-seta" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.8-8.8M16 7l3 3M18.5 4.5l2 2"/></symbol>
+    <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+    <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 21v-.01"/></symbol>
   </svg>
   <div class="dc-layout">
     <aside class="dc-sidebar">
@@ -118,153 +124,107 @@ const paginaInicialHTML = `<!DOCTYPE html>
       <section class="tab-panel" data-panel="instancia">
         <button class="ghost small dc-voltar" id="botao-voltar-instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Instancias</button>
         <!-- Painel principal -->
-        <article class="glass-card main-card">
-          <div class="panel-header">
-            <div><p class="panel-kicker">Instancia selecionada</p><h2 id="instancia-titulo">Nenhuma instancia selecionada</h2></div>
-            <span id="status-badge" class="status-badge neutro">Sem selecao</span>
-          </div>
-
-          <!-- QR + Status -->
-          <div class="detail-grid">
-            <section class="detail-card qrcode-card">
-              <div class="detail-head">
-                <h3>QR code e conexao</h3>
-                <button class="ghost small" id="botao-ver-qr" onclick="mostrarQRCodeSelecionado()" disabled>Atualizar QR</button>
+        <article class="dc-inst">
+          <header class="dc-card dc-inst-topo">
+            <div class="dc-avatar" id="inst-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></div>
+            <div class="dc-inst-info">
+              <div class="dc-inst-linha">
+                <h1 id="instancia-titulo">-</h1>
+                <span id="status-badge" class="status-badge neutro">-</span>
+                <span id="inst-business" class="dc-selo hidden">Business</span>
               </div>
-              <div id="qrcode-box" class="qrcode-box">Clique em uma instancia para visualizar o QR code.</div>
-              <div class="action-row">
-                <button class="primary" id="botao-conectar"     onclick="conectarSelecionada()"     disabled>Conectar</button>
-                <button class="ghost"   id="botao-desconectar"  onclick="desconectarSelecionada()"  disabled>Desconectar</button>
-                <button class="danger"  id="botao-excluir"      onclick="excluirSelecionada()"      disabled>Excluir</button>
+              <p id="inst-perfil" class="dc-inst-perfil">Conecte para ver o perfil</p>
+              <div class="dc-token">
+                <svg class="dc-ico"><use href="#i-chave"/></svg>
+                <code id="detalhe-token">-</code>
+                <button type="button" class="dc-token-botao" id="botao-revelar-token" onclick="alternarTokenVisivel()" title="Mostrar ou esconder"><svg class="dc-ico"><use href="#i-olho"/></svg></button>
+                <button type="button" class="dc-token-botao" id="botao-copiar-token" onclick="copiarTokenSelecionado()" title="Copiar token"><svg class="dc-ico"><use href="#i-copiar"/></svg></button>
               </div>
-            </section>
+            </div>
+            <div class="dc-inst-acoes">
+              <button class="ghost small dc-botao-icone" onclick="atualizarInstanciaSelecionada(true)" title="Atualizar"><svg class="dc-ico"><use href="#i-atualizar"/></svg></button>
+              <button class="dc-botao-perigo hidden" id="botao-desconectar" onclick="desconectarSelecionada()">Desconectar</button>
+              <button class="primary" id="botao-conectar" onclick="abrirConexao()">Conectar</button>
+            </div>
+          </header>
 
-            <section class="detail-card status-card-panel">
-              <div class="detail-head"><h3>Status detalhado</h3></div>
-              <dl class="status-grid">
+          <nav class="dc-abas" role="tablist" aria-label="Secoes da instancia">
+            <button class="dc-aba ativa" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')">Visao geral</button>
+            <button class="dc-aba" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')">Webhooks</button>
+            <button class="dc-aba" data-aba-inst="config" onclick="trocarAbaInstancia('config')">Configuracoes</button>
+            <button class="dc-aba" data-aba-inst="ferramentas" onclick="trocarAbaInstancia('ferramentas')">Ferramentas</button>
+          </nav>
+
+          <!-- Visao geral -->
+          <section class="dc-aba-painel" data-painel-inst="geral">
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Uso e risco</h3><span class="helper-text">Envios, contatos novos e rajadas. Ajuda a evitar bloqueio do numero.</span></div>
+              <div id="uso-conteudo" class="uso-conteudo"><div class="dc-lista-vazia">Carregando...</div></div>
+            </article>
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Conexao</h3><span id="status-copy" class="helper-text">-</span></div>
+              <dl class="dc-dados">
                 <div><dt>ID</dt><dd id="detalhe-id">-</dd></div>
-                <div><dt>Token</dt><dd><button class="token-inline" id="detalhe-token" type="button" onclick="revelarECopiarTokenSelecionado()" disabled>-</button></dd></div>
                 <div><dt>Status</dt><dd id="detalhe-status">-</dd></div>
                 <div><dt>Atualizado</dt><dd id="detalhe-atualizado">-</dd></div>
-                <div><dt>Erro</dt><dd id="detalhe-erro">-</dd></div>
+                <div><dt>Ultimo erro</dt><dd id="detalhe-erro">-</dd></div>
               </dl>
-              <div id="status-copy" class="status-copy">Aguardando selecao.</div>
-              <div class="action-row" style="margin-top:14px">
-                <button class="ghost small" id="botao-copiar-token" onclick="copiarTokenSelecionado()" disabled>Copiar token</button>
-                <button class="ghost small" id="botao-pairing" onclick="abrirModal('pairing')" disabled>Pairing code</button>
-              </div>
-            </section>
-          </div>
-
-          <!-- Acoes rapidas -->
-          <section class="detail-card actions-card">
-            <div class="detail-head"><h3>Acoes rapidas</h3><span class="helper-text">Selecione uma instancia para usar.</span></div>
-            <div class="action-buttons-grid">
-              <button class="action-tile" id="botao-enviar-texto" onclick="abrirModal('texto')" disabled>
-                <strong>Enviar mensagem</strong>
-                <span>Texto via WhatsApp</span>
-              </button>
-              <button class="action-tile" id="botao-teste-chamada" onclick="abrirModal('chamada')" disabled>
-                <strong>Teste de chamada</strong>
-                <span>Voz 1:1 pelo navegador</span>
-              </button>
-              <button class="action-tile" id="botao-config-token" onclick="abrirModal('token')" disabled>
-                <strong>Token da instancia</strong>
-                <span>Alterar token de acesso</span>
-              </button>
-              <button class="action-tile" id="botao-config-proxy" onclick="abrirModal('proxy')" disabled>
-                <strong>Proxy</strong>
-                <span>Configurar proxy HTTP/SOCKS</span>
-              </button>
-              <button class="action-tile" id="botao-config-historico" onclick="abrirModal('historico')" disabled>
-                <strong>Historico</strong>
-                <span>Dias de historico inicial</span>
-              </button>
-            </div>
-          </section>
-
-          <!-- Configuracoes avancadas -->
-          <section class="detail-card advanced-card collapsed" id="advanced-card">
-            <div class="detail-head advanced-head" role="button" tabindex="0" onclick="alternarAvancado()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarAvancado()}">
-              <div>
-                <h3>Configuracoes avancadas</h3>
-                <span class="helper-text">Presenca, leitura, chamadas e filtros de webhook.</span>
-              </div>
-              <button class="ghost small" id="botao-toggle-avancado" type="button" onclick="event.stopPropagation();alternarAvancado()">Abrir</button>
-            </div>
-            <form id="form-avancado" class="advanced-form hidden">
-              <div class="advanced-option">
-                <input type="checkbox" id="adv-manter-online">
-                <label for="adv-manter-online"><strong>Manter sempre online</strong><small>Marcado = disponivel. Desmarcado = indisponivel.</small></label>
-              </div>
-              <div class="advanced-option">
-                <input type="checkbox" id="adv-rejeitar-chamadas">
-                <label for="adv-rejeitar-chamadas"><strong>Rejeitar chamadas</strong><small>Recusa chamadas recebidas automaticamente.</small></label>
-              </div>
-              <label class="advanced-message hidden" id="adv-mensagem-wrap">
-                <span>Mensagem automatica apos rejeitar chamada</span>
-                <textarea id="adv-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea>
-              </label>
-              <div class="advanced-option">
-                <input type="checkbox" id="adv-marcar-lida">
-                <label for="adv-marcar-lida"><strong>Marcar como lida</strong><small>Aplica leitura automaticamente nas mensagens recebidas.</small></label>
-              </div>
-              <div class="advanced-option">
-                <input type="checkbox" id="adv-ignorar-grupos">
-                <label for="adv-ignorar-grupos"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para webhooks.</small></label>
-              </div>
-              <div class="advanced-option">
-                <input type="checkbox" id="adv-ignorar-status">
-                <label for="adv-ignorar-status"><strong>Ignorar status</strong><small>Status do WhatsApp nao vao para webhooks.</small></label>
-              </div>
-              <div class="advanced-footer">
-                <span id="advanced-copy" class="status-copy">Selecione uma instancia para editar.</span>
-                <button class="primary small" id="botao-salvar-avancado" type="submit" disabled>Salvar avancado</button>
-              </div>
-            </form>
-          </section>
-
-          <!-- Uso e risco -->
-          <section class="detail-card audit-card collapsed" id="uso-card">
-            <div class="detail-head advanced-head" role="button" tabindex="0" onclick="alternarUso()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarUso()}">
-              <div>
-                <h3>Uso e risco</h3>
-                <span class="helper-text">Envios, contatos novos e rajadas desta instancia. Ajuda a evitar bloqueio do numero.</span>
-              </div>
-              <div class="audit-head-actions">
-                <button class="ghost small" type="button" onclick="event.stopPropagation();carregarUso(true)" id="botao-atualizar-uso" disabled>Atualizar</button>
-                <button class="ghost small" type="button" onclick="event.stopPropagation();alternarUso()" id="botao-toggle-uso">Abrir</button>
-              </div>
-            </div>
-            <div id="uso-body" class="audit-body hidden">
-              <div id="uso-conteudo" class="webhook-delivery-list empty-state">Selecione uma instancia para ver o uso.</div>
-            </div>
+            </article>
           </section>
 
           <!-- Webhooks -->
-          <section class="detail-card webhook-card">
-            <div class="detail-head">
-              <h3>Webhooks</h3>
-              <button class="ghost small" id="botao-novo-webhook" onclick="abrirModal('webhook-novo')" disabled>+ Adicionar</button>
-            </div>
-            <div id="lista-webhooks" class="webhook-list empty-state">Selecione uma instancia para ver os webhooks configurados.</div>
+          <section class="dc-aba-painel hidden" data-painel-inst="webhooks">
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Webhooks</h3><button class="primary small" id="botao-novo-webhook" onclick="abrirModal('webhook-novo')"><svg class="dc-ico"><use href="#i-mais"/></svg>Adicionar</button></div>
+              <div id="lista-webhooks" class="webhook-list"></div>
+            </article>
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Auditoria de entregas</h3><button class="ghost small" id="botao-atualizar-auditoria" onclick="carregarAuditoria(true)">Atualizar</button></div>
+              <div id="audit-body" class="audit-body">
+                <div id="resumo-entregas-webhook" class="delivery-summary hidden"></div>
+                <div id="lista-entregas-webhook" class="webhook-delivery-list empty-state">Carregando...</div>
+              </div>
+            </article>
           </section>
 
-          <!-- Auditoria da instancia -->
-          <section class="detail-card audit-card collapsed" id="audit-card">
-            <div class="detail-head advanced-head" role="button" tabindex="0" onclick="alternarAuditoria()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarAuditoria()}">
-              <div>
-                <h3>Auditoria de webhooks</h3>
-                <span class="helper-text">Entregas recentes, retries, HTTP e falhas desta instancia.</span>
+          <!-- Configuracoes -->
+          <section class="dc-aba-painel hidden" data-painel-inst="config">
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Comportamento</h3><span class="helper-text">Presenca, leitura, chamadas e filtros de webhook.</span></div>
+              <form id="form-avancado" class="dc-form-config">
+                <div class="dc-opcoes">
+                  <label class="dc-opcao"><input type="checkbox" id="adv-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao"><input type="checkbox" id="adv-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao"><input type="checkbox" id="adv-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao"><input type="checkbox" id="adv-ignorar-status"><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao"><input type="checkbox" id="adv-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                </div>
+                <label class="dc-campo hidden" id="adv-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="adv-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label>
+                <div class="dc-form-rodape">
+                  <span id="advanced-copy" class="helper-text">-</span>
+                  <button class="primary small" id="botao-salvar-avancado" type="submit">Salvar</button>
+                </div>
+              </form>
+            </article>
+            <article class="dc-card">
+              <div class="dc-card-topo"><h3>Conexao e acesso</h3></div>
+              <div class="dc-lista">
+                <div class="dc-config-linha"><div><strong>Proxy</strong><span id="config-proxy">-</span></div><button class="ghost small" id="botao-config-proxy" onclick="abrirModal('proxy')">Alterar</button></div>
+                <div class="dc-config-linha"><div><strong>Token de acesso</strong><span>Usado nas integracoes para enviar por esta instancia.</span></div><button class="ghost small" id="botao-config-token" onclick="abrirModal('token')">Trocar</button></div>
+                <div class="dc-config-linha"><div><strong>Historico ao conectar</strong><span id="config-historico">-</span></div><button class="ghost small" id="botao-config-historico" onclick="abrirModal('historico')">Alterar</button></div>
               </div>
-              <div class="audit-head-actions">
-                <button class="ghost small" type="button" onclick="event.stopPropagation();carregarAuditoria(true)" id="botao-atualizar-auditoria" disabled>Atualizar</button>
-                <button class="ghost small" type="button" onclick="event.stopPropagation();alternarAuditoria()" id="botao-toggle-auditoria">Abrir</button>
-              </div>
-            </div>
-            <div id="audit-body" class="audit-body hidden">
-              <div id="resumo-entregas-webhook" class="delivery-summary hidden"></div>
-              <div id="lista-entregas-webhook" class="webhook-delivery-list empty-state">Selecione uma instancia para ver a auditoria.</div>
+            </article>
+            <article class="dc-card dc-perigo so-master">
+              <div class="dc-config-linha"><div><strong>Excluir instancia</strong><span>Remove a instancia e a sessao do WhatsApp. Nao da para desfazer.</span></div><button class="dc-botao-perigo" id="botao-excluir" onclick="excluirSelecionada()">Excluir</button></div>
+            </article>
+          </section>
+
+          <!-- Ferramentas -->
+          <section class="dc-aba-painel hidden" data-painel-inst="ferramentas">
+            <div class="dc-ferramentas">
+              <button class="dc-ferramenta" id="botao-enviar-texto" onclick="abrirModal('texto')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-mensagem"/></svg></span><strong>Enviar mensagem</strong><span>Teste um envio de texto por esta instancia.</span></button>
+              <button class="dc-ferramenta" id="botao-teste-chamada" onclick="abrirModal('chamada')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-telefone"/></svg></span><strong>Teste de chamada</strong><span>Ligacao de voz pelo navegador.</span></button>
+              <button class="dc-ferramenta" id="botao-pairing" onclick="abrirModal('pairing')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-celular"/></svg></span><strong>Codigo de pareamento</strong><span>Conectar sem QR code, digitando um codigo no celular.</span></button>
             </div>
           </section>
         </article>
@@ -344,6 +304,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   // ── Modal ─────────────────────────────────────────────────────────────────────
   const MODAIS = {
+    conectar: {
+      kicker: 'Escaneie o QR code ou use o codigo de pareamento', titulo: 'Conectar WhatsApp', largo: true,
+      html: '<div class="dc-conexao"><div class="dc-conexao-qr"><h4>Escaneie o QR code</h4><div id="qrcode-box" class="dc-qr"><div class="qrcode-loading">Gerando QR code...</div></div><p class="helper-text">O codigo e renovado sozinho a cada poucos segundos.</p></div><div class="dc-conexao-passos"><h4>Como conectar</h4><ol><li><strong>Abra o WhatsApp no celular</strong><span>Use a versao mais recente do app.</span></li><li><strong>Acesse Dispositivos conectados</strong><span>Configuracoes (ou os tres pontinhos) e depois Dispositivos conectados.</span></li><li><strong>Toque em Conectar um dispositivo</strong><span>E aponte a camera para o QR code ao lado.</span></li><li><strong>Aguarde a confirmacao</strong><span>Esta janela avisa quando conectar.</span></li></ol><button type="button" class="ghost small" onclick="fecharModal();abrirModal(\'pairing\')">Prefere digitar um codigo? Usar codigo de pareamento</button></div></div><p class="dc-aguardando"><span class="dc-ponto processing"></span>Aguardando conexao...</p>'
+    },
     'nova-instancia': {
       kicker: 'Configure tudo antes de criar', titulo: 'Nova instancia', semInstancia: true, largo: true,
       html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
@@ -724,7 +688,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('trilha-pagina').textContent = trilha;
     window.scrollTo(0, 0);
   }
-  function formatarData(v) { return v ? new Date(v).toLocaleString('pt-BR') : '-'; }
+  function formatarData(v) { const d = v ? new Date(v) : null; return d && d.getFullYear() > 2000 ? d.toLocaleString('pt-BR') : '-'; }
   function rotuloStatus(s) { return ({nao_inicializada:'Nao inicializada',desconectada:'Desconectada',conectando:'Conectando',aguardando_qrcode:'Aguardando QR',pareada:'Pareada',autenticando:'Autenticando',sincronizando_historico:'Sincronizando',conectada:'Conectada'})[s]||s||'-'; }
   function classeStatus(s) { if (s==='conectada') return 'online'; if (['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(s)) return 'processing'; if (['desconectada','nao_inicializada'].includes(s)) return 'offline'; return 'neutro'; }
   function mostrarToast(txt, tipo) { const t=document.getElementById('toast'); t.textContent=txt; t.className='toast '+(tipo||'info'); clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast hidden', 3600); }
@@ -954,14 +918,17 @@ const paginaInicialHTML = `<!DOCTYPE html>
     box.className = 'dc-instancias';
     box.innerHTML = lista.map(i => {
       const uso = estadoUI.usoHoje[i.id] || {};
+      const perfil = i.perfil || {};
+      const linha = perfil.numero ? textoSeguro([perfil.nome_empresa || perfil.nome, formatarTelefone(perfil.numero)].filter(Boolean).join(' · ')) : 'ID ' + textoSeguro(String(i.id).slice(0, 8));
       return '<button class="dc-instancia" onclick="selecionarInstancia(\''+textoSeguro(i.id)+'\')">' +
-        '<span class="dc-instancia-topo"><span class="dc-instancia-icone '+classeStatus(i.status)+'"><svg class="dc-ico"><use href="#i-celular"/></svg></span>' +
+        '<span class="dc-instancia-topo"><span class="dc-avatar dc-avatar-p'+(i.status === 'conectada' ? ' online' : '')+'">'+avatarHTML(perfil, i.nome)+'</span>' +
           '<span class="mini-status '+classeStatus(i.status)+'">'+textoSeguro(rotuloStatus(i.status))+'</span></span>' +
-        '<strong>'+textoSeguro(i.nome)+'</strong>' +
-        '<span class="dc-instancia-id">'+textoSeguro(String(i.id).slice(0, 8))+'</span>' +
+        '<strong>'+textoSeguro(i.nome)+(perfil.business ? ' <span class="dc-selo">Business</span>' : '')+'</strong>' +
+        '<span class="dc-instancia-id">'+linha+'</span>' +
         '<span class="dc-instancia-rodape"><span>'+numeroUso(uso.envios)+' envios hoje</span><svg class="dc-ico"><use href="#i-seta"/></svg></span>' +
       '</button>';
-    }).join('');
+    }).join('') + (estadoUI.acesso?.tipo === 'instancia' || filtro !== 'todas' || busca ? '' :
+      '<button class="dc-instancia dc-instancia-nova" onclick="abrirModal(\'nova-instancia\')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-mais"/></svg></span><strong>Nova instancia</strong></button>');
   }
 
   async function carregarUsoGeral() {
@@ -1007,7 +974,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       '<div class="dc-lista-vazia">Nenhuma mensagem enviada hoje.</div>';
   }
 
-  const BOTOES_INSTANCIA = ['botao-conectar','botao-desconectar','botao-ver-qr','botao-excluir','botao-pairing','botao-copiar-token','botao-enviar-texto','botao-teste-chamada','botao-config-token','botao-config-proxy','botao-config-historico','botao-novo-webhook','botao-salvar-avancado'];
+  const BOTOES_INSTANCIA = ['botao-conectar','botao-desconectar','botao-excluir','botao-pairing','botao-copiar-token','botao-enviar-texto','botao-teste-chamada','botao-config-token','botao-config-proxy','botao-config-historico','botao-novo-webhook','botao-salvar-avancado'];
   const CAMPOS_AVANCADO = ['adv-manter-online','adv-rejeitar-chamadas','adv-mensagem-rejeitar','adv-marcar-lida','adv-ignorar-grupos','adv-ignorar-status'];
 
   function atualizarPainelSemSelecao() {
@@ -1017,7 +984,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
     ['detalhe-id','detalhe-status','detalhe-atualizado','detalhe-erro'].forEach(id => document.getElementById(id).textContent='-');
     atualizarTokenDetalhado('', false);
     document.getElementById('status-copy').textContent = 'Clique em uma instancia da lista para operar.';
-    document.getElementById('qrcode-box').textContent = 'Clique em uma instancia para visualizar o QR code.';
     document.getElementById('lista-webhooks').className = 'webhook-list empty-state';
     document.getElementById('lista-webhooks').textContent = 'Selecione uma instancia para ver os webhooks.';
     const auditoria = document.getElementById('lista-entregas-webhook');
@@ -1031,19 +997,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
       resumoAuditoria.innerHTML = '';
     }
     BOTOES_INSTANCIA.forEach(id => document.getElementById(id).disabled = true);
-    const botaoAuditoria = document.getElementById('botao-atualizar-auditoria');
-    if (botaoAuditoria) botaoAuditoria.disabled = true;
-    const botaoUso = document.getElementById('botao-atualizar-uso');
-    if (botaoUso) botaoUso.disabled = true;
-    const usoConteudo = document.getElementById('uso-conteudo');
-    if (usoConteudo) { usoConteudo.className = 'webhook-delivery-list empty-state'; usoConteudo.textContent = 'Selecione uma instancia para ver o uso.'; }
+    document.getElementById('uso-conteudo').innerHTML = '';
+    renderizarCabecalhoInstancia({});
     preencherConfiguracaoAvancada({}, true);
     CAMPOS_AVANCADO.forEach(id => document.getElementById(id).disabled = true);
     document.getElementById('advanced-copy').textContent = 'Selecione uma instancia para editar.';
-    alternarAvancado(false);
-    alternarAuditoria(false);
-    alternarUso(false);
-    document.getElementById('botao-pairing').classList.add('hidden');
     pararPollingConexao();
   }
 
@@ -1051,11 +1009,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     estadoUI.instanciaSelecionada = id;
     const item = (estadoUI.instancias || []).find(i => i.id === id);
     if (item) document.getElementById('instancia-titulo').textContent = item.nome;
+    estadoUI.qrAtual = '';
     trocarAba('instancia');
+    trocarAbaInstancia('geral');
     await carregarInstancias(true);
     await carregarWebhooks();
-    if (auditoriaAberta()) await carregarAuditoria(false);
-    if (usoAberto()) await carregarUso(false);
   }
 
   async function atualizarInstanciaSelecionada(mostrarErro) {
@@ -1071,21 +1029,18 @@ const paginaInicialHTML = `<!DOCTYPE html>
       document.getElementById('status-copy').textContent = gerarResumoStatus(d.status, d.erro);
       if (estadoUI.abaAtual === 'instancia') document.getElementById('trilha-pagina').textContent = 'Instancias / ' + d.nome;
       BOTOES_INSTANCIA.forEach(id => document.getElementById(id).disabled = false);
-      const botaoAuditoria = document.getElementById('botao-atualizar-auditoria');
-      if (botaoAuditoria) botaoAuditoria.disabled = false;
-      const botaoUso = document.getElementById('botao-atualizar-uso');
-      if (botaoUso) botaoUso.disabled = false;
       CAMPOS_AVANCADO.forEach(id => document.getElementById(id).disabled = false);
       preencherConfiguracaoAvancada(d.configuracao_avancada || {});
-      atualizarBotaoPairing(d.status);
+      renderizarCabecalhoInstancia(d);
+      estadoUI.statusSelecionada = d.status;
       if (d.status === 'aguardando_qrcode') { await mostrarQRCodeSelecionado(); iniciarPollingConexao(); }
       else if (['conectando','pareada','autenticando','sincronizando_historico'].includes(d.status)) {
         iniciarPollingConexao();
-        document.getElementById('qrcode-box').innerHTML = '<div class="qrcode-loading">'+gerarResumoStatus(d.status,d.erro)+'</div>';
+        definirQR('<div class="qrcode-loading">'+gerarResumoStatus(d.status,d.erro)+'</div>');
       } else {
         pararPollingConexao();
-        if (d.status==='conectada') document.getElementById('qrcode-box').innerHTML = '<div class="qrcode-success">Instancia conectada e pronta para uso.</div>';
       }
+      if (d.status === 'conectada' && modalTipoAtual === 'conectar') mostrarConexaoConcluida(d);
     } catch(err) { if (mostrarErro) mostrarToast(err.message, 'error'); }
   }
 
@@ -1109,35 +1064,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('adv-mensagem-wrap').classList.toggle('hidden', !ligado);
   }
 
-  function alternarAvancado(forcarAberto) {
-    const card = document.getElementById('advanced-card');
-    const form = document.getElementById('form-avancado');
-    const botao = document.getElementById('botao-toggle-avancado');
-    if (!card || !form || !botao) return;
-    const abrir = typeof forcarAberto === 'boolean' ? forcarAberto : form.classList.contains('hidden');
-    form.classList.toggle('hidden', !abrir);
-    card.classList.toggle('collapsed', !abrir);
-    card.classList.toggle('expanded', abrir);
-    botao.textContent = abrir ? 'Recolher' : 'Abrir';
-  }
 
-  function auditoriaAberta() {
-    const body = document.getElementById('audit-body');
-    return Boolean(body && !body.classList.contains('hidden'));
-  }
 
-  function alternarAuditoria(forcarAberto) {
-    const card = document.getElementById('audit-card');
-    const body = document.getElementById('audit-body');
-    const botao = document.getElementById('botao-toggle-auditoria');
-    if (!card || !body || !botao) return;
-    const abrir = typeof forcarAberto === 'boolean' ? forcarAberto : body.classList.contains('hidden');
-    body.classList.toggle('hidden', !abrir);
-    card.classList.toggle('collapsed', !abrir);
-    card.classList.toggle('expanded', abrir);
-    botao.textContent = abrir ? 'Recolher' : 'Abrir';
-    if (abrir && estadoUI.instanciaSelecionada) carregarAuditoria(false);
-  }
 
   async function salvarConfiguracaoAvancada(e) {
     e.preventDefault();
@@ -1167,19 +1095,103 @@ const paginaInicialHTML = `<!DOCTYPE html>
     }
   }
 
-  async function conectarSelecionada()    { if (!estadoUI.instanciaSelecionada) return; document.getElementById('qrcode-box').innerHTML='<div class="qrcode-loading">Gerando QR code...</div>'; const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/conectar',{method:'POST'}); if(r){await carregarInstancias(true);iniciarPollingConexao();} }
-  async function desconectarSelecionada() { if (!estadoUI.instanciaSelecionada) return; const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/desconectar',{method:'POST'}); if(r){mostrarToast('Instancia desconectada.','info');document.getElementById('qrcode-box').textContent='Instancia desconectada.';pararPollingConexao();await carregarInstancias(true);} }
+  async function conectarSelecionada()    { if (!estadoUI.instanciaSelecionada) return; definirQR('<div class="qrcode-loading">Gerando QR code...</div>'); const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/conectar',{method:'POST'}); if(r){await carregarInstancias(true);iniciarPollingConexao();} }
+  async function desconectarSelecionada() { if (!estadoUI.instanciaSelecionada) return; const r=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/desconectar',{method:'POST'}); if(r){mostrarToast('Instancia desconectada.','info');pararPollingConexao();await carregarInstancias(true);} }
   async function excluirSelecionada()     { if (!estadoUI.instanciaSelecionada) return; if (!window.confirm('Excluir esta instancia e remover a sessao local?')) return; const id=estadoUI.instanciaSelecionada; const r=await chamar('/api/v1/instancias/'+id,{method:'DELETE'}); if(r){mostrarToast('Instancia excluida.','success');atualizarPainelSemSelecao();trocarAba('instancias');await carregarInstancias(true);} }
   async function mostrarQRCodeSelecionado() {
     if (!estadoUI.instanciaSelecionada) return;
     const resp=await chamar('/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/qrcode');
     if (!resp) return;
-    const cod=resp.dados.qrcode||'', box=document.getElementById('qrcode-box');
-    if (!cod) { box.innerHTML='<div class="qrcode-placeholder">QR code indisponivel.</div>'; return; }
-    box.innerHTML='<img src="/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/qrcode/imagem?ts='+Date.now()+'" alt="QR code" class="qrcode-image"><p class="qrcode-caption">Escaneie com o WhatsApp.</p>';
+    const cod = resp.dados.qrcode || '';
+    if (!cod) { definirQR('<div class="qrcode-loading">Gerando QR code...</div>'); estadoUI.qrAtual = ''; return; }
+    // So troca a imagem quando o WhatsApp gera um QR novo (evita piscar a cada consulta).
+    if (cod === estadoUI.qrAtual && document.querySelector('#qrcode-box img')) return;
+    estadoUI.qrAtual = cod;
+    definirQR('<img src="/api/v1/instancias/'+estadoUI.instanciaSelecionada+'/qrcode/imagem?ts='+Date.now()+'" alt="QR code" class="qrcode-image">');
   }
   function iniciarPollingConexao() { if(estadoUI.pollingConexao) return; estadoUI.pollingConexao=setInterval(async function(){if(!estadoUI.instanciaSelecionada)return;await atualizarInstanciaSelecionada(false);await carregarInstancias(false);},2500); }
   function pararPollingConexao()   { if(estadoUI.pollingConexao){clearInterval(estadoUI.pollingConexao);estadoUI.pollingConexao=null;} }
+
+
+  // ── Pagina da instancia ───────────────────────────────────────────────────────
+  function trocarAbaInstancia(aba) {
+    estadoUI.abaInstancia = aba;
+    document.querySelectorAll('.dc-aba').forEach(b => b.classList.toggle('ativa', b.dataset.abaInst === aba));
+    document.querySelectorAll('.dc-aba-painel').forEach(p => p.classList.toggle('hidden', p.dataset.painelInst !== aba));
+    if (!estadoUI.instanciaSelecionada) return;
+    if (aba === 'geral') carregarUso(false);
+    if (aba === 'webhooks') { carregarWebhooks(); carregarAuditoria(false); }
+  }
+  function usoAberto() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'geral'; }
+  function auditoriaAberta() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'webhooks'; }
+
+  function formatarTelefone(numero) {
+    const n = String(numero || '').replace(/\D/g, '');
+    if (n.startsWith('55') && (n.length === 12 || n.length === 13)) {
+      const ddd = n.slice(2, 4), resto = n.slice(4);
+      return '+55 (' + ddd + ') ' + resto.slice(0, resto.length - 4) + '-' + resto.slice(-4);
+    }
+    return n ? '+' + n : '';
+  }
+  function iniciais(nome) {
+    return String(nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
+  }
+  function avatarHTML(perfil, nome) {
+    if (perfil && perfil.foto_url) return '<img src="'+textoSeguro(perfil.foto_url)+'" alt="" referrerpolicy="no-referrer">';
+    return '<span>'+textoSeguro(iniciais((perfil && perfil.nome) || nome))+'</span>';
+  }
+  function renderizarCabecalhoInstancia(d) {
+    const perfil = d.perfil || {};
+    const conectada = d.status === 'conectada';
+    document.getElementById('inst-avatar').innerHTML = d.id ? avatarHTML(perfil, d.nome) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
+    document.getElementById('inst-avatar').classList.toggle('online', conectada);
+    document.getElementById('inst-business').classList.toggle('hidden', !perfil.business);
+    const partes = [perfil.nome_empresa || perfil.nome, formatarTelefone(perfil.numero)].filter(Boolean);
+    document.getElementById('inst-perfil').textContent = partes.length ? partes.join(' · ') : 'Conecte para ver o perfil';
+    document.getElementById('botao-conectar').classList.toggle('hidden', conectada);
+    document.getElementById('botao-desconectar').classList.toggle('hidden', !conectada || !d.id);
+    document.getElementById('botao-conectar').textContent = ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';
+    document.getElementById('config-proxy').textContent = d.proxy_configurado ? 'Proprio: ' + (d.proxy_url || '').replace(/\/\/[^@]*@/, '//***@') : 'Usa o proxy global do sistema (se houver).';
+    document.getElementById('config-historico').textContent = d.historico_dias ? d.historico_dias + ' dias de historico ao conectar.' : 'Sem historico ao conectar.';
+  }
+  function alternarTokenVisivel() {
+    const el = document.getElementById('detalhe-token');
+    atualizarTokenDetalhado(el.dataset.token || '', el.dataset.revelado !== 'true');
+  }
+
+  // ── Conexao (QR) ──────────────────────────────────────────────────────────────
+  function definirQR(html) {
+    const box = document.getElementById('qrcode-box');
+    if (box) box.innerHTML = html;
+  }
+  async function abrirConexao() {
+    if (!estadoUI.instanciaSelecionada) return;
+    estadoUI.qrAtual = '';
+    abrirModal('conectar');
+    if (estadoUI.statusSelecionada === 'aguardando_qrcode') { await mostrarQRCodeSelecionado(); iniciarPollingConexao(); return; }
+    try { await conectarSelecionada(); }
+    catch (err) {
+      definirQR('<div class="qrcode-loading">Erro ao conectar: '+textoSeguro(err.message)+'</div>');
+      const rodape = document.querySelector('.dc-aguardando');
+      if (rodape) { rodape.classList.add('erro'); rodape.innerHTML = '<span class="dc-ponto offline"></span>Nao foi possivel conectar. Confira o erro e o proxy da instancia.'; }
+    }
+  }
+  function mostrarConexaoConcluida(d) {
+    const perfil = d.perfil || {};
+    const nome = perfil.nome_empresa || perfil.nome || d.nome;
+    document.getElementById('modal-kicker').textContent = '';
+    document.getElementById('modal-titulo').textContent = '';
+    document.getElementById('modal-corpo').innerHTML =
+      '<div class="dc-conectado">' +
+        '<span class="dc-conectado-icone"><svg class="dc-ico"><use href="#i-ok"/></svg></span>' +
+        '<h3>Conectado</h3><p>O WhatsApp foi conectado com sucesso.</p>' +
+        '<div class="dc-conectado-perfil"><span class="dc-avatar online">'+avatarHTML(perfil, d.nome)+'</span>' +
+          '<span class="dc-linha-texto"><strong>'+textoSeguro(nome)+'</strong><span>'+textoSeguro(formatarTelefone(perfil.numero))+'</span></span>' +
+          (perfil.business ? '<span class="dc-selo">Business</span>' : '') + '</div>' +
+        '<div class="dc-conectado-acoes"><button class="ghost" onclick="fecharModal()">Fechar</button><button class="primary" onclick="fecharModal();trocarAbaInstancia(\'geral\')">Gerenciar</button></div>' +
+      '</div>';
+    modalTipoAtual = 'conectado';
+  }
 
   // ── Webhooks ──────────────────────────────────────────────────────────────────
   async function carregarWebhooks() {
@@ -1208,23 +1220,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     ).join('');
   }
 
-  function usoAberto() {
-    const body = document.getElementById('uso-body');
-    return Boolean(body && !body.classList.contains('hidden'));
-  }
 
-  function alternarUso(forcarAberto) {
-    const card = document.getElementById('uso-card');
-    const body = document.getElementById('uso-body');
-    const botao = document.getElementById('botao-toggle-uso');
-    if (!card || !body || !botao) return;
-    const abrir = typeof forcarAberto === 'boolean' ? forcarAberto : body.classList.contains('hidden');
-    body.classList.toggle('hidden', !abrir);
-    card.classList.toggle('collapsed', !abrir);
-    card.classList.toggle('expanded', abrir);
-    botao.textContent = abrir ? 'Recolher' : 'Abrir';
-    if (abrir && estadoUI.instanciaSelecionada) carregarUso(false);
-  }
 
   async function carregarUso(manual) {
     const box = document.getElementById('uso-conteudo');
@@ -1465,8 +1461,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (estadoUI.acesso?.tipo === 'master') await carregarSistema();
     await carregarInstancias(Boolean(manual));
     await carregarUsoGeral();
-    if (estadoUI.instanciaSelecionada) await carregarWebhooks();
-    if (estadoUI.instanciaSelecionada && auditoriaAberta()) await carregarAuditoria(false);
+    if (estadoUI.instanciaSelecionada && usoAberto()) await carregarUso(false);
+    if (estadoUI.instanciaSelecionada && auditoriaAberta()) { await carregarWebhooks(); await carregarAuditoria(false); }
   }
 
   document.getElementById('adv-rejeitar-chamadas').addEventListener('change', atualizarVisibilidadeMensagemChamada);

@@ -196,6 +196,9 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 		if !s.gerenciador.PossuiRuntime(instancias[i].ID) {
 			continue
 		}
+		if perfil := s.gerenciador.Perfil(instancias[i].ID); perfil.Numero != "" {
+			instancias[i].Perfil = &perfil
+		}
 		info, err := s.gerenciador.Info(ctx, instancias[i].ID)
 		if err != nil || info.Status == "" {
 			continue
@@ -463,6 +466,7 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 		"presenca":              normalizarPresencaInstancia(instancia.Presenca),
 		"presenca_observacao":   observacaoPresenca(instancia.Presenca),
 		"configuracao_avancada": configuracaoAvancada(instancia),
+		"perfil":                s.gerenciador.Perfil(id),
 	}, nil
 }
 
