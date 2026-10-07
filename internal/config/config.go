@@ -64,9 +64,9 @@ type Config struct {
 	LimiteEnviosPorMinuto     int
 	LimiteFalhasAuthPorMinuto int
 	// ProxiesConfiaveis sao as redes cujo X-Forwarded-For e aceito para achar o
-	// IP real do cliente. IPClienteCloudflare usa o CF-Connecting-IP.
+	// IP real do cliente. Atras da Cloudflare o CF-Connecting-IP ja e usado
+	// automaticamente (ver ipCliente em internal/http).
 	ProxiesConfiaveis             []string
-	IPClienteCloudflare           bool
 	ReconexaoIntervaloSegundos    int
 	RecuperacaoWebhookHabilitada  bool
 	RecuperacaoMargemSegundos     int
@@ -146,7 +146,6 @@ func Carregar() (*Config, error) {
 		LimiteEnviosPorMinuto:         obterInt("RATE_LIMIT_ENVIOS_POR_MINUTO", 100),
 		LimiteFalhasAuthPorMinuto:     obterInt("RATE_LIMIT_FALHAS_AUTH_POR_MINUTO", 10),
 		ProxiesConfiaveis:             strings.FieldsFunc(obter("TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,::1/128,fc00::/7"), func(r rune) bool { return r == ',' || r == ' ' }),
-		IPClienteCloudflare:           obterBool("CLIENT_IP_CLOUDFLARE", false),
 		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),
 		RecuperacaoWebhookHabilitada:  obterBool("WEBHOOK_RECOVERY_ENABLED", true),
 		RecuperacaoMargemSegundos:     obterInt("WEBHOOK_RECOVERY_MARGIN_SECONDS", 120),

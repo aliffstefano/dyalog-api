@@ -103,13 +103,13 @@ func (h *APIHandler) LoginDashboard(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Informe o token de acesso") {
 		return
 	}
-	if bloqueado, espera := h.limiteFalhasAuth.bloqueado(c.ClientIP()); bloqueado {
+	if bloqueado, espera := h.limiteFalhasAuth.bloqueado(ipCliente(c)); bloqueado {
 		responderLimite(c, "muitas_tentativas", "Muitas tentativas com token invalido", espera)
 		return
 	}
 	acesso, err := h.authService.Autenticar(c.Request.Context(), req.Token)
 	if err != nil {
-		h.limiteFalhasAuth.consumir(c.ClientIP())
+		h.limiteFalhasAuth.registrarFalha(ipCliente(c), req.Token)
 		h.responderErro(c, nethttp.StatusUnauthorized, "nao_autenticado", "Token invalido")
 		return
 	}

@@ -58,3 +58,50 @@ func TestResponderLimiteDevolve429ComRetryAfter(t *testing.T) {
 		t.Fatalf("status=%d retry-after=%q", gravador.Code, gravador.Header().Get("Retry-After"))
 	}
 }
+
+// Cliente esquecido repetindo o mesmo token errado nao bloqueia o IP; tokens
+// diferentes (tentativa de adivinhar) bloqueiam.
+func TestRegistrarFalhaContaSoTokensDiferentes(t *testing.T) {
+	l := novoLimitador(3)
+	for i := 0; i < 50; i++ {
+		l.registrarFalha("1.1.1.1", "token-antigo")
+		l.registrarFalha("1.1.1.1", "")
+	}
+	if bloqueado, _ := l.bloqueado("1.1.1.1"); bloqueado {
+		t.Fatal("o mesmo token repetido nao deveria bloquear")
+	}
+	for _, token := range []string{"a", "b", "c"} {
+		l.registrarFalha("2.2.2.2", token)
+	}
+	if bloqueado, _ := l.bloqueado("2.2.2.2"); !bloqueado {
+		t.Fatal("3 tokens diferentes deveriam bloquear com limite 3")
+	}
+}
+
+func TestIpClienteCloudflare(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	motor := gin.New()
+	if err := motor.SetTrustedProxies([]string{"10.0.0.0/8"}); err != nil {
+		t.Fatal(err)
+	}
+	casos := []struct {
+		nome, remoto, xff, cf, esperado string
+	}{
+		{"via cloudflare e traefik", "10.0.0.5:1234", "172.70.1.1", "200.1.2.3", "200.1.2.3"},
+		{"direto no servidor forjando cabecalho", "10.0.0.5:1234", "45.6.7.8", "200.1.2.3", "45.6.7.8"},
+		{"sem cloudflare", "10.0.0.5:1234", "45.6.7.8", "", "45.6.7.8"},
+	}
+	for _, caso := range casos {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = httptest.NewRequest(nethttp.MethodGet, "/", nil)
+		c.Request.RemoteAddr = caso.remoto
+		c.Request.Header.Set("X-Forwarded-For", caso.xff)
+		if caso.cf != "" {
+			c.Request.Header.Set("CF-Connecting-IP", caso.cf)
+		}
+		motor.HandleContext(c)
+		if ip := ipCliente(c); ip != caso.esperado {
+			t.Errorf("%s: ip = %s, esperado %s", caso.nome, ip, caso.esperado)
+		}
+	}
+}

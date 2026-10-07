@@ -49,9 +49,11 @@ acao - nao ha fila; reenvie depois do tempo indicado.
   (`erro: "limite_envios"`). Contam texto, editar, apagar, reagir, botoes,
   lista, enquete, cobranca Pix, localizacao, contato e midias. Presenca
   (digitando) e marcar como lida nao contam.
-- **token invalido por IP:** depois de 10 tentativas com token errado em um
+- **token invalido por IP:** depois de 10 tokens errados diferentes em um
   minuto, o IP fica bloqueado (`erro: "muitas_tentativas"`), inclusive com o
-  token certo, ate liberar.
+  token certo, ate liberar. Repetir o mesmo token errado (ex.: painel aberto
+  ou fluxo do n8n com token antigo) nao bloqueia; requisicao sem token tambem
+  nao conta. Atras da Cloudflare vale o IP real do visitante.
 
 Exemplo de resposta:
 

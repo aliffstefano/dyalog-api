@@ -123,9 +123,6 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	if err := engine.SetTrustedProxies(cfg.ProxiesConfiaveis); err != nil {
 		return nil, fmt.Errorf("TRUSTED_PROXIES invalido: %w", err)
 	}
-	if cfg.IPClienteCloudflare {
-		engine.TrustedPlatform = gin.PlatformCloudflare
-	}
 	aplicarLoggerHTTP(engine, cfg.HTTPLogMode)
 	engine.Use(gin.Recovery())
 	engine.Static("/static", "./static")
