@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"dyalog-api-go/internal/models"
+	"dyalog-api-go/internal/whatsapp"
 )
 
 func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error) {
@@ -39,6 +40,9 @@ func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEven
 		}
 		req.FimEm = fim
 	}
+	if strings.TrimSpace(req.Chamada) != "" && whatsapp.TipoLinkChamada(req.Chamada) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: chamada deve ser video ou voz", ErrEntradaInvalida)
+	}
 	if req.LembreteSegundos < 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: lembrete nao pode ser negativo", ErrEntradaInvalida)
 	}
@@ -62,6 +66,7 @@ func normalizarEventoCompat(req models.EnvioEventoRequest) models.EnvioEventoReq
 	preencher(&req.Inicio, req.StartAt)
 	preencher(&req.Fim, req.EndAt)
 	preencher(&req.LinkChamada, req.JoinLink)
+	preencher(&req.Chamada, req.Call)
 	if req.Location != nil {
 		preencher(&req.Local, req.Location.Name)
 		preencher(&req.Endereco, req.Location.Address)
@@ -125,6 +130,17 @@ func (s *MensagemService) PostarStatus(ctx context.Context, req models.EnvioStat
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: tipo deve ser texto, imagem ou video", ErrEntradaInvalida)
 	}
 	return s.registrarEnvio(req.Instancia)(s.gerenciador.PostarStatus(ctx, req))
+}
+
+func (s *MensagemService) CriarLinkChamada(ctx context.Context, req models.LinkChamadaRequest) (models.LinkChamadaResultado, error) {
+	if _, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia); err != nil {
+		return models.LinkChamadaResultado{}, ErrInstanciaNaoEncontrada
+	}
+	req.Tipo = cmp.Or(strings.ToLower(strings.TrimSpace(req.Tipo)), "video")
+	if whatsapp.TipoLinkChamada(req.Tipo) == "" {
+		return models.LinkChamadaResultado{}, fmt.Errorf("%w: tipo deve ser video ou voz", ErrEntradaInvalida)
+	}
+	return s.gerenciador.CriarLinkChamada(ctx, req)
 }
 
 const maxCartoesCarrossel = 10

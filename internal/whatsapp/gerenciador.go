@@ -72,6 +72,7 @@ type Cliente interface {
 	EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error)
 	EnviarCarrossel(ctx context.Context, req models.EnvioCarrosselRequest) (models.ResultadoEnvio, error)
 	PostarStatus(ctx context.Context, req models.EnvioStatusRequest) (models.ResultadoEnvio, error)
+	CriarLinkChamada(ctx context.Context, req models.LinkChamadaRequest) (models.LinkChamadaResultado, error)
 }
 
 var ErrMidiaInvalida = errors.New("midia invalida")

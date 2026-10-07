@@ -372,6 +372,9 @@ type EnvioEventoRequest struct {
 	// nao informado).
 	Lembrete        bool `json:"lembrete,omitempty"`
 	LembreteMinutos int  `json:"lembrete_minutos,omitempty"`
+	// Chamada ("video" ou "voz") gera um link de chamada do WhatsApp preso ao
+	// horario do evento, como no app. Ignorado se LinkChamada vier preenchido.
+	Chamada string `json:"chamada,omitempty"`
 	// ChamadaAgendada marca o evento como chamada agendada do WhatsApp.
 	ChamadaAgendada      bool   `json:"chamada_agendada,omitempty"`
 	MensagemID           string `json:"mensagem_id,omitempty"`
@@ -389,11 +392,24 @@ type EnvioEventoRequest struct {
 	HasReminder       bool                `json:"hasReminder,omitempty"`
 	ReminderOffsetSec int64               `json:"reminderOffsetSec,omitempty"`
 	IsScheduleCall    bool                `json:"isScheduleCall,omitempty"`
+	Call              string              `json:"call,omitempty"`
 	ExtraGuests       bool                `json:"extraGuestsAllowed,omitempty"`
 
 	InicioEm         time.Time `json:"-"`
 	FimEm            time.Time `json:"-"`
 	LembreteSegundos int64     `json:"-"`
+}
+
+type LinkChamadaRequest struct {
+	Instancia string `json:"instancia,omitempty"`
+	// Tipo e "video" ou "voz".
+	Tipo string `json:"tipo,omitempty"`
+}
+
+type LinkChamadaResultado struct {
+	Instancia string `json:"instancia"`
+	Tipo      string `json:"tipo"`
+	Link      string `json:"link"`
 }
 
 type EventoLocalRequest struct {

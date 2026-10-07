@@ -32,6 +32,13 @@ func (g *GerenciadorInstancias) EnviarEvento(ctx context.Context, req models.Env
 	if err != nil {
 		return models.ResultadoEnvio{}, err
 	}
+	if tipo := TipoLinkChamada(req.Chamada); tipo != "" && strings.TrimSpace(req.LinkChamada) == "" {
+		link, err := criarLinkChamada(ctx, runtime.client, tipo, req.InicioEm)
+		if err != nil {
+			return models.ResultadoEnvio{}, err
+		}
+		req.LinkChamada = link
+	}
 	msg, err := montarMensagemEvento(req)
 	if err != nil {
 		return models.ResultadoEnvio{}, err

@@ -878,6 +878,19 @@ func (h *APIHandler) EnviarCarrossel(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
 }
 
+func (h *APIHandler) CriarLinkChamada(c *gin.Context) {
+	var req models.LinkChamadaRequest
+	if !h.lerJSON(c, &req, &req.Instancia, "Campo opcional: tipo (video ou voz)") {
+		return
+	}
+	resultado, err := h.mensagemService.CriarLinkChamada(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Link de chamada criado", resultado))
+}
+
 func (h *APIHandler) PostarStatus(c *gin.Context) {
 	var req models.EnvioStatusRequest
 	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: texto, ou arquivo_url/arquivo_base64 para imagem e video") {

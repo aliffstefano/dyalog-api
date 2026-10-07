@@ -1817,6 +1817,7 @@ Campos:
 - opcional: `local`, `endereco`, `latitude`, `longitude`
 - opcional: `link_chamada`, que vira o botao "Entrar" (link de chamada do WhatsApp, Meet, Zoom...)
 - opcional: `permitir_acompanhantes`
+- opcional: `chamada`: `video` ou `voz`. Gera um link de chamada do WhatsApp preso ao horario do evento, como no app (ignorado se `link_chamada` vier preenchido)
 - opcional: `lembrete` (avisa 15 minutos antes) ou `lembrete_minutos`
 - opcional: `chamada_agendada` (marca como chamada agendada do WhatsApp; use com `link_chamada`)
 - opcional: `instancia`, `grupo`, `resposta_mensagem_id`, `resposta_participante`
@@ -1834,6 +1835,19 @@ Prefira datas com fuso (`-04:00`): sem fuso, a hora vale no fuso do servidor, qu
   "link_chamada": "https://meet.google.com/abc-defg-hij"
 }
 ```
+
+### `POST /api/v1/chamadas/link`
+
+Cria um link de chamada do WhatsApp (`https://call.whatsapp.com/video/...` ou `.../voice/...`), o mesmo do botao "Criar link de chamada" do app. Quem abrir o link entra na chamada com o numero da instancia. Para usar em mensagem de texto, botao `url` ou evento.
+
+- opcional: `tipo`: `video` (padrao) ou `voz`
+- opcional: `instancia` (pode ser omitida com token de instancia)
+
+```json
+{ "tipo": "video" }
+```
+
+Resposta: `{"dados": {"instancia": "...", "tipo": "video", "link": "https://call.whatsapp.com/video/..."}}`
 
 ### `POST /api/v1/batepapo/enviar/carrossel`
 

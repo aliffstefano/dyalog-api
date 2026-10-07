@@ -93,6 +93,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 
 		apiAuth.GET("/chamadas/ice", apiHandler.ServidoresICE)
 		apiAuth.POST("/chamadas/iniciar", apiHandler.IniciarChamada)
+		apiAuth.POST("/chamadas/link", apiHandler.CriarLinkChamada)
 		apiAuth.POST("/chamadas/:chamadaId/aceitar", apiHandler.AceitarChamada)
 		apiAuth.POST("/chamadas/:chamadaId/rejeitar", apiHandler.RejeitarChamada)
 		apiAuth.DELETE("/chamadas/:chamadaId", apiHandler.EncerrarChamada)
