@@ -368,12 +368,39 @@ type EnvioEventoRequest struct {
 	// Meet, Zoom...).
 	LinkChamada           string `json:"link_chamada,omitempty"`
 	PermitirAcompanhantes bool   `json:"permitir_acompanhantes,omitempty"`
-	MensagemID            string `json:"mensagem_id,omitempty"`
-	RespostaMensagemID    string `json:"resposta_mensagem_id,omitempty"`
-	RespostaParticipante  string `json:"resposta_participante,omitempty"`
+	// Lembrete avisa os participantes LembreteMinutos antes do inicio (15 se
+	// nao informado).
+	Lembrete        bool `json:"lembrete,omitempty"`
+	LembreteMinutos int  `json:"lembrete_minutos,omitempty"`
+	// ChamadaAgendada marca o evento como chamada agendada do WhatsApp.
+	ChamadaAgendada      bool   `json:"chamada_agendada,omitempty"`
+	MensagemID           string `json:"mensagem_id,omitempty"`
+	RespostaMensagemID   string `json:"resposta_mensagem_id,omitempty"`
+	RespostaParticipante string `json:"resposta_participante,omitempty"`
 
-	InicioEm time.Time `json:"-"`
-	FimEm    time.Time `json:"-"`
+	// Formato de outras APIs (number, name, startAt, location{}...).
+	Number            string              `json:"number,omitempty"`
+	Name              string              `json:"name,omitempty"`
+	Description       string              `json:"description,omitempty"`
+	StartAt           string              `json:"startAt,omitempty"`
+	EndAt             string              `json:"endAt,omitempty"`
+	Location          *EventoLocalRequest `json:"location,omitempty"`
+	JoinLink          string              `json:"joinLink,omitempty"`
+	HasReminder       bool                `json:"hasReminder,omitempty"`
+	ReminderOffsetSec int64               `json:"reminderOffsetSec,omitempty"`
+	IsScheduleCall    bool                `json:"isScheduleCall,omitempty"`
+	ExtraGuests       bool                `json:"extraGuestsAllowed,omitempty"`
+
+	InicioEm         time.Time `json:"-"`
+	FimEm            time.Time `json:"-"`
+	LembreteSegundos int64     `json:"-"`
+}
+
+type EventoLocalRequest struct {
+	Name      string  `json:"name,omitempty"`
+	Address   string  `json:"address,omitempty"`
+	Latitude  float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
 }
 
 type EnvioStatusRequest struct {

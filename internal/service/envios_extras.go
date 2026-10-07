@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -10,6 +11,7 @@ import (
 )
 
 func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error) {
+	req = normalizarEventoCompat(req)
 	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
 		return models.ResultadoEnvio{}, err
 	}
@@ -37,7 +39,42 @@ func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEven
 		}
 		req.FimEm = fim
 	}
+	if req.LembreteSegundos < 0 {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: lembrete nao pode ser negativo", ErrEntradaInvalida)
+	}
+	if req.Lembrete && req.LembreteSegundos == 0 {
+		req.LembreteSegundos = 15 * 60
+	}
 	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarEvento(ctx, req))
+}
+
+// normalizarEventoCompat aceita o formato de outras APIs (number, name,
+// startAt, location{}, hasReminder, reminderOffsetSec, isScheduleCall).
+func normalizarEventoCompat(req models.EnvioEventoRequest) models.EnvioEventoRequest {
+	preencher := func(destino *string, origem string) {
+		if strings.TrimSpace(*destino) == "" {
+			*destino = strings.TrimSpace(origem)
+		}
+	}
+	preencher(&req.Numero, req.Number)
+	preencher(&req.Nome, req.Name)
+	preencher(&req.Descricao, req.Description)
+	preencher(&req.Inicio, req.StartAt)
+	preencher(&req.Fim, req.EndAt)
+	preencher(&req.LinkChamada, req.JoinLink)
+	if req.Location != nil {
+		preencher(&req.Local, req.Location.Name)
+		preencher(&req.Endereco, req.Location.Address)
+		if req.Latitude == 0 && req.Longitude == 0 {
+			req.Latitude, req.Longitude = req.Location.Latitude, req.Location.Longitude
+		}
+	}
+	req.LembreteSegundos = cmp.Or(int64(req.LembreteMinutos)*60, req.ReminderOffsetSec)
+	// Informar a antecedencia ja liga o lembrete.
+	req.Lembrete = req.Lembrete || req.HasReminder || req.LembreteSegundos != 0
+	req.ChamadaAgendada = req.ChamadaAgendada || req.IsScheduleCall
+	req.PermitirAcompanhantes = req.PermitirAcompanhantes || req.ExtraGuests
+	return req
 }
 
 // lerDataEvento aceita RFC3339 ou "2006-01-02 15:04" no fuso do servidor.

@@ -1817,7 +1817,12 @@ Campos:
 - opcional: `local`, `endereco`, `latitude`, `longitude`
 - opcional: `link_chamada`, que vira o botao "Entrar" (link de chamada do WhatsApp, Meet, Zoom...)
 - opcional: `permitir_acompanhantes`
+- opcional: `lembrete` (avisa 15 minutos antes) ou `lembrete_minutos`
+- opcional: `chamada_agendada` (marca como chamada agendada do WhatsApp; use com `link_chamada`)
 - opcional: `instancia`, `grupo`, `resposta_mensagem_id`, `resposta_participante`
+- compatibilidade com outras APIs: `number`, `name`, `description`, `startAt`, `endAt`, `location` (`name`, `address`, `latitude`, `longitude`), `joinLink`, `hasReminder`, `reminderOffsetSec`, `isScheduleCall`, `extraGuestsAllowed`
+
+Prefira datas com fuso (`-04:00`): sem fuso, a hora vale no fuso do servidor, que no Docker costuma ser UTC. Evento em grupo e o caso mais garantido; em conversa individual depende da versao do app de quem recebe.
 
 ```json
 {

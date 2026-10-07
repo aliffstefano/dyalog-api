@@ -63,9 +63,13 @@ func montarMensagemEvento(req models.EnvioEventoRequest) (*waE2E.Message, error)
 		Name:               proto.String(strings.TrimSpace(req.Nome)),
 		StartTime:          proto.Int64(req.InicioEm.Unix()),
 		IsCanceled:         proto.Bool(false),
-		IsScheduleCall:     proto.Bool(false),
+		IsScheduleCall:     proto.Bool(req.ChamadaAgendada),
 		ExtraGuestsAllowed: proto.Bool(req.PermitirAcompanhantes),
 		ContextInfo:        contextInfoResposta(req.RespostaMensagemID, req.RespostaParticipante),
+	}
+	if req.Lembrete {
+		evento.HasReminder = proto.Bool(true)
+		evento.ReminderOffsetSec = proto.Int64(req.LembreteSegundos)
 	}
 	if descricao := strings.TrimSpace(req.Descricao); descricao != "" {
 		evento.Description = proto.String(descricao)
