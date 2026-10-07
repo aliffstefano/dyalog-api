@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/store"
 	"dyalog-api-go/internal/whatsapp"
@@ -19,6 +20,11 @@ type InstanciaService struct {
 	store       store.InstanciaStore
 	proxyStore  store.ProxyStore
 	gerenciador *whatsapp.GerenciadorInstancias
+	// meta, metaStore e baseURL atendem as instancias da API oficial (ver
+	// instancia_meta.go).
+	meta      *meta.Enviador
+	metaStore store.MetaStore
+	baseURL   string
 }
 
 func NovoInstanciaService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *InstanciaService {
@@ -33,7 +39,7 @@ func (s *InstanciaService) RestaurarSessoes(ctx context.Context) {
 		return
 	}
 	for _, instancia := range instancias {
-		if !deveRestaurarSessaoNoStartup(instancia.Status) {
+		if instancia.EhMeta() || !deveRestaurarSessaoNoStartup(instancia.Status) {
 			continue
 		}
 		instanciaID := instancia.ID
@@ -188,6 +194,10 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 		return nil, err
 	}
 	for i := range instancias {
+		if instancias[i].EhMeta() {
+			s.preencherPerfilMeta(ctx, &instancias[i])
+			continue
+		}
 		// Sem runtime local, este container nao e dono da instancia e o estado em
 		// memoria aqui nao vale nada. Quem mantem o status correto e o container dono,
 		// pelo banco. Sem essa guarda, replicas nao-donas sobrescreviam o status certo
@@ -347,8 +357,13 @@ func (s *InstanciaService) recarregarInstanciasHerdandoProxy(ctx context.Context
 }
 
 func (s *InstanciaService) Excluir(ctx context.Context, id string) error {
-	if _, err := s.store.BuscarPorID(ctx, id); err != nil {
+	instancia, err := s.store.BuscarPorID(ctx, id)
+	if err != nil {
 		return s.mapearErro(err)
+	}
+	if instancia.EhMeta() {
+		// Sem sessao whatsmeow; as credenciais saem junto (ON DELETE CASCADE).
+		return s.mapearErro(s.store.Excluir(ctx, id))
 	}
 	if err := s.gerenciador.ExcluirInstancia(ctx, id); err != nil {
 		return fmt.Errorf("erro ao excluir instancia: %w", err)
@@ -363,6 +378,14 @@ func (s *InstanciaService) Conectar(ctx context.Context, id string) (models.Inst
 	instanciaSalva, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return models.Instancia{}, "", s.mapearErro(err)
+	}
+	if instanciaSalva.EhMeta() {
+		// Na API oficial "conectar" e revalidar o token na Meta.
+		if _, err := s.ConfigurarMeta(ctx, id, models.ConfigurarMetaRequest{}); err != nil {
+			return models.Instancia{}, "", err
+		}
+		instancia, err := s.store.BuscarPorID(ctx, id)
+		return instancia, "", s.mapearErro(err)
 	}
 	s.gerenciador.ConfigurarHistorico(id, instanciaSalva.HistoricoDias)
 	if _, err := s.store.AtualizarStatus(ctx, id, models.StatusInstanciaConectando); err != nil {
@@ -388,6 +411,9 @@ func (s *InstanciaService) SolicitarCodigoPareamento(ctx context.Context, id, nu
 	instanciaSalva, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return models.Instancia{}, nil, s.mapearErro(err)
+	}
+	if instanciaSalva.EhMeta() {
+		return models.Instancia{}, nil, fmt.Errorf("%w: instancia da API oficial nao usa codigo de pareamento", ErrEntradaInvalida)
 	}
 	s.gerenciador.ConfigurarHistorico(id, instanciaSalva.HistoricoDias)
 	if _, err := s.store.AtualizarStatus(ctx, id, models.StatusInstanciaConectando); err != nil {
@@ -418,8 +444,13 @@ func (s *InstanciaService) SolicitarCodigoPareamento(ctx context.Context, id, nu
 }
 
 func (s *InstanciaService) Desconectar(ctx context.Context, id string) (models.Instancia, error) {
-	if _, err := s.store.BuscarPorID(ctx, id); err != nil {
+	instancia, err := s.store.BuscarPorID(ctx, id)
+	if err != nil {
 		return models.Instancia{}, s.mapearErro(err)
+	}
+	if instancia.EhMeta() {
+		// Na API oficial nao ha sessao para derrubar; so marca como desligada.
+		return s.store.AtualizarStatus(ctx, id, models.StatusInstanciaDesconectada)
 	}
 	if err := s.gerenciador.Desconectar(ctx, id); err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao desconectar instancia: %w", err)
@@ -431,6 +462,16 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 	instancia, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return nil, s.mapearErro(err)
+	}
+	if instancia.EhMeta() && s.meta != nil {
+		resumo, err := s.StatusMeta(ctx, instancia)
+		if err != nil {
+			return nil, err
+		}
+		s.preencherPerfilMeta(ctx, &instancia)
+		resumo["perfil"] = instancia.Perfil
+		resumo["configuracao_avancada"] = configuracaoAvancada(instancia)
+		return resumo, nil
 	}
 	info, err := s.gerenciador.Info(ctx, id)
 	if err != nil {
@@ -474,6 +515,9 @@ func (s *InstanciaService) QRCode(ctx context.Context, id string) (map[string]in
 	instancia, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return nil, s.mapearErro(err)
+	}
+	if instancia.EhMeta() {
+		return nil, fmt.Errorf("%w: instancia da API oficial nao usa QR code", ErrEntradaInvalida)
 	}
 	info, err := s.gerenciador.Info(ctx, id)
 	if err != nil {

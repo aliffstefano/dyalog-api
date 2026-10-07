@@ -66,7 +66,12 @@ type Config struct {
 	// ProxiesConfiaveis sao as redes cujo X-Forwarded-For e aceito para achar o
 	// IP real do cliente. Atras da Cloudflare o CF-Connecting-IP ja e usado
 	// automaticamente (ver ipCliente em internal/http).
-	ProxiesConfiaveis             []string
+	ProxiesConfiaveis []string
+	// MetaGraphVersao e a versao da Graph API usada pelas instancias da API
+	// oficial.
+	MetaGraphVersao string
+	// MetaGraphBaseURL troca o endereco da Graph API (so para testes).
+	MetaGraphBaseURL              string
 	ReconexaoIntervaloSegundos    int
 	RecuperacaoWebhookHabilitada  bool
 	RecuperacaoMargemSegundos     int
@@ -144,6 +149,8 @@ func Carregar() (*Config, error) {
 		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),
 		HeartbeatIntervaloSegundos:    obterInt("RUNTIME_HEARTBEAT_INTERVAL_SECONDS", 30),
 		LimiteEnviosPorMinuto:         obterInt("RATE_LIMIT_ENVIOS_POR_MINUTO", 100),
+		MetaGraphVersao:               obter("META_GRAPH_VERSION", "v25.0"),
+		MetaGraphBaseURL:              obter("META_GRAPH_BASE_URL", ""),
 		LimiteFalhasAuthPorMinuto:     obterInt("RATE_LIMIT_FALHAS_AUTH_POR_MINUTO", 10),
 		ProxiesConfiaveis:             strings.FieldsFunc(obter("TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,::1/128,fc00::/7"), func(r rune) bool { return r == ',' || r == ' ' }),
 		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),

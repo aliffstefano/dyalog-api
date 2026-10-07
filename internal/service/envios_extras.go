@@ -49,7 +49,7 @@ func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEven
 	if req.Lembrete && req.LembreteSegundos == 0 {
 		req.LembreteSegundos = 15 * 60
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarEvento(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarEvento(ctx, req))
 }
 
 // normalizarEventoCompat aceita o formato de outras APIs (number, name,
@@ -129,7 +129,7 @@ func (s *MensagemService) PostarStatus(ctx context.Context, req models.EnvioStat
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: tipo deve ser texto, imagem ou video", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.PostarStatus(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).PostarStatus(ctx, req))
 }
 
 func (s *MensagemService) CriarLinkChamada(ctx context.Context, req models.LinkChamadaRequest) (models.LinkChamadaResultado, error) {
@@ -140,7 +140,7 @@ func (s *MensagemService) CriarLinkChamada(ctx context.Context, req models.LinkC
 	if whatsapp.TipoLinkChamada(req.Tipo) == "" {
 		return models.LinkChamadaResultado{}, fmt.Errorf("%w: tipo deve ser video ou voz", ErrEntradaInvalida)
 	}
-	return s.gerenciador.CriarLinkChamada(ctx, req)
+	return s.enviadorPara(ctx, req.Instancia).CriarLinkChamada(ctx, req)
 }
 
 const maxCartoesCarrossel = 10
@@ -170,5 +170,24 @@ func (s *MensagemService) EnviarCarrossel(ctx context.Context, req models.EnvioC
 			return models.ResultadoEnvio{}, fmt.Errorf("cartao %d: %w", i+1, err)
 		}
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarCarrossel(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarCarrossel(ctx, req))
+}
+
+// EnviarTemplate envia um modelo aprovado na Meta. So existe nas instancias da
+// API oficial e e o unico envio aceito fora da janela de 24h.
+func (s *MensagemService) EnviarTemplate(ctx context.Context, req models.EnvioTemplateRequest) (models.ResultadoEnvio, error) {
+	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
+		return models.ResultadoEnvio{}, err
+	}
+	if strings.TrimSpace(req.Nome) == "" {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe o nome do template", ErrEntradaInvalida)
+	}
+	instancia, err := s.instanciaStore.BuscarPorID(ctx, req.Instancia)
+	if err != nil {
+		return models.ResultadoEnvio{}, ErrInstanciaNaoEncontrada
+	}
+	if !instancia.EhMeta() || s.meta == nil {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: template so existe em instancia da API oficial da Meta", ErrEntradaInvalida)
+	}
+	return s.registrarEnvio(req.Instancia)(s.meta.EnviarTemplate(ctx, req))
 }

@@ -11,6 +11,7 @@ import (
 	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/config"
 	"dyalog-api-go/internal/dashboard"
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/service"
 	mediastorage "dyalog-api-go/internal/storage"
 	"dyalog-api-go/internal/store"
@@ -98,6 +99,11 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	}
 	instanciaService := service.NovoInstanciaService(storeSQL, gerenciador)
 	mensagemService := service.NovoMensagemService(storeSQL, storeSQL, gerenciador)
+	// API oficial (WhatsApp Cloud API): as instancias do tipo meta enviam pela
+	// Meta, nas mesmas rotas das instancias por QR code.
+	enviadorMeta := meta.NovoEnviador(meta.NovoCliente(cfg.MetaGraphVersao, cfg.MetaGraphBaseURL), storeSQL)
+	instanciaService.UsarMeta(enviadorMeta, storeSQL, cfg.BaseURL)
+	mensagemService.UsarMeta(enviadorMeta)
 	chamadaService := service.NovoChamadaService(storeSQL, gerenciador)
 	midiaService := service.NovoMidiaService(storeSQL)
 	webhookService := service.NovoWebhookService(storeSQL, storeSQL, storeSQL)
@@ -127,6 +133,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	engine.Use(gin.Recovery())
 	engine.Static("/static", "./static")
 	apiHandler := NovoAPIHandler(cfg, instanciaService, mensagemService, chamadaService, midiaService, webhookService, sistemaService, authService)
+	apiHandler.UsarMetaWebhook(service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador))
 	dashboardHandler := dashboard.NovoHandler(cfg, authService)
 	registrarRotas(engine, cfg, apiHandler, dashboardHandler, authService, gerenciador)
 	return &Servidor{engine: engine}, nil

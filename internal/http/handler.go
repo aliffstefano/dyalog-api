@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"dyalog-api-go/internal/config"
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/service"
 	"dyalog-api-go/internal/whatsapp"
@@ -37,10 +38,15 @@ type APIHandler struct {
 	// tokens invalidos por IP.
 	limiteEnvios     *limitador
 	limiteFalhasAuth *limitador
+	// metaWebhook recebe os webhooks da API oficial (rotas publicas).
+	metaWebhook *service.MetaWebhookService
 }
 
 type criarInstanciaRequest struct {
 	Nome string `json:"nome" binding:"required"`
+	// Tipo: "whatsapp" (QR code, padrao) ou "meta" (API oficial).
+	Tipo string                        `json:"tipo"`
+	Meta *models.ConfigurarMetaRequest `json:"meta"`
 }
 
 type webhookRequest struct {
@@ -262,12 +268,44 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Nome da instancia e obrigatorio") {
 		return
 	}
-	instancia, err := h.instanciaService.Criar(c.Request.Context(), req.Nome)
+	instancia, err := h.instanciaService.CriarComTipo(c.Request.Context(), req.Nome, req.Tipo, req.Meta)
 	if err != nil {
 		h.tratarErro(c, err)
 		return
 	}
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia criada com sucesso", instancia))
+}
+
+// ConfigurarMetaInstancia cadastra ou troca as credenciais da API oficial e
+// valida na Meta antes de salvar.
+func (h *APIHandler) ConfigurarMetaInstancia(c *gin.Context) {
+	if !h.garantirInstancia(c, c.Param("id")) {
+		return
+	}
+	var req models.ConfigurarMetaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "JSON invalido: "+err.Error())
+		return
+	}
+	resumo, err := h.instanciaService.ConfigurarMeta(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Credenciais da Meta validadas e salvas", resumo))
+}
+
+func (h *APIHandler) EnviarTemplate(c *gin.Context) {
+	var req models.EnvioTemplateRequest
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: nome do template e numero") {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarTemplate(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Template enviado com sucesso", resultado))
 }
 
 func (h *APIHandler) ListarInstancias(c *gin.Context) {
@@ -1206,6 +1244,12 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusConflict, "nenhuma_atualizacao", "Nao existe atualizacao disponivel para aplicar")
 	case errors.Is(err, service.ErrModoAtualizacaoInvalido):
 		h.responderErro(c, nethttp.StatusConflict, "modo_atualizacao_invalido", "O sistema esta em modo aviso; troque para modo preparo para gerar artefato")
+	case errors.Is(err, meta.ErrNaoSuportado):
+		h.responderErro(c, nethttp.StatusUnprocessableEntity, "nao_suportado_api_oficial", err.Error())
+	case meta.ErroJanela24h(err):
+		h.responderErro(c, nethttp.StatusUnprocessableEntity, "fora_janela_24h", err.Error())
+	case errors.As(err, new(*meta.Erro)):
+		h.responderErro(c, nethttp.StatusBadGateway, "erro_meta", err.Error())
 	default:
 		h.responderErro(c, nethttp.StatusInternalServerError, "erro_interno", err.Error())
 	}

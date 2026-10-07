@@ -119,7 +119,7 @@ func (s *SQLStore) Close() error {
 	return s.db.Close()
 }
 
-const colunasInstancia = `id, nome, token, status, historico_dias, proxy_modo, proxy_url, presenca,
+const colunasInstancia = `id, nome, tipo, token, status, historico_dias, proxy_modo, proxy_url, presenca,
        rejeitar_chamadas, mensagem_rejeitar_chamadas, marcar_lida_automatico, ignorar_grupos, ignorar_status,
        criado_em, atualizado_em`
 
@@ -293,6 +293,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS instancias (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
+    tipo TEXT NOT NULL DEFAULT 'whatsapp',
     token TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL,
     historico_dias INTEGER NOT NULL DEFAULT 0,
@@ -428,6 +429,20 @@ CREATE TABLE IF NOT EXISTS midias_recebidas (
 );
 CREATE INDEX IF NOT EXISTS idx_midias_recebidas_instancia ON midias_recebidas(instancia_id, recebida_em DESC);
 
+CREATE TABLE IF NOT EXISTS instancias_meta (
+    instancia_id TEXT PRIMARY KEY,
+    phone_number_id TEXT NOT NULL DEFAULT '',
+    waba_id TEXT NOT NULL DEFAULT '',
+    access_token TEXT NOT NULL DEFAULT '',
+    app_secret TEXT NOT NULL DEFAULT '',
+    verify_token TEXT NOT NULL DEFAULT '',
+    numero_exibicao TEXT NOT NULL DEFAULT '',
+    nome_verificado TEXT NOT NULL DEFAULT '',
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_meta_phone ON instancias_meta(phone_number_id) WHERE phone_number_id <> '';
+
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL DEFAULT '',
@@ -456,6 +471,7 @@ const schemaPostgres = `
 CREATE TABLE IF NOT EXISTS instancias (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
+    tipo TEXT NOT NULL DEFAULT 'whatsapp',
     token TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL,
     historico_dias INTEGER NOT NULL DEFAULT 0,
@@ -583,6 +599,20 @@ CREATE TABLE IF NOT EXISTS midias_recebidas (
 );
 CREATE INDEX IF NOT EXISTS idx_midias_recebidas_instancia ON midias_recebidas(instancia_id, recebida_em DESC);
 
+CREATE TABLE IF NOT EXISTS instancias_meta (
+    instancia_id TEXT PRIMARY KEY,
+    phone_number_id TEXT NOT NULL DEFAULT '',
+    waba_id TEXT NOT NULL DEFAULT '',
+    access_token TEXT NOT NULL DEFAULT '',
+    app_secret TEXT NOT NULL DEFAULT '',
+    verify_token TEXT NOT NULL DEFAULT '',
+    numero_exibicao TEXT NOT NULL DEFAULT '',
+    nome_verificado TEXT NOT NULL DEFAULT '',
+    atualizado_em TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_meta_phone ON instancias_meta(phone_number_id) WHERE phone_number_id <> '';
+
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL DEFAULT '',
@@ -610,13 +640,17 @@ ON CONFLICT(id) DO NOTHING;
 `
 
 func (s *SQLStore) Criar(ctx context.Context, instancia models.Instancia) (models.Instancia, error) {
+	if instancia.Tipo == "" {
+		instancia.Tipo = models.TipoInstanciaWhatsApp
+	}
 	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO instancias (
-    id, nome, token, status, historico_dias, proxy_modo, proxy_url, presenca,
+    id, nome, tipo, token, status, historico_dias, proxy_modo, proxy_url, presenca,
     rejeitar_chamadas, mensagem_rejeitar_chamadas, marcar_lida_automatico, ignorar_grupos, ignorar_status,
     criado_em, atualizado_em
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
 		instancia.ID,
 		instancia.Nome,
+		instancia.Tipo,
 		instancia.Token,
 		instancia.Status,
 		instancia.HistoricoDias,
@@ -688,6 +722,7 @@ func (s *SQLStore) scanInstancia(scanner scannerInstancia) (models.Instancia, er
 	err := scanner.Scan(
 		&instancia.ID,
 		&instancia.Nome,
+		&instancia.Tipo,
 		&instancia.Token,
 		&instancia.Status,
 		&instancia.HistoricoDias,
@@ -1621,6 +1656,7 @@ func (s *SQLStore) garantirColunasInstancias() error {
 		{nome: "marcar_lida_automatico", query: `ALTER TABLE instancias ADD COLUMN marcar_lida_automatico BOOLEAN NOT NULL DEFAULT FALSE`},
 		{nome: "ignorar_grupos", query: `ALTER TABLE instancias ADD COLUMN ignorar_grupos BOOLEAN NOT NULL DEFAULT FALSE`},
 		{nome: "ignorar_status", query: `ALTER TABLE instancias ADD COLUMN ignorar_status BOOLEAN NOT NULL DEFAULT FALSE`},
+		{nome: "tipo", query: `ALTER TABLE instancias ADD COLUMN tipo TEXT NOT NULL DEFAULT 'whatsapp'`},
 	}
 	for _, coluna := range colunas {
 		if _, err := s.db.Exec(coluna.query); err != nil && !erroColunaDuplicada(err) {

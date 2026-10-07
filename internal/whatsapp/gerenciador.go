@@ -2157,6 +2157,17 @@ func primeiroValorNaoVazio(valores ...string) string {
 	return ""
 }
 
+// CarregarMidiaEnvio le a midia de um envio (arquivo_url, arquivo_base64 ou
+// caminho_local) e devolve os bytes, o nome do arquivo e o mime detectado.
+// Usado pela API oficial, que sobe a midia por conta propria.
+func CarregarMidiaEnvio(ctx context.Context, req models.EnvioMidiaRequest) ([]byte, string, string, error) {
+	dados, nomeArquivo, mimeCabecalho, err := carregarConteudoMidia(ctx, req)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return dados, nomeArquivo, detectarMimeType(nomeArquivo, primeiroValorNaoVazio(req.MimeType, mimeCabecalho), dados), nil
+}
+
 func carregarConteudoMidia(ctx context.Context, req models.EnvioMidiaRequest) ([]byte, string, string, error) {
 	if caminho := strings.TrimSpace(req.CaminhoLocal); caminho != "" {
 		dados, err := os.ReadFile(caminho)
@@ -3393,19 +3404,34 @@ func (g *GerenciadorInstancias) processarMidiaRecebida(instanciaID string, clien
 	if err != nil {
 		return nil, fmt.Errorf("erro ao baixar midia recebida: %w", err)
 	}
-	midia, err := g.salvarMidiaRecebida(instanciaID, evento, *info, dados)
+	midia, err := g.salvarMidiaRecebida(instanciaID, string(evento.Info.ID), evento.Info.Chat.String(), evento.Info.Sender.String(), evento.Info.Timestamp, *info, dados)
 	if err != nil {
 		return nil, err
 	}
 	return &midia, nil
 }
 
-func (g *GerenciadorInstancias) salvarMidiaRecebida(instanciaID string, evento *events.Message, info midiaMensagemRecebida, dados []byte) (models.MidiaRecebida, error) {
+// SalvarMidiaRecebidaExterna guarda uma midia que nao veio pelo whatsmeow (por
+// exemplo, baixada da API oficial da Meta) no mesmo lugar e formato das demais,
+// e devolve a midia pronta para AnexarMidiaAoPayload.
+func (g *GerenciadorInstancias) SalvarMidiaRecebidaExterna(instanciaID, mensagemID, chatJID, remetenteJID, tipo, mimeType, nomeArquivo string, recebidaEm time.Time, dados []byte) (models.MidiaRecebida, error) {
+	if g.midiaStore == nil {
+		return models.MidiaRecebida{}, fmt.Errorf("armazenamento de midias desativado")
+	}
+	return g.salvarMidiaRecebida(instanciaID, mensagemID, chatJID, remetenteJID, recebidaEm, midiaMensagemRecebida{Tipo: tipo, MimeType: mimeType, NomeArquivo: nomeArquivo}, dados)
+}
+
+// AnexarMidiaAoPayload coloca os dados da midia no payload do webhook de
+// mensagem, no mesmo formato usado pelas instancias por QR code.
+func (g *GerenciadorInstancias) AnexarMidiaAoPayload(dados map[string]interface{}, midia models.MidiaRecebida) {
+	g.anexarMidiaRecebidaAoPayload(dados, midia)
+}
+
+func (g *GerenciadorInstancias) salvarMidiaRecebida(instanciaID, mensagemID, chatJID, remetenteJID string, recebidaEm time.Time, info midiaMensagemRecebida, dados []byte) (models.MidiaRecebida, error) {
 	if len(dados) == 0 {
 		return models.MidiaRecebida{}, fmt.Errorf("midia recebida vazia")
 	}
 	agora := time.Now().UTC()
-	mensagemID := string(evento.Info.ID)
 	identificador := gerarIDMidiaRecebida(instanciaID, mensagemID, info.Tipo)
 	nomeBase := normalizarNomeArquivoMidiaRecebida(info.NomeArquivo, info.Tipo, info.MimeType)
 	nomeArquivo := nomeArquivoUnicoMidiaRecebida(nomeBase, mensagemID)
@@ -3438,8 +3464,8 @@ func (g *GerenciadorInstancias) salvarMidiaRecebida(instanciaID string, evento *
 		ID:             identificador,
 		InstanciaID:    instanciaID,
 		MensagemID:     mensagemID,
-		ChatJID:        evento.Info.Chat.String(),
-		RemetenteJID:   evento.Info.Sender.String(),
+		ChatJID:        chatJID,
+		RemetenteJID:   remetenteJID,
 		Tipo:           info.Tipo,
 		MimeType:       mimeType,
 		NomeArquivo:    nomeArquivo,
@@ -3448,7 +3474,7 @@ func (g *GerenciadorInstancias) salvarMidiaRecebida(instanciaID string, evento *
 		SHA256:         hex.EncodeToString(soma[:]),
 		Base64:         arquivoBase64,
 		DataURI:        dataURI,
-		RecebidaEm:     evento.Info.Timestamp.UTC(),
+		RecebidaEm:     recebidaEm.UTC(),
 		CriadaEm:       agora,
 	}
 	if g.midiaUploader != nil {

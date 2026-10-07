@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/store"
 	"dyalog-api-go/internal/whatsapp"
@@ -16,6 +17,52 @@ type MensagemService struct {
 	instanciaStore store.InstanciaStore
 	usoStore       store.UsoStore
 	gerenciador    *whatsapp.GerenciadorInstancias
+	meta           *meta.Enviador
+}
+
+// enviador e o que as rotas de envio usam. As instancias por QR code enviam
+// pelo whatsmeow (GerenciadorInstancias) e as da API oficial pela Meta
+// (meta.Enviador); o cliente da API usa as mesmas rotas para os dois.
+type enviador interface {
+	EnviarTexto(ctx context.Context, req models.EnvioTextoRequest) (models.ResultadoEnvio, error)
+	EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error)
+	ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error)
+	ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error)
+	EnviarPresenca(ctx context.Context, req models.EnvioPresencaRequest) (models.ResultadoPresenca, error)
+	MarcarLida(ctx context.Context, req models.MarcarLidaRequest) (models.ResultadoMarcarLida, error)
+	EnviarBotoes(ctx context.Context, req models.EnvioBotoesRequest) (models.ResultadoEnvio, error)
+	EnviarLista(ctx context.Context, req models.EnvioListaRequest) (models.ResultadoEnvio, error)
+	EnviarEnquete(ctx context.Context, req models.EnvioEnqueteRequest) (models.ResultadoEnvio, error)
+	EnviarCobrancaPix(ctx context.Context, req models.EnvioCobrancaPixRequest) (models.ResultadoEnvio, error)
+	EnviarLocalizacao(ctx context.Context, req models.EnvioLocalizacaoRequest) (models.ResultadoEnvio, error)
+	EnviarContato(ctx context.Context, req models.EnvioContatoRequest) (models.ResultadoEnvio, error)
+	EnviarImagem(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
+	EnviarAudio(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
+	EnviarDocumento(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
+	EnviarFigurinha(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
+	EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error)
+	EnviarCarrossel(ctx context.Context, req models.EnvioCarrosselRequest) (models.ResultadoEnvio, error)
+	PostarStatus(ctx context.Context, req models.EnvioStatusRequest) (models.ResultadoEnvio, error)
+	CriarLinkChamada(ctx context.Context, req models.LinkChamadaRequest) (models.LinkChamadaResultado, error)
+}
+
+var (
+	_ enviador = (*whatsapp.GerenciadorInstancias)(nil)
+	_ enviador = (*meta.Enviador)(nil)
+)
+
+// UsarMeta liga o envio pela API oficial para as instancias do tipo meta.
+func (s *MensagemService) UsarMeta(e *meta.Enviador) { s.meta = e }
+
+// enviadorPara escolhe por onde a instancia envia. Instancia que nao existe
+// segue para o whatsmeow, que ja responde com o erro certo.
+func (s *MensagemService) enviadorPara(ctx context.Context, instanciaID string) enviador {
+	if s.meta != nil {
+		if instancia, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err == nil && instancia.EhMeta() {
+			return s.meta
+		}
+	}
+	return s.gerenciador
 }
 
 func NovoMensagemService(instanciaStore store.InstanciaStore, usoStore store.UsoStore, gerenciador *whatsapp.GerenciadorInstancias) *MensagemService {
@@ -23,7 +70,7 @@ func NovoMensagemService(instanciaStore store.InstanciaStore, usoStore store.Uso
 }
 
 // registrarEnvio anota no historico de uso (painel) o envio que deu certo.
-// Uso: return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarX(ctx, req))
+// Uso: return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarX(ctx, req))
 func (s *MensagemService) registrarEnvio(instanciaID string) func(models.ResultadoEnvio, error) (models.ResultadoEnvio, error) {
 	return func(resultado models.ResultadoEnvio, err error) (models.ResultadoEnvio, error) {
 		if err == nil {
@@ -96,7 +143,7 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarTexto(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarTexto(ctx, req))
 }
 
 func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
@@ -110,7 +157,7 @@ func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarText
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EditarTexto(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EditarTexto(ctx, req))
 }
 
 func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
@@ -121,7 +168,7 @@ func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarM
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.ApagarMensagem(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).ApagarMensagem(ctx, req))
 }
 
 func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
@@ -135,7 +182,7 @@ func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirM
 	if req.Grupo && strings.TrimSpace(req.RemetenteJID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe remetente_jid ou participante para reagir mensagem de grupo", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.ReagirMensagem(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).ReagirMensagem(ctx, req))
 }
 
 func normalizarTextoCompat(req models.EnvioTextoRequest) models.EnvioTextoRequest {
@@ -284,7 +331,7 @@ func (s *MensagemService) EnviarPresenca(ctx context.Context, req models.EnvioPr
 	if !acaoPresencaGlobal(acao) && strings.TrimSpace(req.Numero) == "" && strings.TrimSpace(req.ChatJID) == "" {
 		return models.ResultadoPresenca{}, fmt.Errorf("%w: informe numero ou chat_jid", ErrEntradaInvalida)
 	}
-	resultado, err := s.gerenciador.EnviarPresenca(ctx, req)
+	resultado, err := s.enviadorPara(ctx, req.Instancia).EnviarPresenca(ctx, req)
 	if err != nil {
 		return models.ResultadoPresenca{}, err
 	}
@@ -346,7 +393,7 @@ func (s *MensagemService) MarcarLida(ctx context.Context, req models.MarcarLidaR
 	if req.MarcadaEmTime.IsZero() {
 		req.MarcadaEmTime = time.Now().UTC()
 	}
-	return s.gerenciador.MarcarLida(ctx, req)
+	return s.enviadorPara(ctx, req.Instancia).MarcarLida(ctx, req)
 }
 
 func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.EnvioLocalizacaoRequest) (models.ResultadoEnvio, error) {
@@ -363,7 +410,7 @@ func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.Envi
 	if req.Latitude == 0 && req.Longitude == 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe latitude e longitude", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarLocalizacao(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarLocalizacao(ctx, req))
 }
 
 func normalizarLocalizacaoCompat(req models.EnvioLocalizacaoRequest) models.EnvioLocalizacaoRequest {
@@ -412,7 +459,7 @@ func (s *MensagemService) EnviarContato(ctx context.Context, req models.EnvioCon
 			return models.ResultadoEnvio{}, fmt.Errorf("%w: contato %d precisa de nome e telefone, ou vcard", ErrEntradaInvalida, i+1)
 		}
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarContato(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarContato(ctx, req))
 }
 
 func normalizarContatoCompat(req models.EnvioContatoRequest) models.EnvioContatoRequest {
@@ -469,7 +516,7 @@ func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBoto
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, template, texto, buttons ou auto", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarBotoes(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarBotoes(ctx, req))
 }
 
 // Limites do menu single_select: ate 10 secoes com ate 10 linhas cada, 100 no
@@ -523,7 +570,7 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista_biz, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarLista(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarLista(ctx, req))
 }
 
 var tiposChavePixValidos = map[string]string{
@@ -564,7 +611,7 @@ func (s *MensagemService) EnviarCobrancaPix(ctx context.Context, req models.Envi
 	if req.Valor < 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: valor nao pode ser negativo", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarCobrancaPix(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarCobrancaPix(ctx, req))
 }
 
 func normalizarCobrancaPixCompat(req models.EnvioCobrancaPixRequest) models.EnvioCobrancaPixRequest {
@@ -611,7 +658,7 @@ func (s *MensagemService) EnviarEnquete(ctx context.Context, req models.EnvioEnq
 	if req.OpcoesSelecionaveis < 0 || req.OpcoesSelecionaveis > len(req.Opcoes) {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: opcoes_selecionaveis deve estar entre 1 e a quantidade de opcoes", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.gerenciador.EnviarEnquete(ctx, req))
+	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarEnquete(ctx, req))
 }
 
 func normalizarEnqueteCompat(req models.EnvioEnqueteRequest) models.EnvioEnqueteRequest {
@@ -848,31 +895,31 @@ func textoMensagemLista(req models.EnvioListaRequest) string {
 }
 
 func (s *MensagemService) EnviarImagem(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	return s.enviarMidia(ctx, req, s.gerenciador.EnviarImagem)
+	return s.enviarMidia(ctx, req, enviador.EnviarImagem)
 }
 
 func (s *MensagemService) EnviarAudio(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	return s.enviarMidia(ctx, req, s.gerenciador.EnviarAudio)
+	return s.enviarMidia(ctx, req, enviador.EnviarAudio)
 }
 
 func (s *MensagemService) EnviarDocumento(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	return s.enviarMidia(ctx, req, s.gerenciador.EnviarDocumento)
+	return s.enviarMidia(ctx, req, enviador.EnviarDocumento)
 }
 
 func (s *MensagemService) EnviarFigurinha(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error) {
-	return s.enviarMidia(ctx, req, s.gerenciador.EnviarFigurinha)
+	return s.enviarMidia(ctx, req, enviador.EnviarFigurinha)
 }
 
-func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidiaRequest, fn func(context.Context, models.EnvioMidiaRequest) (models.ResultadoEnvio, error)) (models.ResultadoEnvio, error) {
+func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidiaRequest, fn func(enviador, context.Context, models.EnvioMidiaRequest) (models.ResultadoEnvio, error)) (models.ResultadoEnvio, error) {
 	if err := s.validarDestino(ctx, req.Instancia, req.Numero, req.ChatJID); err != nil {
 		return models.ResultadoEnvio{}, err
 	}
 	if req.ArquivoURL == "" && req.CaminhoLocal == "" && req.ArquivoBase64 == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe arquivo_url, arquivo_base64 ou caminho_local", ErrEntradaInvalida)
 	}
-	resultado, err := fn(ctx, req)
+	resultado, err := fn(s.enviadorPara(ctx, req.Instancia), ctx, req)
 	if err != nil {
-		if errors.Is(err, ErrEntradaInvalida) || errors.Is(err, whatsapp.ErrMidiaInvalida) {
+		if errors.Is(err, ErrEntradaInvalida) || errors.Is(err, whatsapp.ErrMidiaInvalida) || errors.Is(err, meta.ErrNaoSuportado) {
 			return models.ResultadoEnvio{}, fmt.Errorf("%w: %v", ErrEntradaInvalida, err)
 		}
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao preparar envio de midia: %w", err)

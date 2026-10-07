@@ -16,6 +16,11 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 	auth := middlewareAutenticacaoAPI(cfg, authService, apiHandler.limiteFalhasAuth)
 	proxyReplica := middlewareProxyReplica(gerenciador)
 
+	// Webhooks da API oficial: publicos, a Meta nao manda o nosso token. A
+	// seguranca vem do verify_token (GET) e da assinatura com o App Secret (POST).
+	engine.GET("/webhook/meta/:id", apiHandler.VerificarWebhookMeta)
+	engine.POST("/webhook/meta/:id", apiHandler.ReceberWebhookMeta)
+
 	engine.POST("/api/v1/auth/login", apiHandler.LoginDashboard)
 	engine.POST("/api/v1/auth/logout", apiHandler.LogoutDashboard)
 	engine.POST("/user/presence", auth, proxyReplica, apiHandler.EnviarPresenca)
@@ -49,6 +54,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/instancias/:id/conectar", apiHandler.ConectarInstancia)
 		apiAuth.POST("/instancias/:id/pairing-code", apiHandler.SolicitarCodigoPareamentoInstancia)
 		apiAuth.POST("/instancias/:id/desconectar", apiHandler.DesconectarInstancia)
+		apiAuth.PUT("/instancias/:id/meta", apiHandler.ConfigurarMetaInstancia)
 		apiAuth.GET("/instancias/:id/status", apiHandler.StatusInstancia)
 		apiAuth.GET("/instancias/:id/qrcode", apiHandler.QRCodeInstancia)
 		apiAuth.GET("/instancias/:id/qrcode/imagem", apiHandler.QRCodeInstanciaImagem)
@@ -88,6 +94,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/batepapo/enviar/documento", apiHandler.EnviarDocumento)
 		apiAuth.POST("/batepapo/enviar/figurinha", apiHandler.EnviarFigurinha)
 		apiAuth.POST("/batepapo/enviar/evento", apiHandler.EnviarEvento)
+		apiAuth.POST("/batepapo/enviar/template", apiHandler.EnviarTemplate)
 		apiAuth.POST("/batepapo/enviar/carrossel", apiHandler.EnviarCarrossel)
 		apiAuth.POST("/status/postar", apiHandler.PostarStatus)
 

@@ -22,6 +22,7 @@ const (
 type Instancia struct {
 	ID                       string    `json:"id" db:"id"`
 	Nome                     string    `json:"nome" db:"nome"`
+	Tipo                     string    `json:"tipo" db:"tipo"`
 	Token                    string    `json:"token,omitempty" db:"token"`
 	Status                   string    `json:"status" db:"status"`
 	HistoricoDias            int       `json:"historico_dias" db:"historico_dias"`
@@ -38,6 +39,10 @@ type Instancia struct {
 	// Perfil so vem preenchido pela replica que mantem a instancia conectada.
 	Perfil *PerfilInstancia `json:"perfil,omitempty" db:"-"`
 }
+
+// EhMeta indica instancia da API oficial. Instancias antigas, sem tipo, sao
+// whatsapp.
+func (i Instancia) EhMeta() bool { return i.Tipo == TipoInstanciaMeta }
 
 type ConfiguracaoAvancadaInstancia struct {
 	ManterOnline             bool   `json:"manter_online"`
