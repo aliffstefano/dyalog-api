@@ -104,6 +104,12 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 				s.processarMensagem(ctx, instancia, cred, valor, mensagem)
 			}
 			for _, status := range valor.Status {
+				// A Meta aceita o envio (devolve wamid) e so avisa depois, por
+				// aqui, que nao entregou; fica no log para dar para investigar.
+				if status.Status == "failed" {
+					erros, _ := json.Marshal(status.Erros)
+					fmt.Printf("meta: mensagem %s para %s nao entregue na instancia %s: %s\n", status.ID, status.Destinatario, instancia.ID, erros)
+				}
 				s.dispatcher.DispararEvento(ctx, instancia.ID, models.EventoWebhookRecibos, meta.DadosRecibo(status))
 			}
 		}
