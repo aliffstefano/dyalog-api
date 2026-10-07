@@ -5,12 +5,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/static/img/dyalog-connect.svg" type="image/svg+xml">
   <title>{{ .Titulo }}</title>
   <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('tema')||'');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007b">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -43,7 +44,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <div class="dc-layout">
     <aside class="dc-sidebar">
       <div class="dc-marca">
-        <img src="/static/img/dyalog.png" alt="" class="dc-marca-logo">
+        <img src="/static/img/dyalog-connect.svg" alt="" class="dc-marca-logo">
         <div><strong>Dyalog Connect</strong><span>Painel de instancias</span></div>
       </div>
       <nav class="dc-nav hidden" id="nav-instancia" aria-label="Menu da instancia">

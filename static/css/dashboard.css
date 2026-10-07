@@ -1097,13 +1097,49 @@ pre {
     var(--panel);
 }
 
-.login-logo-img {
-  display: block;
-  width: min(260px, 70vw);
-  height: auto;
-  margin: 0 auto 26px;
-  object-fit: contain;
-  filter: drop-shadow(0 18px 42px rgba(25, 149, 189, 0.26));
+.login-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.login-marca-icone {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 14px 32px rgba(20, 184, 217, 0.28));
+}
+
+.login-marca-nome {
+  display: grid;
+  line-height: 1;
+  text-align: left;
+}
+
+.login-marca-nome strong {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* "Connect" no mesmo degrade do simbolo */
+.login-marca-nome span {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #4ade6b, #14b8d9 55%, #1d4ed8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.login-slogan {
+  margin: 12px 0 24px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .login-card h1 {
