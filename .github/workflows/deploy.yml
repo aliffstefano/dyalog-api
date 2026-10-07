@@ -6,9 +6,6 @@ name: Deploy
 # Hub como latest e com uma tag datada (para voltar atras com
 # DYALOG_IMAGE_TAG) -> atualiza o servico no Swarm. O rollback em caso de falha
 # de saude e feito pelo proprio Swarm (update_config failure_action: rollback).
-#
-# Os commits que o workflow "Auto-update whatsmeow" faz na main usam o
-# GITHUB_TOKEN e por isso nao disparam este workflow: aquele ja publica sozinho.
 on:
   push:
     branches: [main]
