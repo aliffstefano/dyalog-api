@@ -96,6 +96,8 @@ func dicaErro(codigo int) string {
 		return "numero fora da lista de teste do app; adicione o destinatario no painel da Meta (numero do Brasil: a Meta pode guardar sem o 9, use o wa_id que chega no webhook)"
 	case 132001:
 		return "template nao existe ou nao foi aprovado neste idioma"
+	case 130497:
+		return "a conta da Meta esta impedida de enviar para esse pais; veja as restricoes no Gerenciador do WhatsApp (numero de teste +1 555 costuma ter essa limitacao)"
 	case 131026:
 		return "o numero nao tem WhatsApp ou nao pode receber a mensagem"
 	default:
