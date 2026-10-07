@@ -2337,12 +2337,20 @@ body::before {
 }
 
 .dc-segmentos label {
+  position: relative;
   flex: 1;
 }
 
+/* O radio fica escondido dentro do proprio botao: solto, ele ia parar fora do
+   modal e o navegador rolava a tela para o lado ao marca-lo. */
 .dc-segmentos input {
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
+  cursor: pointer;
 }
 
 .dc-segmentos span {
@@ -2978,4 +2986,30 @@ body::before {
 
 .dc-aguardando.erro {
   color: var(--danger);
+}
+
+/* Instancia da API oficial (Meta): esconde o que so existe por QR code e
+   mostra o cartao com os dados da Meta. */
+.eh-meta .so-qr {
+  display: none !important;
+}
+
+.dc-inst:not(.eh-meta) .so-meta {
+  display: none;
+}
+
+.dc-selo.dc-selo-oficial {
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.dc-dados.dc-dados-meta {
+  margin-bottom: 14px;
+}
+
+.dc-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  word-break: break-all;
 }

@@ -819,10 +819,85 @@ go run ./cmd/api
 Campos:
 
 - obrigatorio: `nome`
+- opcional: `tipo`: `whatsapp` (padrao, conecta por QR code) ou `meta` (API oficial, ver abaixo)
+- opcional, so com `tipo: "meta"`: `meta` com `phone_number_id`, `access_token`, `waba_id` e `app_secret`
 
 ```json
 {
   "nome": "Atendimento Principal"
+}
+```
+
+## API oficial da Meta (WhatsApp Cloud API)
+
+Uma instancia do tipo `meta` envia pela API oficial em vez do QR code. As rotas de envio sao **as mesmas** (`/batepapo/enviar/texto`, `imagem`, `botoes`, `lista`...), entao trocar uma instancia de QR para oficial nao muda nada no n8n. Os webhooks de mensagens e recibos tambem chegam no mesmo formato, com `origem: "meta"`.
+
+### Criar
+
+Os dados ficam no Meta for Developers, em WhatsApp > Configuracao da API. Use um **token permanente de Usuario do Sistema**: o token temporario da pagina de teste expira em 24h.
+
+```json
+POST /api/v1/instancias
+{
+  "nome": "Atendimento Oficial",
+  "tipo": "meta",
+  "meta": {
+    "phone_number_id": "1347474168448146",
+    "waba_id": "OPCIONAL",
+    "access_token": "TOKEN_PERMANENTE",
+    "app_secret": "APP_SECRET_DO_APP"
+  }
+}
+```
+
+As credenciais sao validadas na Meta antes de criar. Credencial errada devolve 400 com o motivo e a instancia nao e criada. O `access_token` e o `app_secret` nunca voltam nas respostas.
+
+### `PUT /api/v1/instancias/:id/meta`
+
+Troca as credenciais. Campos vazios mantem o valor salvo. Tambem aceita `verify_token`. Tudo e validado na Meta antes de salvar.
+
+### Receber mensagens (webhook da Meta)
+
+O `GET /api/v1/instancias/:id/status` da instancia oficial traz `webhook_url` e `webhook_verify_token`. Eles tambem aparecem no painel, em Configuracoes > API oficial. No app da Meta, em WhatsApp > Configuracao > Webhook:
+
+1. Callback URL: o `webhook_url` (`https://SEU_DOMINIO/webhook/meta/ID_DA_INSTANCIA`)
+2. Verify token: o `webhook_verify_token`
+3. Assine o campo `messages`
+
+Com `app_secret` salvo, a API confere a assinatura `X-Hub-Signature-256` de cada webhook e recusa os que nao vieram da Meta. As midias recebidas sao baixadas e anexadas como nas instancias por QR code, e reentregas da Meta nao geram evento duplicado.
+
+### O que funciona em cada tipo
+
+| Envio | QR code | API oficial |
+|---|---|---|
+| Texto, imagem, audio, video, documento, figurinha | sim | sim |
+| Localizacao, contato, reacao, marcar como lida | sim | sim |
+| Botoes de resposta (ate 3) | sim | sim |
+| Botao de link | sim | sim (1 botao, sem misturar com resposta) |
+| Botao de ligar / copiar | sim | so dentro de template aprovado |
+| Lista | so como texto | **sim** (ate 10 linhas no total) |
+| Template (`/batepapo/enviar/template`) | nao | sim |
+| Enquete, evento, carrossel, status, Pix, link de chamada | sim | nao (422 `nao_suportado_api_oficial`) |
+| Editar/apagar mensagem, presenca (digitando) | sim | nao |
+| Grupos | sim | nao |
+
+**Janela de 24h:** na API oficial, mensagem livre so pode ser enviada ate 24h depois da ultima mensagem do cliente. Fora disso a API devolve 422 `fora_janela_24h` e o envio tem que ser por template.
+
+### `POST /api/v1/batepapo/enviar/template`
+
+Envia um modelo aprovado na Meta. So existe nas instancias oficiais.
+
+- obrigatorio: `numero` e `nome` (nome do template)
+- opcional: `idioma` (padrao `pt_BR`)
+- opcional: `parametros`: lista de textos para `{{1}}`, `{{2}}`... do corpo
+- opcional: `componentes`: formato cru da Meta (header com midia, botoes). Quando informado, `parametros` e ignorado
+
+```json
+{
+  "numero": "5567999440667",
+  "nome": "jaspers_market_order_confirmation_v1",
+  "idioma": "en_US",
+  "parametros": ["John Doe", "123456", "Oct 7, 2026"]
 }
 ```
 

@@ -487,6 +487,7 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 	return map[string]interface{}{
 		"id":                    instancia.ID,
 		"nome":                  instancia.Nome,
+		"tipo":                  models.TipoInstanciaWhatsApp,
 		"token":                 instancia.Token,
 		"status":                status,
 		"erro":                  info.UltimoErro,

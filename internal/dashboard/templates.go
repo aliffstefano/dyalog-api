@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007c">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261008">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -151,6 +151,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
                 <h1 id="instancia-titulo">-</h1>
                 <span id="status-badge" class="status-badge neutro">-</span>
                 <span id="inst-business" class="dc-selo hidden">Business</span>
+                <span id="inst-oficial" class="dc-selo dc-selo-oficial hidden">API oficial</span>
               </div>
               <p id="inst-perfil" class="dc-inst-perfil">Conecte para ver o perfil</p>
               <div class="dc-token">
@@ -201,15 +202,30 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
           <!-- Configuracoes -->
           <section class="dc-aba-painel hidden" data-painel-inst="config">
+            <article class="dc-card so-meta" id="card-meta">
+              <div class="dc-card-topo"><h3>API oficial (Meta)</h3><button class="ghost small" onclick="abrirModal('meta')">Atualizar credenciais</button></div>
+              <dl class="dc-dados dc-dados-meta">
+                <div><dt>Numero</dt><dd id="meta-numero">-</dd></div>
+                <div><dt>Nome verificado</dt><dd id="meta-nome">-</dd></div>
+                <div><dt>Qualidade</dt><dd id="meta-qualidade">-</dd></div>
+                <div><dt>Phone number ID</dt><dd id="meta-phone-id">-</dd></div>
+              </dl>
+              <p class="dc-rotulo">Webhook (cole em WhatsApp &gt; Configuracao &gt; Webhook no painel da Meta e assine o campo <code>messages</code>)</p>
+              <div class="dc-lista">
+                <div class="dc-config-linha"><div><strong>URL de callback</strong><span class="dc-mono" id="meta-webhook-url">-</span></div><button class="ghost small" onclick="copiarTexto('meta-webhook-url')">Copiar</button></div>
+                <div class="dc-config-linha"><div><strong>Token de verificacao</strong><span class="dc-mono" id="meta-verify-token">-</span></div><button class="ghost small" onclick="copiarTexto('meta-verify-token')">Copiar</button></div>
+              </div>
+              <p class="helper-text" id="meta-aviso-secret"></p>
+            </article>
             <article class="dc-card">
               <div class="dc-card-topo"><h3>Comportamento</h3><span class="helper-text">Presenca, leitura, chamadas e filtros de webhook.</span></div>
               <form id="form-avancado" class="dc-form-config">
                 <div class="dc-opcoes">
-                  <label class="dc-opcao"><input type="checkbox" id="adv-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao so-qr"><input type="checkbox" id="adv-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
                   <label class="dc-opcao"><input type="checkbox" id="adv-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
-                  <label class="dc-opcao"><input type="checkbox" id="adv-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
-                  <label class="dc-opcao"><input type="checkbox" id="adv-ignorar-status"><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
-                  <label class="dc-opcao"><input type="checkbox" id="adv-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao so-qr"><input type="checkbox" id="adv-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao so-qr"><input type="checkbox" id="adv-ignorar-status"><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+                  <label class="dc-opcao so-qr"><input type="checkbox" id="adv-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
                 </div>
                 <label class="dc-campo hidden" id="adv-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="adv-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label>
                 <div class="dc-form-rodape">
@@ -221,9 +237,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
             <article class="dc-card">
               <div class="dc-card-topo"><h3>Conexao e acesso</h3></div>
               <div class="dc-lista">
-                <div class="dc-config-linha"><div><strong>Proxy</strong><span id="config-proxy">-</span></div><button class="ghost small" id="botao-config-proxy" onclick="abrirModal('proxy')">Alterar</button></div>
+                <div class="dc-config-linha so-qr"><div><strong>Proxy</strong><span id="config-proxy">-</span></div><button class="ghost small" id="botao-config-proxy" onclick="abrirModal('proxy')">Alterar</button></div>
                 <div class="dc-config-linha"><div><strong>Token de acesso</strong><span>Usado nas integracoes para enviar por esta instancia.</span></div><button class="ghost small" id="botao-config-token" onclick="abrirModal('token')">Trocar</button></div>
-                <div class="dc-config-linha"><div><strong>Historico ao conectar</strong><span id="config-historico">-</span></div><button class="ghost small" id="botao-config-historico" onclick="abrirModal('historico')">Alterar</button></div>
+                <div class="dc-config-linha so-qr"><div><strong>Historico ao conectar</strong><span id="config-historico">-</span></div><button class="ghost small" id="botao-config-historico" onclick="abrirModal('historico')">Alterar</button></div>
               </div>
             </article>
             <article class="dc-card dc-perigo so-master">
@@ -235,8 +251,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
           <section class="dc-aba-painel hidden" data-painel-inst="ferramentas">
             <div class="dc-ferramentas">
               <button class="dc-ferramenta" id="botao-enviar-texto" onclick="abrirModal('texto')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-mensagem"/></svg></span><strong>Enviar mensagem</strong><span>Teste um envio de texto por esta instancia.</span></button>
-              <button class="dc-ferramenta" id="botao-teste-chamada" onclick="abrirModal('chamada')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-telefone"/></svg></span><strong>Teste de chamada</strong><span>Ligacao de voz pelo navegador.</span></button>
-              <button class="dc-ferramenta" id="botao-pairing" onclick="abrirModal('pairing')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-celular"/></svg></span><strong>Codigo de pareamento</strong><span>Conectar sem QR code, digitando um codigo no celular.</span></button>
+              <button class="dc-ferramenta so-qr" id="botao-teste-chamada" onclick="abrirModal('chamada')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-telefone"/></svg></span><strong>Teste de chamada</strong><span>Ligacao de voz pelo navegador.</span></button>
+              <button class="dc-ferramenta so-qr" id="botao-pairing" onclick="abrirModal('pairing')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-celular"/></svg></span><strong>Codigo de pareamento</strong><span>Conectar sem QR code, digitando um codigo no celular.</span></button>
             </div>
           </section>
         </article>
@@ -322,9 +338,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'nova-instancia': {
       kicker: 'Configure tudo antes de criar', titulo: 'Nova instancia', semInstancia: true, largo: true,
-      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
+      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" class="so-qr" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label><p class="dc-rotulo">Tipo de conexao</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-tipo" value="whatsapp" checked><span>QR code</span></label><label><input type="radio" name="ni-tipo" value="meta"><span>API oficial (Meta)</span></label></div><div id="ni-meta-campos" class="hidden"><p class="helper-text">Dados do app no Meta for Developers (WhatsApp &gt; Configuracao da API). Use um token permanente de Usuario do Sistema: o temporario expira em 24h.</p><div class="form-grid"><label><span>Phone number ID <em>*</em></span><input type="text" id="ni-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="ni-meta-waba" autocomplete="off"></label></div><label><span>Access token <em>*</em></span><input type="password" id="ni-meta-token" autocomplete="new-password"></label><label><span>App secret (recomendado)</span><input type="password" id="ni-meta-secret" autocomplete="new-password" placeholder="Confere a assinatura dos webhooks da Meta"></label></div></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao so-qr"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label class="so-qr"><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
       init: function() {
         ['ni-webhook-ativo','ni-proxy-ativo','ni-rejeitar-chamadas'].forEach(id => document.getElementById(id).addEventListener('change', atualizarNovaInstancia));
+        document.querySelectorAll('input[name="ni-tipo"]').forEach(el => el.addEventListener('change', atualizarNovaInstancia));
         passoNovaInstancia('geral');
         document.getElementById('modal-form').addEventListener('input', () => { document.getElementById('mf-feedback').className = 'modal-feedback hidden'; });
         atualizarNovaInstancia();
@@ -386,6 +403,32 @@ const paginaInicialHTML = `<!DOCTYPE html>
           btn.textContent = 'Novo codigo';
         } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; btn.textContent = 'Tentar novamente'; }
         finally { btn.disabled = false; }
+      }
+    },
+    meta: {
+      kicker: 'API oficial', titulo: 'Credenciais da Meta',
+      html: '<form id="modal-form" class="stack-form"><p class="helper-text">Deixe em branco o que nao quiser trocar. Tudo e validado na Meta antes de salvar.</p><label><span>Phone number ID</span><input type="text" id="mf-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="mf-meta-waba" autocomplete="off"></label><label><span>Access token</span><input type="password" id="mf-meta-token" autocomplete="new-password" placeholder="Token permanente de Usuario do Sistema"></label><label><span>App secret</span><input type="password" id="mf-meta-secret" autocomplete="new-password"></label><label><span>Token de verificacao do webhook</span><input type="text" id="mf-meta-verify" autocomplete="off"></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Validar e salvar</button></div></form>',
+      init: function() {
+        const m = estadoUI.metaSelecionada || {};
+        document.getElementById('mf-meta-phone').placeholder = m.phone_number_id || '';
+        document.getElementById('mf-meta-waba').placeholder = m.waba_id || '';
+        document.getElementById('mf-meta-verify').placeholder = m.webhook_verify_token || '';
+        document.getElementById('mf-meta-token').focus();
+      },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        const v = id => document.getElementById(id).value.trim();
+        btn.disabled = true; btn.textContent = 'Validando na Meta...'; fb.className = 'modal-feedback hidden';
+        try {
+          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/meta', { method:'PUT', body: JSON.stringify({
+            phone_number_id: v('mf-meta-phone'), waba_id: v('mf-meta-waba'), access_token: v('mf-meta-token'),
+            app_secret: v('mf-meta-secret'), verify_token: v('mf-meta-verify') }) });
+          mostrarToast('Credenciais validadas e salvas.', 'success');
+          fecharModal();
+          await atualizarInstanciaSelecionada(true);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }
+        finally { btn.disabled = false; btn.textContent = 'Validar e salvar'; }
       }
     },
     token: {
@@ -937,7 +980,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       return '<button class="dc-instancia" onclick="selecionarInstancia(\''+textoSeguro(i.id)+'\')">' +
         '<span class="dc-instancia-topo"><span class="dc-avatar dc-avatar-p'+(i.status === 'conectada' ? ' online' : '')+'">'+avatarHTML(perfil, i.nome)+'</span>' +
           '<span class="mini-status '+classeStatus(i.status)+'">'+textoSeguro(rotuloStatus(i.status))+'</span></span>' +
-        '<strong>'+textoSeguro(i.nome)+(perfil.business ? ' <span class="dc-selo">Business</span>' : '')+'</strong>' +
+        '<strong>'+textoSeguro(i.nome)+(i.tipo === 'meta' ? ' <span class="dc-selo dc-selo-oficial">API oficial</span>' : perfil.business ? ' <span class="dc-selo">Business</span>' : '')+'</strong>' +
         '<span class="dc-instancia-id">'+linha+'</span>' +
         '<span class="dc-instancia-rodape"><span>'+numeroUso(uso.envios)+' envios hoje</span><svg class="dc-ico"><use href="#i-seta"/></svg></span>' +
       '</button>';
@@ -1160,7 +1203,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const conectada = d.status === 'conectada';
     document.getElementById('inst-avatar').innerHTML = d.id ? avatarHTML(perfil, d.nome) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
     document.getElementById('inst-avatar').classList.toggle('online', conectada);
-    document.getElementById('inst-business').classList.toggle('hidden', !perfil.business);
+    const oficial = d.tipo === 'meta';
+    document.getElementById('inst-business').classList.toggle('hidden', !perfil.business || oficial);
+    document.getElementById('inst-oficial').classList.toggle('hidden', !oficial);
+    document.querySelector('.dc-inst').classList.toggle('eh-meta', oficial);
     const partes = [perfil.nome_empresa || perfil.nome, formatarTelefone(perfil.numero)].filter(Boolean);
     document.getElementById('inst-perfil').textContent = partes.length ? partes.join(' · ') : 'Conecte para ver o perfil';
     const navAvatar = document.getElementById('nav-inst-avatar');
@@ -1170,9 +1216,29 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('nav-inst-sub').textContent = perfil.nome_empresa || perfil.nome || rotuloStatus(d.status);
     document.getElementById('botao-conectar').classList.toggle('hidden', conectada);
     document.getElementById('botao-desconectar').classList.toggle('hidden', !conectada || !d.id);
-    document.getElementById('botao-conectar').textContent = ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';
+    document.getElementById('botao-conectar').textContent = oficial ? 'Validar credenciais' : ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';
+    if (oficial) document.getElementById('botao-desconectar').classList.add('hidden');
+    if (oficial && d.webhook_url !== undefined) renderizarCartaoMeta(d);
     document.getElementById('config-proxy').textContent = d.proxy_configurado ? 'Proprio: ' + (d.proxy_url || '').replace(/\/\/[^@]*@/, '//***@') : 'Usa o proxy global do sistema (se houver).';
     document.getElementById('config-historico').textContent = d.historico_dias ? d.historico_dias + ' dias de historico ao conectar.' : 'Sem historico ao conectar.';
+  }
+  // Cartao da API oficial: numero, qualidade e o que vai no painel da Meta.
+  function renderizarCartaoMeta(d) {
+    estadoUI.metaSelecionada = d;
+    const definir = (id, valor) => { document.getElementById(id).textContent = valor || '-'; };
+    definir('meta-numero', d.numero_exibicao);
+    definir('meta-nome', d.nome_verificado);
+    definir('meta-qualidade', ({GREEN:'Alta', YELLOW:'Media', RED:'Baixa'})[d.qualidade] || d.qualidade);
+    definir('meta-phone-id', d.phone_number_id);
+    definir('meta-webhook-url', d.webhook_url);
+    definir('meta-verify-token', d.webhook_verify_token);
+    document.getElementById('meta-aviso-secret').textContent = d.app_secret_salvo ? '' :
+      'Sem App secret salvo: a assinatura dos webhooks nao e conferida. Cadastre em Atualizar credenciais.';
+  }
+  async function copiarTexto(id) {
+    const texto = document.getElementById(id).textContent;
+    try { await navigator.clipboard.writeText(texto); mostrarToast('Copiado.', 'success'); }
+    catch (err) { mostrarToast('Nao foi possivel copiar.', 'error'); }
   }
   function alternarTokenVisivel() {
     const el = document.getElementById('detalhe-token');
@@ -1186,6 +1252,14 @@ const paginaInicialHTML = `<!DOCTYPE html>
   }
   async function abrirConexao() {
     if (!estadoUI.instanciaSelecionada) return;
+    if (estadoUI.metaSelecionada && estadoUI.metaSelecionada.id === estadoUI.instanciaSelecionada) {
+      try {
+        await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/conectar', { method:'POST' });
+        mostrarToast('Credenciais validadas na Meta.', 'success');
+      } catch (err) { mostrarToast(err.message, 'error'); }
+      await atualizarInstanciaSelecionada(true);
+      return;
+    }
     estadoUI.qrAtual = '';
     abrirModal('conectar');
     if (estadoUI.statusSelecionada === 'aguardando_qrcode') { await mostrarQRCodeSelecionado(); iniciarPollingConexao(); return; }
@@ -1417,6 +1491,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('ni-tag-webhook').classList.toggle('hidden', !webhook);
     document.getElementById('ni-tag-proxy').classList.toggle('hidden', !proxy);
     document.getElementById('ni-mensagem-wrap').classList.toggle('hidden', !document.getElementById('ni-rejeitar-chamadas').checked);
+    const meta = tipoNovaInstancia() === 'meta';
+    document.getElementById('ni-meta-campos').classList.toggle('hidden', !meta);
+    document.getElementById('modal-form').classList.toggle('eh-meta', meta);
+    document.getElementById('mf-submit').textContent = meta ? 'Validar e criar' : 'Criar instancia';
+  }
+  function tipoNovaInstancia() {
+    return (document.querySelector('input[name="ni-tipo"]:checked') || {}).value || 'whatsapp';
   }
   function gerarTokenNovaInstancia() {
     const bytes = new Uint8Array(24);
@@ -1434,14 +1515,22 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const webhook = marcado('ni-webhook-ativo');
     const eventos = Array.from(document.querySelectorAll('.ni-evento:checked')).map(el => el.value);
     if (webhook && (!valor('ni-webhook-url') || !eventos.length)) return falhar('webhook', 'Informe a URL e ao menos um evento do webhook.');
-    const proxy = marcado('ni-proxy-ativo');
+    const meta = tipoNovaInstancia() === 'meta';
+    if (meta && (!valor('ni-meta-phone') || !document.getElementById('ni-meta-token').value.trim())) return falhar('geral', 'Informe o Phone number ID e o access token da Meta.');
+    const proxy = !meta && marcado('ni-proxy-ativo');
     if (proxy && (!valor('ni-proxy-host') || !valor('ni-proxy-porta'))) return falhar('proxy', 'Informe host e porta do proxy.');
 
-    btn.disabled = true; btn.textContent = 'Criando...'; fb.className = 'modal-feedback hidden';
+    btn.disabled = true; btn.textContent = meta ? 'Validando na Meta...' : 'Criando...'; fb.className = 'modal-feedback hidden';
     let id = '';
     const pendencias = [];
     try {
-      const r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify({ nome }) });
+      const corpo = { nome };
+      if (meta) {
+        corpo.tipo = 'meta';
+        corpo.meta = { phone_number_id: valor('ni-meta-phone'), waba_id: valor('ni-meta-waba'),
+          access_token: document.getElementById('ni-meta-token').value.trim(), app_secret: document.getElementById('ni-meta-secret').value.trim() };
+      }
+      const r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify(corpo) });
       if (!r) return;
       id = r.dados.id;
       const base = '/api/v1/instancias/' + id;
@@ -1455,7 +1544,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         manter_online: marcado('ni-manter-online'), rejeitar_chamadas: marcado('ni-rejeitar-chamadas'),
         mensagem_rejeitar_chamadas: valor('ni-mensagem-rejeitar'), marcar_lida_automatico: marcado('ni-marcar-lida'),
         ignorar_grupos: marcado('ni-ignorar-grupos'), ignorar_status: marcado('ni-ignorar-status') });
-      const dias = parseInt(valor('ni-historico')) || 0;
+      const dias = meta ? 0 : parseInt(valor('ni-historico')) || 0;
       if (dias > 0) await etapa('Historico', base + '/historico', 'PUT', { dias });
       if (webhook) await etapa('Webhook', base + '/webhooks', 'POST', { nome: 'Principal', url: valor('ni-webhook-url'), eventos });
       if (proxy) {
@@ -1467,12 +1556,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
     } catch (err) {
       fb.className = 'modal-feedback error'; fb.textContent = 'Erro ao criar: ' + err.message;
       return;
-    } finally { btn.disabled = false; btn.textContent = 'Criar instancia'; }
+    } finally { btn.disabled = false; btn.textContent = meta ? 'Validar e criar' : 'Criar instancia'; }
     fecharModal();
     await carregarTudo(true);
     if (pendencias.length) mostrarToast('Instancia criada, mas falhou: ' + pendencias.join(' | ') + '. Ajuste na pagina da instancia.', 'error');
-    else mostrarToast('Instancia criada. Conecte para ler o QR code.', 'success');
+    else mostrarToast(meta ? 'Instancia oficial criada. Cadastre a URL de webhook na Meta (aba Configuracoes).' : 'Instancia criada. Conecte para ler o QR code.', 'success');
     await selecionarInstancia(id);
+    if (meta) trocarAbaInstancia('config');
   }
 
 

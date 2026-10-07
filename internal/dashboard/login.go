@@ -12,7 +12,7 @@ const paginaLoginHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261007c">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261008">
 </head>
 <body>
   <main class="login-shell">
