@@ -36,7 +36,8 @@ type Instancia struct {
 	IgnorarStatus            bool      `json:"ignorar_status" db:"ignorar_status"`
 	CriadoEm                 time.Time `json:"criado_em" db:"criado_em"`
 	AtualizadoEm             time.Time `json:"atualizado_em" db:"atualizado_em"`
-	// Perfil so vem preenchido pela replica que mantem a instancia conectada.
+	// Perfil vem da replica dona da sessao ou, nas demais, do ultimo salvo no
+	// banco.
 	Perfil *PerfilInstancia `json:"perfil,omitempty" db:"-"`
 }
 

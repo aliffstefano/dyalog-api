@@ -19,6 +19,7 @@ import (
 type InstanciaService struct {
 	store       store.InstanciaStore
 	proxyStore  store.ProxyStore
+	perfilStore store.PerfilStore
 	gerenciador *whatsapp.GerenciadorInstancias
 	// meta, metaStore e baseURL atendem as instancias da API oficial (ver
 	// instancia_meta.go).
@@ -29,7 +30,8 @@ type InstanciaService struct {
 
 func NovoInstanciaService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *InstanciaService {
 	proxyStore, _ := instanciaStore.(store.ProxyStore)
-	return &InstanciaService{store: instanciaStore, proxyStore: proxyStore, gerenciador: gerenciador}
+	perfilStore, _ := instanciaStore.(store.PerfilStore)
+	return &InstanciaService{store: instanciaStore, proxyStore: proxyStore, perfilStore: perfilStore, gerenciador: gerenciador}
 }
 
 func (s *InstanciaService) RestaurarSessoes(ctx context.Context) {
@@ -193,11 +195,13 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 	if err != nil {
 		return nil, err
 	}
+	salvos := s.perfisSalvos(ctx)
 	for i := range instancias {
 		if instancias[i].EhMeta() {
 			s.preencherPerfilMeta(ctx, &instancias[i])
 			continue
 		}
+		instancias[i].Perfil = s.perfilWhatsApp(ctx, instancias[i].ID, salvos)
 		// Sem runtime local, este container nao e dono da instancia e o estado em
 		// memoria aqui nao vale nada. Quem mantem o status correto e o container dono,
 		// pelo banco. Sem essa guarda, replicas nao-donas sobrescreviam o status certo
@@ -205,9 +209,6 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 		// alternava qual replica respondia a listagem.
 		if !s.gerenciador.PossuiRuntime(instancias[i].ID) {
 			continue
-		}
-		if perfil := s.gerenciador.Perfil(instancias[i].ID); perfil.Numero != "" {
-			instancias[i].Perfil = &perfil
 		}
 		info, err := s.gerenciador.Info(ctx, instancias[i].ID)
 		if err != nil || info.Status == "" {
@@ -455,6 +456,7 @@ func (s *InstanciaService) Desconectar(ctx context.Context, id string) (models.I
 	if err := s.gerenciador.Desconectar(ctx, id); err != nil {
 		return models.Instancia{}, fmt.Errorf("erro ao desconectar instancia: %w", err)
 	}
+	s.esquecerPerfil(ctx, id)
 	return s.store.AtualizarStatus(ctx, id, models.StatusInstanciaNaoInicializada)
 }
 
@@ -484,6 +486,10 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 		status = info.Status
 		_, _ = s.store.AtualizarStatus(ctx, id, status)
 	}
+	perfil := models.PerfilInstancia{}
+	if p := s.perfilWhatsApp(ctx, id, s.perfisSalvos(ctx)); p != nil {
+		perfil = *p
+	}
 	return map[string]interface{}{
 		"id":                    instancia.ID,
 		"nome":                  instancia.Nome,
@@ -508,7 +514,7 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 		"presenca":              normalizarPresencaInstancia(instancia.Presenca),
 		"presenca_observacao":   observacaoPresenca(instancia.Presenca),
 		"configuracao_avancada": configuracaoAvancada(instancia),
-		"perfil":                s.gerenciador.Perfil(id),
+		"perfil":                perfil,
 	}, nil
 }
 
