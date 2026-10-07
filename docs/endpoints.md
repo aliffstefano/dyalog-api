@@ -1522,7 +1522,9 @@ Observacoes:
 - `texto` do botao aceita ate 20 caracteres
 - `id` do botao aceita ate 256 caracteres
 - no estilo WUZAPI, `DisplayText` vira `texto`, `Type` vira `tipo`, e `quickreply` sem `id` usa o proprio texto como ID
-- botoes `url` precisam de `Url` ou `URL`; botoes `call` precisam de `PhoneNumber`
+- `tipo` do botao: `reply` (padrao, resposta), `url` (abre link, campo `url`), `call` (liga, campo `telefone` ou `PhoneNumber`) ou `copy` (copia codigo, campo `codigo`). Os tipos podem ser misturados na mesma mensagem no modo `native_flow`
+- botao `copy` so existe no modo `native_flow`; no `template` ele da erro
+- no fallback em texto, botoes de acao saem com o link, o telefone ou o codigo na linha
 - quando usar token de instancia, `instancia` pode ser omitida
 - se `modo` for omitido, a API usa `native_flow`
 - se o payload usar campos WUZAPI (`Phone`, `Content` ou `Buttons`) e `modo` for omitido, a API usa `template`
@@ -1541,6 +1543,20 @@ Exemplo:
   "botoes": [
     { "id": "confirmar", "texto": "Confirmar" },
     { "id": "cancelar", "texto": "Cancelar" }
+  ]
+}
+```
+
+Exemplo com botoes de acao:
+
+```json
+{
+  "numero": "5511999999999",
+  "mensagem": "Seu pedido saiu para entrega",
+  "botoes": [
+    { "tipo": "url", "texto": "Rastrear", "url": "https://SEU_DOMINIO/rastreio/123" },
+    { "tipo": "call", "texto": "Ligar pra loja", "telefone": "+5511999999999" },
+    { "tipo": "copy", "texto": "Copiar cupom", "codigo": "VOLTE10" }
   ]
 }
 ```
@@ -1785,6 +1801,89 @@ curl -X POST "https://SEU_DOMINIO/api/v1/batepapo/enviar/enquete" \
   -H "Content-Type: application/json" \
   -H "X-Access-Token: TOKEN_DA_INSTANCIA" \
   -d '{"numero":"5511999999999","nome":"Qual plano voce prefere?","opcoes":["Basico","Pro","Enterprise"]}'
+```
+
+### `POST /api/v1/batepapo/enviar/evento`
+
+Envia um convite de evento, o mesmo do menu "Evento" do app. Funciona em conversa e em grupo, e o destinatario responde "Vou" ou "Nao vou" no proprio cartao.
+
+Campos:
+
+- obrigatorio: `nome` (ate 256 caracteres)
+- obrigatorio: `inicio`, em `2026-10-20T19:00:00-04:00` ou `2026-10-20 19:00` (fuso do servidor)
+- obrigatorio: `numero` ou `chat_jid`
+- opcional: `fim` (depois do `inicio`)
+- opcional: `descricao`
+- opcional: `local`, `endereco`, `latitude`, `longitude`
+- opcional: `link_chamada`, que vira o botao "Entrar" (link de chamada do WhatsApp, Meet, Zoom...)
+- opcional: `permitir_acompanhantes`
+- opcional: `instancia`, `grupo`, `resposta_mensagem_id`, `resposta_participante`
+
+```json
+{
+  "numero": "5511999999999",
+  "nome": "Reuniao de alinhamento",
+  "descricao": "Pauta: metas do mes",
+  "inicio": "2026-10-20 19:00",
+  "fim": "2026-10-20 20:00",
+  "link_chamada": "https://meet.google.com/abc-defg-hij"
+}
+```
+
+### `POST /api/v1/batepapo/enviar/carrossel`
+
+Envia cartoes deslizaveis, cada um com imagem, texto e botoes (os mesmos tipos de `enviar/botoes`: `reply`, `url`, `call` e `copy`). Usa o mesmo envelope dos botoes. Se o servidor do WhatsApp recusar, os cartoes saem automaticamente como texto e o motivo aparece em `observacao`. A renderizacao varia conforme a versao do app.
+
+Campos:
+
+- obrigatorio: `cartoes`, de 1 a 10, cada um com `texto`, `imagem_url` ou `imagem_base64`, e `botoes` (1 a 3)
+- opcional em cada cartao: `titulo`, `rodape`
+- obrigatorio: `numero` ou `chat_jid`
+- opcional: `texto` (acima dos cartoes), `rodape`, `fallback_texto`, `instancia`, `grupo`
+
+```json
+{
+  "numero": "5511999999999",
+  "texto": "Ofertas da semana",
+  "cartoes": [
+    {
+      "titulo": "Tenis Runner",
+      "texto": "De R$ 299 por R$ 199",
+      "imagem_url": "https://SEU_DOMINIO/tenis.jpg",
+      "botoes": [
+        { "tipo": "url", "texto": "Comprar", "url": "https://SEU_DOMINIO/tenis" },
+        { "id": "tenis_duvida", "texto": "Tenho duvida" }
+      ]
+    },
+    {
+      "titulo": "Mochila",
+      "texto": "R$ 149",
+      "imagem_url": "https://SEU_DOMINIO/mochila.jpg",
+      "botoes": [
+        { "tipo": "url", "texto": "Comprar", "url": "https://SEU_DOMINIO/mochila" }
+      ]
+    }
+  ]
+}
+```
+
+### `POST /api/v1/status/postar`
+
+Publica um status (stories) de texto, imagem ou video. Quem ve e definido pela privacidade de status do numero (por padrao, os contatos salvos no celular).
+
+Campos:
+
+- `tipo`: `texto`, `imagem` ou `video`. Se omitido, vira texto sem arquivo e imagem com arquivo (video quando `mime_type` for `video/...`)
+- texto: `texto` (ate 700 caracteres), `cor_fundo` em `#RRGGBB` e `fonte` (0 a 9)
+- imagem e video: `arquivo_url`, `arquivo_base64` ou `caminho_local`, e `legenda` opcional
+- opcional: `instancia`
+
+```json
+{ "texto": "Hoje tem promocao!", "cor_fundo": "#6D28D9" }
+```
+
+```json
+{ "tipo": "imagem", "arquivo_url": "https://SEU_DOMINIO/banner.jpg", "legenda": "Novidades" }
 ```
 
 ### `POST /api/v1/batepapo/enviar/cobranca-pix`

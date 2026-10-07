@@ -64,8 +64,11 @@ func nosInterativoNativeFlow(msg *waE2E.Message, destino types.JID) []waBinary.N
 // Usado onde o nome correto ainda nao e conhecido com certeza, para permitir
 // testar variacoes sem recompilar.
 func nosInterativoNativeFlowComNome(msg *waE2E.Message, _ types.JID, nomeForcado string) []waBinary.Node {
-	nativeFlow := extrairNativeFlowMessage(msg)
-	if nativeFlow == nil {
+	interativa := extrairInteractiveMessage(msg)
+	nativeFlow := interativa.GetNativeFlowMessage()
+	// O carrossel nao tem native flow proprio (os botoes ficam em cada
+	// cartao), mas vai com o mesmo envelope dos botoes.
+	if nativeFlow == nil && interativa.GetCarouselMessage() == nil {
 		return nil
 	}
 	nomeFlow := strings.TrimSpace(nomeForcado)
@@ -165,20 +168,22 @@ func enviarMensagemInterativaComNome(ctx context.Context, client *whatsmeow.Clie
 // extrairNativeFlowMessage encontra o NativeFlowMessage mesmo quando a
 // InteractiveMessage vem embrulhada (view once, ephemeral).
 func extrairNativeFlowMessage(msg *waE2E.Message) *waE2E.InteractiveMessage_NativeFlowMessage {
+	return extrairInteractiveMessage(msg).GetNativeFlowMessage()
+}
+
+func extrairInteractiveMessage(msg *waE2E.Message) *waE2E.InteractiveMessage {
 	if msg == nil {
 		return nil
 	}
 	switch {
 	case msg.GetViewOnceMessage() != nil:
-		return extrairNativeFlowMessage(msg.GetViewOnceMessage().GetMessage())
+		return extrairInteractiveMessage(msg.GetViewOnceMessage().GetMessage())
 	case msg.GetViewOnceMessageV2() != nil:
-		return extrairNativeFlowMessage(msg.GetViewOnceMessageV2().GetMessage())
+		return extrairInteractiveMessage(msg.GetViewOnceMessageV2().GetMessage())
 	case msg.GetEphemeralMessage() != nil:
-		return extrairNativeFlowMessage(msg.GetEphemeralMessage().GetMessage())
-	case msg.GetInteractiveMessage() != nil:
-		return msg.GetInteractiveMessage().GetNativeFlowMessage()
+		return extrairInteractiveMessage(msg.GetEphemeralMessage().GetMessage())
 	default:
-		return nil
+		return msg.GetInteractiveMessage()
 	}
 }
 

@@ -23,14 +23,14 @@ type UsoStore interface {
 const rajadaMinima = 5
 
 // RegistrarEnvio grava um envio. Uma mensagem enviada conta como contato novo
-// quando o chat nao e grupo, nunca recebeu envio registrado desta instancia e
-// nunca mandou mensagem para ela.
+// quando o chat nao e grupo nem status, nunca recebeu envio registrado desta
+// instancia e nunca mandou mensagem para ela.
 func (s *SQLStore) RegistrarEnvio(ctx context.Context, envio models.EnvioRegistro) error {
 	if envio.CriadoEm.IsZero() {
 		envio.CriadoEm = time.Now()
 	}
 	novo := false
-	if envio.Resultado == models.EnvioResultadoEnviada && envio.ChatJID != "" && !strings.HasSuffix(envio.ChatJID, "@g.us") {
+	if envio.Resultado == models.EnvioResultadoEnviada && envio.ChatJID != "" && !strings.HasSuffix(envio.ChatJID, "@g.us") && !strings.HasSuffix(envio.ChatJID, "@broadcast") {
 		var conhecido int
 		err := s.db.QueryRowContext(ctx, s.q(`
 SELECT CASE WHEN EXISTS (

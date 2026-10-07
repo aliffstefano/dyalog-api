@@ -69,6 +69,9 @@ type Cliente interface {
 	EnviarAudio(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
 	EnviarDocumento(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
 	EnviarFigurinha(ctx context.Context, req models.EnvioMidiaRequest) (models.ResultadoEnvio, error)
+	EnviarEvento(ctx context.Context, req models.EnvioEventoRequest) (models.ResultadoEnvio, error)
+	EnviarCarrossel(ctx context.Context, req models.EnvioCarrosselRequest) (models.ResultadoEnvio, error)
+	PostarStatus(ctx context.Context, req models.EnvioStatusRequest) (models.ResultadoEnvio, error)
 }
 
 var ErrMidiaInvalida = errors.New("midia invalida")
@@ -4996,7 +4999,7 @@ func montarTentativasBotoes(req models.EnvioBotoesRequest) []tentativaBotoes {
 
 func todosBotoesResposta(botoes []models.BotaoRequest) bool {
 	for _, botao := range botoes {
-		if !ehBotaoResposta(botao) {
+		if botao.TipoNormalizado() != models.BotaoResposta {
 			return false
 		}
 	}
@@ -5033,7 +5036,7 @@ func textoFallbackBotoes(req models.EnvioBotoesRequest) string {
 	if len(req.Botoes) > 0 {
 		opcoes := make([]string, 0, len(req.Botoes))
 		for i, botao := range req.Botoes {
-			opcoes = append(opcoes, fmt.Sprintf("%d. %s", i+1, textoBotao(botao)))
+			opcoes = append(opcoes, fmt.Sprintf("%d. %s", i+1, textoBotaoFallback(botao)))
 		}
 		partes = append(partes, strings.Join(opcoes, "\n"))
 	}
@@ -5069,23 +5072,57 @@ func montarMensagemBotoesNativeFlowViewOnce(req models.EnvioBotoesRequest) (*waE
 	}, nil
 }
 
-func montarInteractiveBotoesNativeFlow(req models.EnvioBotoesRequest) (*waE2E.InteractiveMessage, error) {
-	botoes := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Botoes))
-	for _, botao := range req.Botoes {
-		if !ehBotaoResposta(botao) {
-			return nil, fmt.Errorf("native_flow aceita apenas botoes quickreply; use modo template para url/call")
-		}
-		payload, err := json.Marshal(map[string]string{
-			"display_text": textoBotao(botao),
-			"id":           strings.TrimSpace(botao.ID),
-		})
+// botaoNativeFlow converte um botao da API no botao de native flow: quick_reply
+// (resposta), cta_url (abrir link), cta_call (ligar) ou cta_copy (copiar
+// codigo). Os quatro podem ser misturados na mesma mensagem.
+func botaoNativeFlow(botao models.BotaoRequest) (*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, error) {
+	texto := textoBotao(botao)
+	var nome string
+	params := map[string]string{"display_text": texto}
+	switch botao.TipoNormalizado() {
+	case models.BotaoResposta:
+		nome = "quick_reply"
+		params["id"] = strings.TrimSpace(botao.ID)
+	case models.BotaoURL:
+		nome = "cta_url"
+		params["url"] = botao.Link()
+		params["merchant_url"] = botao.Link()
+	case models.BotaoLigar:
+		nome = "cta_call"
+		params["phone_number"] = botao.NumeroLigar()
+	case models.BotaoCopiar:
+		nome = "cta_copy"
+		params["id"] = cmp.Or(strings.TrimSpace(botao.ID), strings.TrimSpace(botao.Codigo))
+		params["copy_code"] = strings.TrimSpace(botao.Codigo)
+	default:
+		return nil, fmt.Errorf("tipo de botao invalido")
+	}
+	payload, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	return &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+		Name:             proto.String(nome),
+		ButtonParamsJSON: proto.String(string(payload)),
+	}, nil
+}
+
+func botoesNativeFlow(origem []models.BotaoRequest) ([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, error) {
+	botoes := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(origem))
+	for _, botao := range origem {
+		convertido, err := botaoNativeFlow(botao)
 		if err != nil {
 			return nil, err
 		}
-		botoes = append(botoes, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-			Name:             proto.String("quick_reply"),
-			ButtonParamsJSON: proto.String(string(payload)),
-		})
+		botoes = append(botoes, convertido)
+	}
+	return botoes, nil
+}
+
+func montarInteractiveBotoesNativeFlow(req models.EnvioBotoesRequest) (*waE2E.InteractiveMessage, error) {
+	botoes, err := botoesNativeFlow(req.Botoes)
+	if err != nil {
+		return nil, err
 	}
 
 	interactive := &waE2E.InteractiveMessage{
@@ -5146,8 +5183,8 @@ func montarBotaoTemplate(indice uint32, botao models.BotaoRequest) (*waE2E.Hydra
 		return nil, fmt.Errorf("botao template precisa de texto")
 	}
 	hidratado := &waE2E.HydratedTemplateButton{Index: proto.Uint32(indice)}
-	switch tipoBotaoEnvio(botao) {
-	case "", "quickreply", "quick_reply", "reply":
+	switch botao.TipoNormalizado() {
+	case models.BotaoResposta:
 		id := strings.TrimSpace(botao.ID)
 		if id == "" {
 			id = texto
@@ -5158,8 +5195,8 @@ func montarBotaoTemplate(indice uint32, botao models.BotaoRequest) (*waE2E.Hydra
 				ID:          proto.String(id),
 			},
 		}
-	case "url":
-		url := urlBotaoEnvio(botao)
+	case models.BotaoURL:
+		url := botao.Link()
 		if url == "" {
 			return nil, fmt.Errorf("botao url precisa de URL")
 		}
@@ -5169,10 +5206,10 @@ func montarBotaoTemplate(indice uint32, botao models.BotaoRequest) (*waE2E.Hydra
 				URL:         proto.String(url),
 			},
 		}
-	case "call":
-		telefone := strings.TrimSpace(botao.PhoneNumber)
+	case models.BotaoLigar:
+		telefone := botao.NumeroLigar()
 		if telefone == "" {
-			return nil, fmt.Errorf("botao call precisa de PhoneNumber")
+			return nil, fmt.Errorf("botao call precisa de telefone")
 		}
 		hidratado.HydratedButton = &waE2E.HydratedTemplateButton_CallButton{
 			CallButton: &waE2E.HydratedTemplateButton_HydratedCallButton{
@@ -5180,6 +5217,8 @@ func montarBotaoTemplate(indice uint32, botao models.BotaoRequest) (*waE2E.Hydra
 				PhoneNumber: proto.String(telefone),
 			},
 		}
+	case models.BotaoCopiar:
+		return nil, fmt.Errorf("botao copiar so existe no modo native_flow")
 	default:
 		return nil, fmt.Errorf("tipo de botao template invalido")
 	}
@@ -5224,28 +5263,20 @@ func textoBotao(botao models.BotaoRequest) string {
 	return strings.TrimSpace(botao.DisplayText)
 }
 
-func tipoBotaoEnvio(botao models.BotaoRequest) string {
-	tipo := strings.TrimSpace(botao.Tipo)
-	if tipo == "" {
-		tipo = strings.TrimSpace(botao.Type)
-	}
-	return strings.ToLower(tipo)
-}
-
-func ehBotaoResposta(botao models.BotaoRequest) bool {
-	switch tipoBotaoEnvio(botao) {
-	case "", "quickreply", "quick_reply", "reply":
-		return true
+// textoBotaoFallback e a linha do botao na versao em texto: botoes de acao
+// levam o link, o telefone ou o codigo junto, ja que nao ha o que clicar.
+func textoBotaoFallback(botao models.BotaoRequest) string {
+	texto := textoBotao(botao)
+	switch botao.TipoNormalizado() {
+	case models.BotaoURL:
+		return texto + ": " + botao.Link()
+	case models.BotaoLigar:
+		return texto + ": " + botao.NumeroLigar()
+	case models.BotaoCopiar:
+		return texto + ": " + strings.TrimSpace(botao.Codigo)
 	default:
-		return false
+		return texto
 	}
-}
-
-func urlBotaoEnvio(botao models.BotaoRequest) string {
-	if url := strings.TrimSpace(botao.URL); url != "" {
-		return url
-	}
-	return strings.TrimSpace(botao.Url)
 }
 
 func usarFallbackTextoLista(req models.EnvioListaRequest) bool {

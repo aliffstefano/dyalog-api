@@ -461,33 +461,8 @@ func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBoto
 	if len(req.Botoes) == 0 || len(req.Botoes) > 3 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe de 1 a 3 botoes", ErrEntradaInvalida)
 	}
-	for _, botao := range req.Botoes {
-		tipo := tipoBotao(botao)
-		if strings.TrimSpace(botao.Texto) == "" {
-			return models.ResultadoEnvio{}, fmt.Errorf("%w: cada botao precisa de texto ou DisplayText", ErrEntradaInvalida)
-		}
-		if len([]rune(strings.TrimSpace(botao.Texto))) > 20 {
-			return models.ResultadoEnvio{}, fmt.Errorf("%w: texto de botao deve ter no maximo 20 caracteres", ErrEntradaInvalida)
-		}
-		switch tipo {
-		case "", "quickreply", "quick_reply", "reply":
-			if strings.TrimSpace(botao.ID) == "" {
-				return models.ResultadoEnvio{}, fmt.Errorf("%w: botao quickreply precisa de id", ErrEntradaInvalida)
-			}
-			if len(strings.TrimSpace(botao.ID)) > 256 {
-				return models.ResultadoEnvio{}, fmt.Errorf("%w: id de botao deve ter no maximo 256 caracteres", ErrEntradaInvalida)
-			}
-		case "url":
-			if strings.TrimSpace(urlBotao(botao)) == "" {
-				return models.ResultadoEnvio{}, fmt.Errorf("%w: botao url precisa de URL ou Url", ErrEntradaInvalida)
-			}
-		case "call":
-			if strings.TrimSpace(botao.PhoneNumber) == "" {
-				return models.ResultadoEnvio{}, fmt.Errorf("%w: botao call precisa de PhoneNumber", ErrEntradaInvalida)
-			}
-		default:
-			return models.ResultadoEnvio{}, fmt.Errorf("%w: tipo de botao deve ser quickreply, url ou call", ErrEntradaInvalida)
-		}
+	if err := validarBotoes(req.Botoes); err != nil {
+		return models.ResultadoEnvio{}, err
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
 	case "", "auto", "buttons", "legacy", "native_flow", "native_flow_direct", "direct", "native_flow_view_once", "view_once", "viewonce", "template", "wuzapi_template", "hydrated_template", "texto", "text", "fallback_texto":
@@ -716,7 +691,7 @@ func normalizarBotaoCompat(indice int, botao models.BotaoRequest) models.BotaoRe
 	if strings.TrimSpace(botao.Tipo) == "" {
 		botao.Tipo = strings.TrimSpace(botao.Type)
 	}
-	if strings.TrimSpace(botao.ID) == "" && ehQuickReply(botao) {
+	if strings.TrimSpace(botao.ID) == "" && botao.TipoNormalizado() == models.BotaoResposta {
 		if texto := strings.TrimSpace(botao.Texto); texto != "" {
 			botao.ID = texto
 		} else {
@@ -726,28 +701,41 @@ func normalizarBotaoCompat(indice int, botao models.BotaoRequest) models.BotaoRe
 	return botao
 }
 
-func tipoBotao(botao models.BotaoRequest) string {
-	tipo := strings.TrimSpace(botao.Tipo)
-	if tipo == "" {
-		tipo = strings.TrimSpace(botao.Type)
+// validarBotoes confere os botoes usados em botoes e no carrossel. Espera os
+// botoes ja normalizados por normalizarBotaoCompat.
+func validarBotoes(botoes []models.BotaoRequest) error {
+	for _, botao := range botoes {
+		if strings.TrimSpace(botao.Texto) == "" {
+			return fmt.Errorf("%w: cada botao precisa de texto ou DisplayText", ErrEntradaInvalida)
+		}
+		if len([]rune(strings.TrimSpace(botao.Texto))) > 20 {
+			return fmt.Errorf("%w: texto de botao deve ter no maximo 20 caracteres", ErrEntradaInvalida)
+		}
+		switch botao.TipoNormalizado() {
+		case models.BotaoResposta:
+			if strings.TrimSpace(botao.ID) == "" {
+				return fmt.Errorf("%w: botao de resposta precisa de id", ErrEntradaInvalida)
+			}
+			if len(strings.TrimSpace(botao.ID)) > 256 {
+				return fmt.Errorf("%w: id de botao deve ter no maximo 256 caracteres", ErrEntradaInvalida)
+			}
+		case models.BotaoURL:
+			if botao.Link() == "" {
+				return fmt.Errorf("%w: botao url precisa de url", ErrEntradaInvalida)
+			}
+		case models.BotaoLigar:
+			if botao.NumeroLigar() == "" {
+				return fmt.Errorf("%w: botao call precisa de telefone", ErrEntradaInvalida)
+			}
+		case models.BotaoCopiar:
+			if strings.TrimSpace(botao.Codigo) == "" {
+				return fmt.Errorf("%w: botao copiar precisa de codigo", ErrEntradaInvalida)
+			}
+		default:
+			return fmt.Errorf("%w: tipo de botao deve ser reply, url, call ou copy", ErrEntradaInvalida)
+		}
 	}
-	return strings.ToLower(tipo)
-}
-
-func ehQuickReply(botao models.BotaoRequest) bool {
-	switch tipoBotao(botao) {
-	case "", "quickreply", "quick_reply", "reply":
-		return true
-	default:
-		return false
-	}
-}
-
-func urlBotao(botao models.BotaoRequest) string {
-	if url := strings.TrimSpace(botao.URL); url != "" {
-		return url
-	}
-	return strings.TrimSpace(botao.Url)
+	return nil
 }
 
 func normalizarListaCompat(req models.EnvioListaRequest) models.EnvioListaRequest {

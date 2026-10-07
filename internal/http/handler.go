@@ -848,6 +848,49 @@ func (h *APIHandler) EnviarEnquete(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
 }
 
+func (h *APIHandler) EnviarEvento(c *gin.Context) {
+	var req models.EnvioEventoRequest
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: nome, inicio e numero ou chat_jid") {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarEvento(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Evento enviado com sucesso", resultado))
+}
+
+func (h *APIHandler) EnviarCarrossel(c *gin.Context) {
+	var req models.EnvioCarrosselRequest
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: cartoes (com imagem, texto e botoes) e numero ou chat_jid") {
+		return
+	}
+	resultado, err := h.mensagemService.EnviarCarrossel(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	mensagem := "Carrossel aceito pelo servidor do WhatsApp"
+	if resultado.Modo == "texto" {
+		mensagem = "Carrossel enviado como texto"
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso(mensagem, resultado))
+}
+
+func (h *APIHandler) PostarStatus(c *gin.Context) {
+	var req models.EnvioStatusRequest
+	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: texto, ou arquivo_url/arquivo_base64 para imagem e video") {
+		return
+	}
+	resultado, err := h.mensagemService.PostarStatus(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Status publicado com sucesso", resultado))
+}
+
 func (h *APIHandler) EnviarCobrancaPix(c *gin.Context) {
 	var req models.EnvioCobrancaPixRequest
 	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: chave_pix, tipo_chave, nome_beneficiario e numero ou chat_jid") {

@@ -87,6 +87,9 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/batepapo/enviar/audio", apiHandler.EnviarAudio)
 		apiAuth.POST("/batepapo/enviar/documento", apiHandler.EnviarDocumento)
 		apiAuth.POST("/batepapo/enviar/figurinha", apiHandler.EnviarFigurinha)
+		apiAuth.POST("/batepapo/enviar/evento", apiHandler.EnviarEvento)
+		apiAuth.POST("/batepapo/enviar/carrossel", apiHandler.EnviarCarrossel)
+		apiAuth.POST("/status/postar", apiHandler.PostarStatus)
 
 		apiAuth.GET("/chamadas/ice", apiHandler.ServidoresICE)
 		apiAuth.POST("/chamadas/iniciar", apiHandler.IniciarChamada)

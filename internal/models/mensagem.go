@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type EnvioTextoRequest struct {
 	Instancia            string             `json:"instancia,omitempty"`
@@ -122,6 +125,56 @@ type BotaoRequest struct {
 	URL         string `json:"URL,omitempty"`
 	Url         string `json:"Url,omitempty"`
 	PhoneNumber string `json:"PhoneNumber,omitempty"`
+	Telefone    string `json:"telefone,omitempty"`
+	// Codigo e o texto copiado pelo botao do tipo copiar (cupom, Pix copia e
+	// cola, codigo de rastreio).
+	Codigo string `json:"codigo,omitempty"`
+}
+
+// Tipos de botao normalizados por TipoNormalizado.
+const (
+	BotaoResposta = "reply"
+	BotaoURL      = "url"
+	BotaoLigar    = "call"
+	BotaoCopiar   = "copy"
+)
+
+// TipoNormalizado devolve reply, url, call ou copy. Devolve "" para tipo
+// desconhecido.
+func (b BotaoRequest) TipoNormalizado() string {
+	tipo := strings.TrimSpace(b.Tipo)
+	if tipo == "" {
+		tipo = strings.TrimSpace(b.Type)
+	}
+	switch strings.ToLower(tipo) {
+	case "", "quickreply", "quick_reply", "reply", "resposta":
+		return BotaoResposta
+	case "url", "link", "cta_url":
+		return BotaoURL
+	case "call", "ligar", "ligacao", "cta_call":
+		return BotaoLigar
+	case "copy", "copiar", "cta_copy":
+		return BotaoCopiar
+	default:
+		return ""
+	}
+}
+
+// Link devolve a URL do botao, aceitando URL ou Url.
+func (b BotaoRequest) Link() string {
+	if url := strings.TrimSpace(b.URL); url != "" {
+		return url
+	}
+	return strings.TrimSpace(b.Url)
+}
+
+// NumeroLigar devolve o telefone do botao de ligar, aceitando telefone ou
+// PhoneNumber.
+func (b BotaoRequest) NumeroLigar() string {
+	if telefone := strings.TrimSpace(b.Telefone); telefone != "" {
+		return telefone
+	}
+	return strings.TrimSpace(b.PhoneNumber)
 }
 
 type EnvioBotoesRequest struct {
@@ -292,6 +345,76 @@ type EnvioEnqueteRequest struct {
 	Options              []string           `json:"Options,omitempty"`
 	ID                   string             `json:"Id,omitempty"`
 	ContextInfo          *ContextInfoCompat `json:"ContextInfo,omitempty"`
+}
+
+type EnvioEventoRequest struct {
+	Instancia string `json:"instancia,omitempty"`
+	Numero    string `json:"numero,omitempty"`
+	ChatJID   string `json:"chat_jid,omitempty"`
+	Grupo     bool   `json:"grupo,omitempty"`
+	Nome      string `json:"nome,omitempty"`
+	Descricao string `json:"descricao,omitempty"`
+	// Inicio e Fim aceitam RFC3339 (2026-10-20T19:00:00-04:00) ou
+	// "2026-10-20 19:00" no fuso do servidor.
+	Inicio string `json:"inicio,omitempty"`
+	Fim    string `json:"fim,omitempty"`
+	// Local e opcional: nome e endereco aparecem no cartao; latitude e
+	// longitude abrem o mapa.
+	Local     string  `json:"local,omitempty"`
+	Endereco  string  `json:"endereco,omitempty"`
+	Latitude  float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
+	// LinkChamada vira o botao "Entrar" do evento (link de chamada do WhatsApp,
+	// Meet, Zoom...).
+	LinkChamada           string `json:"link_chamada,omitempty"`
+	PermitirAcompanhantes bool   `json:"permitir_acompanhantes,omitempty"`
+	MensagemID            string `json:"mensagem_id,omitempty"`
+	RespostaMensagemID    string `json:"resposta_mensagem_id,omitempty"`
+	RespostaParticipante  string `json:"resposta_participante,omitempty"`
+
+	InicioEm time.Time `json:"-"`
+	FimEm    time.Time `json:"-"`
+}
+
+type EnvioStatusRequest struct {
+	Instancia string `json:"instancia,omitempty"`
+	// Tipo e texto, imagem ou video. Vazio decide pelo que foi enviado: com
+	// arquivo vira imagem/video, sem arquivo vira texto.
+	Tipo  string `json:"tipo,omitempty"`
+	Texto string `json:"texto,omitempty"`
+	// CorFundo e a cor do status de texto, em #RRGGBB.
+	CorFundo string `json:"cor_fundo,omitempty"`
+	// Fonte e o estilo de letra do status de texto (0 a 9).
+	Fonte         int    `json:"fonte,omitempty"`
+	ArquivoURL    string `json:"arquivo_url,omitempty"`
+	ArquivoBase64 string `json:"arquivo_base64,omitempty"`
+	CaminhoLocal  string `json:"caminho_local,omitempty"`
+	Legenda       string `json:"legenda,omitempty"`
+	MimeType      string `json:"mime_type,omitempty"`
+	MensagemID    string `json:"mensagem_id,omitempty"`
+}
+
+type CarrosselCartaoRequest struct {
+	Titulo       string         `json:"titulo,omitempty"`
+	Texto        string         `json:"texto,omitempty"`
+	Rodape       string         `json:"rodape,omitempty"`
+	ImagemURL    string         `json:"imagem_url,omitempty"`
+	ImagemBase64 string         `json:"imagem_base64,omitempty"`
+	Botoes       []BotaoRequest `json:"botoes,omitempty"`
+}
+
+type EnvioCarrosselRequest struct {
+	Instancia            string                   `json:"instancia,omitempty"`
+	Numero               string                   `json:"numero,omitempty"`
+	ChatJID              string                   `json:"chat_jid,omitempty"`
+	Grupo                bool                     `json:"grupo,omitempty"`
+	Texto                string                   `json:"texto,omitempty"`
+	Rodape               string                   `json:"rodape,omitempty"`
+	Cartoes              []CarrosselCartaoRequest `json:"cartoes,omitempty"`
+	FallbackTexto        bool                     `json:"fallback_texto,omitempty"`
+	MensagemID           string                   `json:"mensagem_id,omitempty"`
+	RespostaMensagemID   string                   `json:"resposta_mensagem_id,omitempty"`
+	RespostaParticipante string                   `json:"resposta_participante,omitempty"`
 }
 
 type ResultadoEnvio struct {
