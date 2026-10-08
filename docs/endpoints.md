@@ -1104,6 +1104,30 @@ Contato novo e a primeira mensagem para quem nunca conversou com o numero
 `retencao_dias`). O historico de envios e guardado por `USO_RETENTION_DAYS`
 dias (padrao 30).
 
+## Chat do painel
+
+A aba **Chat** da instancia mostra as conversas e permite responder, para
+testar envio e recebimento sem montar um webhook. Funciona igual para QR code
+e API oficial. Ficam guardadas as mensagens recebidas (os mesmos eventos dos
+webhooks, sem o historico sincronizado na conexao) e as enviadas pela API,
+com o status de cada envio (enviada, entregue, lida ou falhou, com o motivo
+que o WhatsApp ou a Meta devolveu). As mensagens ficam por
+`CHAT_RETENTION_DAYS` dias (padrao 7; `0` desliga o chat).
+
+### `GET /api/v1/instancias/:id/chat/conversas`
+
+Ultimas 100 conversas, da mais recente para a mais antiga, com o nome do
+contato e a ultima mensagem.
+
+### `GET /api/v1/instancias/:id/chat/mensagens?chat_jid=5567999999999@s.whatsapp.net`
+
+Ultimas 200 mensagens da conversa, da mais antiga para a mais nova. Cada
+mensagem traz `direcao` (`entrada`/`saida`), `tipo`, `conteudo`, `status`,
+`erro` e, quando tem midia recebida, `midia_id` (baixe em
+`GET /api/v1/instancias/:id/midias/:midiaId`).
+
+Para responder, use as rotas de envio normais (`/batepapo/enviar/...`).
+
 ## Webhooks por instancia
 
 ### `GET /api/v1/instancias/:id/webhooks`

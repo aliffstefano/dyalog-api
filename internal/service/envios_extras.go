@@ -49,7 +49,7 @@ func (s *MensagemService) EnviarEvento(ctx context.Context, req models.EnvioEven
 	if req.Lembrete && req.LembreteSegundos == 0 {
 		req.LembreteSegundos = 15 * 60
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarEvento(ctx, req))
+	return s.registrarEnvio(req.Instancia, "📅 "+cmp.Or(req.Nome, "Evento"))(s.enviadorPara(ctx, req.Instancia).EnviarEvento(ctx, req))
 }
 
 // normalizarEventoCompat aceita o formato de outras APIs (number, name,
@@ -129,7 +129,7 @@ func (s *MensagemService) PostarStatus(ctx context.Context, req models.EnvioStat
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: tipo deve ser texto, imagem ou video", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).PostarStatus(ctx, req))
+	return s.registrarEnvio(req.Instancia, "")(s.enviadorPara(ctx, req.Instancia).PostarStatus(ctx, req))
 }
 
 func (s *MensagemService) CriarLinkChamada(ctx context.Context, req models.LinkChamadaRequest) (models.LinkChamadaResultado, error) {
@@ -170,7 +170,7 @@ func (s *MensagemService) EnviarCarrossel(ctx context.Context, req models.EnvioC
 			return models.ResultadoEnvio{}, fmt.Errorf("cartao %d: %w", i+1, err)
 		}
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarCarrossel(ctx, req))
+	return s.registrarEnvio(req.Instancia, cmp.Or(req.Texto, "[carrossel]"))(s.enviadorPara(ctx, req.Instancia).EnviarCarrossel(ctx, req))
 }
 
 // EnviarTemplate envia um modelo aprovado na Meta. So existe nas instancias da
@@ -189,5 +189,5 @@ func (s *MensagemService) EnviarTemplate(ctx context.Context, req models.EnvioTe
 	if !instancia.EhMeta() || s.meta == nil {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: template so existe em instancia da API oficial da Meta", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.meta.EnviarTemplate(ctx, req))
+	return s.registrarEnvio(req.Instancia, "📄 Template "+req.Nome)(s.meta.EnviarTemplate(ctx, req))
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -18,7 +19,11 @@ type MensagemService struct {
 	usoStore       store.UsoStore
 	gerenciador    *whatsapp.GerenciadorInstancias
 	meta           *meta.Enviador
+	chat           *ChatService
 }
+
+// UsarChat liga o registro das mensagens enviadas na tela de Chat.
+func (s *MensagemService) UsarChat(c *ChatService) { s.chat = c }
 
 // enviador e o que as rotas de envio usam. As instancias por QR code enviam
 // pelo whatsmeow (GerenciadorInstancias) e as da API oficial pela Meta
@@ -69,12 +74,16 @@ func NovoMensagemService(instanciaStore store.InstanciaStore, usoStore store.Uso
 	return &MensagemService{instanciaStore: instanciaStore, usoStore: usoStore, gerenciador: gerenciador}
 }
 
-// registrarEnvio anota no historico de uso (painel) o envio que deu certo.
-// Uso: return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarX(ctx, req))
-func (s *MensagemService) registrarEnvio(instanciaID string) func(models.ResultadoEnvio, error) (models.ResultadoEnvio, error) {
+// registrarEnvio anota no historico de uso (painel) o envio que deu certo e,
+// quando ha conteudo, guarda a mensagem na tela de Chat.
+// Uso: return s.registrarEnvio(req.Instancia, req.Mensagem)(s.enviadorPara(ctx, req.Instancia).EnviarX(ctx, req))
+func (s *MensagemService) registrarEnvio(instanciaID, conteudo string) func(models.ResultadoEnvio, error) (models.ResultadoEnvio, error) {
 	return func(resultado models.ResultadoEnvio, err error) (models.ResultadoEnvio, error) {
 		if err == nil {
 			s.anotarUso(models.EnvioRegistro{InstanciaID: instanciaID, ChatJID: resultado.ChatJID, Tipo: resultado.Tipo, Resultado: models.EnvioResultadoEnviada})
+			if conteudo != "" {
+				s.chat.RegistrarEnvio(instanciaID, resultado, conteudo)
+			}
 		}
 		return resultado, err
 	}
@@ -143,7 +152,7 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarTexto(ctx, req))
+	return s.registrarEnvio(req.Instancia, req.Mensagem)(s.enviadorPara(ctx, req.Instancia).EnviarTexto(ctx, req))
 }
 
 func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {
@@ -157,7 +166,7 @@ func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarText
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EditarTexto(ctx, req))
+	return s.registrarEnvio(req.Instancia, "")(s.enviadorPara(ctx, req.Instancia).EditarTexto(ctx, req))
 }
 
 func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarMensagemRequest) (models.ResultadoEnvio, error) {
@@ -168,7 +177,7 @@ func (s *MensagemService) ApagarMensagem(ctx context.Context, req models.ApagarM
 	if strings.TrimSpace(req.MensagemID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem_id", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).ApagarMensagem(ctx, req))
+	return s.registrarEnvio(req.Instancia, "")(s.enviadorPara(ctx, req.Instancia).ApagarMensagem(ctx, req))
 }
 
 func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirMensagemRequest) (models.ResultadoEnvio, error) {
@@ -182,7 +191,7 @@ func (s *MensagemService) ReagirMensagem(ctx context.Context, req models.ReagirM
 	if req.Grupo && strings.TrimSpace(req.RemetenteJID) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe remetente_jid ou participante para reagir mensagem de grupo", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).ReagirMensagem(ctx, req))
+	return s.registrarEnvio(req.Instancia, "")(s.enviadorPara(ctx, req.Instancia).ReagirMensagem(ctx, req))
 }
 
 func normalizarTextoCompat(req models.EnvioTextoRequest) models.EnvioTextoRequest {
@@ -410,7 +419,7 @@ func (s *MensagemService) EnviarLocalizacao(ctx context.Context, req models.Envi
 	if req.Latitude == 0 && req.Longitude == 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe latitude e longitude", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarLocalizacao(ctx, req))
+	return s.registrarEnvio(req.Instancia, "📍 "+cmp.Or(req.Nome, req.Endereco, "Localizacao"))(s.enviadorPara(ctx, req.Instancia).EnviarLocalizacao(ctx, req))
 }
 
 func normalizarLocalizacaoCompat(req models.EnvioLocalizacaoRequest) models.EnvioLocalizacaoRequest {
@@ -459,7 +468,7 @@ func (s *MensagemService) EnviarContato(ctx context.Context, req models.EnvioCon
 			return models.ResultadoEnvio{}, fmt.Errorf("%w: contato %d precisa de nome e telefone, ou vcard", ErrEntradaInvalida, i+1)
 		}
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarContato(ctx, req))
+	return s.registrarEnvio(req.Instancia, "👤 "+cmp.Or(req.Nome, "Contato"))(s.enviadorPara(ctx, req.Instancia).EnviarContato(ctx, req))
 }
 
 func normalizarContatoCompat(req models.EnvioContatoRequest) models.EnvioContatoRequest {
@@ -516,7 +525,7 @@ func (s *MensagemService) EnviarBotoes(ctx context.Context, req models.EnvioBoto
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, template, texto, buttons ou auto", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarBotoes(ctx, req))
+	return s.registrarEnvio(req.Instancia, cmp.Or(req.Texto, req.Mensagem, req.Titulo, "[botoes]"))(s.enviadorPara(ctx, req.Instancia).EnviarBotoes(ctx, req))
 }
 
 // Limites do menu single_select: ate 10 secoes com ate 10 linhas cada, 100 no
@@ -570,7 +579,7 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 	default:
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista_biz, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarLista(ctx, req))
+	return s.registrarEnvio(req.Instancia, cmp.Or(req.Mensagem, req.Descricao, req.Titulo, "[lista]"))(s.enviadorPara(ctx, req.Instancia).EnviarLista(ctx, req))
 }
 
 var tiposChavePixValidos = map[string]string{
@@ -611,7 +620,7 @@ func (s *MensagemService) EnviarCobrancaPix(ctx context.Context, req models.Envi
 	if req.Valor < 0 {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: valor nao pode ser negativo", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarCobrancaPix(ctx, req))
+	return s.registrarEnvio(req.Instancia, fmt.Sprintf("💲 Cobranca Pix R$ %.2f", req.Valor))(s.enviadorPara(ctx, req.Instancia).EnviarCobrancaPix(ctx, req))
 }
 
 func normalizarCobrancaPixCompat(req models.EnvioCobrancaPixRequest) models.EnvioCobrancaPixRequest {
@@ -658,7 +667,7 @@ func (s *MensagemService) EnviarEnquete(ctx context.Context, req models.EnvioEnq
 	if req.OpcoesSelecionaveis < 0 || req.OpcoesSelecionaveis > len(req.Opcoes) {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: opcoes_selecionaveis deve estar entre 1 e a quantidade de opcoes", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia)(s.enviadorPara(ctx, req.Instancia).EnviarEnquete(ctx, req))
+	return s.registrarEnvio(req.Instancia, "📊 "+cmp.Or(req.Pergunta, req.Nome, "Enquete"))(s.enviadorPara(ctx, req.Instancia).EnviarEnquete(ctx, req))
 }
 
 func normalizarEnqueteCompat(req models.EnvioEnqueteRequest) models.EnvioEnqueteRequest {
@@ -924,5 +933,5 @@ func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidia
 		}
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao preparar envio de midia: %w", err)
 	}
-	return s.registrarEnvio(req.Instancia)(resultado, nil)
+	return s.registrarEnvio(req.Instancia, cmp.Or(req.Legenda, req.NomeArquivo, "[arquivo]"))(resultado, nil)
 }

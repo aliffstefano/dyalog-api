@@ -3013,3 +3013,275 @@ body::before {
   font-size: 12px;
   word-break: break-all;
 }
+
+/* ===== Chat da instancia ===== */
+.dc-chat {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  height: max(480px, calc(100vh - 290px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.dc-chat-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+.dc-chat-novo {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dc-chat-novo input {
+  padding: 9px 12px;
+}
+
+.dc-chat-conversas {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.dc-chat-conversa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+}
+
+.dc-chat-conversa:hover,
+.dc-chat-conversa.ativa {
+  background: var(--accent-soft);
+}
+
+.dc-chat-conversa:not(:disabled):hover {
+  transform: none;
+}
+
+.dc-chat-conversa .dc-linha-texto > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-chat-conversa small {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dc-chat-janela {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dc-chat-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dc-chat-voltar {
+  display: none;
+}
+
+.dc-chat-mensagens {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--panel-soft);
+}
+
+.dc-chat-mensagens > .dc-lista-vazia {
+  margin: auto;
+}
+
+.dc-chat-bolha {
+  display: grid;
+  gap: 4px;
+  max-width: min(75%, 560px);
+  padding: 8px 11px 6px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.dc-chat-bolha p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.dc-chat-bolha.entrada {
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-top-left-radius: 3px;
+  background: var(--panel-strong);
+}
+
+.dc-chat-bolha.saida {
+  align-self: flex-end;
+  border-top-right-radius: 3px;
+  color: #fff;
+  background: var(--accent);
+}
+
+.dc-chat-bolha.falhou {
+  background: var(--danger);
+}
+
+.dc-chat-bolha.apagada p,
+.dc-chat-tipo {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.dc-chat-autor {
+  color: var(--accent-2);
+  font-size: 12px;
+}
+
+.dc-chat-meta {
+  justify-self: end;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.dc-chat-status.lida,
+.dc-chat-status.ouvida {
+  color: #9be7ff;
+  font-weight: 700;
+}
+
+.dc-chat-erro {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dc-chat-midia {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 6px;
+}
+
+.dc-chat-audio {
+  max-width: 100%;
+}
+
+.dc-chat-bolha.entrada a {
+  color: var(--accent-2);
+}
+
+.dc-chat-arquivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-weight: 600;
+}
+
+.dc-chat-envio {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.dc-chat-anexo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.dc-chat-anexo:hover {
+  color: var(--ink);
+}
+
+.dc-chat-anexo input {
+  display: none;
+}
+
+.dc-chat-campo {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dc-chat-campo textarea {
+  min-height: 42px;
+  max-height: 160px;
+  padding: 10px 12px;
+  resize: none;
+}
+
+.dc-chat-anexo-nome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dc-chat-anexo-nome button {
+  padding: 0 6px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.dc-chat-enviar {
+  width: 42px;
+  height: 42px;
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .dc-chat {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 230px);
+  }
+
+  .dc-chat-lista {
+    border-right: 0;
+  }
+
+  .dc-chat.com-conversa .dc-chat-lista,
+  .dc-chat:not(.com-conversa) .dc-chat-janela {
+    display: none;
+  }
+
+  .dc-chat-voltar {
+    display: inline-grid;
+  }
+
+  .dc-chat-bolha {
+    max-width: 88%;
+  }
+}

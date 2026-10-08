@@ -70,6 +70,9 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.GET("/instancias/:id/uso", apiHandler.UsoInstancia)
 		apiAuth.GET("/uso", apiHandler.UsoGeral)
 
+		apiAuth.GET("/instancias/:id/chat/conversas", apiHandler.ListarConversasChat)
+		apiAuth.GET("/instancias/:id/chat/mensagens", apiHandler.ListarMensagensChat)
+
 		apiAuth.GET("/instancias/:id/chamadas", apiHandler.ListarChamadas)
 		apiAuth.POST("/instancias/:id/chamadas/:chamadaId/aceitar", apiHandler.AceitarChamada)
 		apiAuth.POST("/instancias/:id/chamadas/:chamadaId/rejeitar", apiHandler.RejeitarChamada)

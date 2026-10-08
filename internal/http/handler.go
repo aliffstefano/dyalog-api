@@ -40,6 +40,8 @@ type APIHandler struct {
 	limiteFalhasAuth *limitador
 	// metaWebhook recebe os webhooks da API oficial (rotas publicas).
 	metaWebhook *service.MetaWebhookService
+	// chat alimenta a tela de Chat do painel (nil quando desligado).
+	chat *service.ChatService
 }
 
 type criarInstanciaRequest struct {

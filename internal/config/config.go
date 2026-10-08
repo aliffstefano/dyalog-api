@@ -54,10 +54,13 @@ type Config struct {
 	WebhookConcorrencia           int
 	WebhookEntregaRetencaoDias    int
 	UsoRetencaoDias               int
-	RuntimeNodeID                 string
-	RuntimeNodeEndereco           string
-	RuntimeLockTTLSeconds         int
-	HeartbeatIntervaloSegundos    int
+	// ChatRetencaoDias e por quantos dias a tela de Chat guarda as mensagens
+	// (0 desliga o chat).
+	ChatRetencaoDias           int
+	RuntimeNodeID              string
+	RuntimeNodeEndereco        string
+	RuntimeLockTTLSeconds      int
+	HeartbeatIntervaloSegundos int
 	// LimiteEnviosPorMinuto e o maximo de mensagens por instancia por minuto
 	// (0 desliga). LimiteFalhasAuthPorMinuto e o maximo de tokens invalidos
 	// por IP por minuto antes de bloquear (0 desliga).
@@ -144,6 +147,7 @@ func Carregar() (*Config, error) {
 		WebhookConcorrencia:           obterInt("WEBHOOK_WORKER_CONCURRENCY", 5),
 		WebhookEntregaRetencaoDias:    obterInt("WEBHOOK_ENTREGA_RETENTION_DAYS", 30),
 		UsoRetencaoDias:               obterInt("USO_RETENTION_DAYS", 30),
+		ChatRetencaoDias:              obterInt("CHAT_RETENTION_DAYS", 7),
 		RuntimeNodeID:                 obterRuntimeNodeID(),
 		RuntimeNodeEndereco:           obterRuntimeNodeEndereco(obterInt("APP_PORT", 8080)),
 		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),

@@ -104,6 +104,15 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	enviadorMeta := meta.NovoEnviador(meta.NovoCliente(cfg.MetaGraphVersao, cfg.MetaGraphBaseURL), storeSQL)
 	instanciaService.UsarMeta(enviadorMeta, storeSQL, cfg.BaseURL)
 	mensagemService.UsarMeta(enviadorMeta)
+	// Tela de Chat do painel: guarda recebidas (pelos eventos de webhook) e
+	// enviadas pela API.
+	var chatService *service.ChatService
+	if cfg.ChatRetencaoDias > 0 {
+		chatService = service.NovoChatService(storeSQL)
+		dispatcher.Observar(chatService.RegistrarEvento)
+		mensagemService.UsarChat(chatService)
+		chatService.IniciarLimpeza(context.Background(), cfg.ChatRetencaoDias)
+	}
 	chamadaService := service.NovoChamadaService(storeSQL, gerenciador)
 	midiaService := service.NovoMidiaService(storeSQL)
 	webhookService := service.NovoWebhookService(storeSQL, storeSQL, storeSQL)
@@ -133,6 +142,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	engine.Use(gin.Recovery())
 	engine.Static("/static", "./static")
 	apiHandler := NovoAPIHandler(cfg, instanciaService, mensagemService, chamadaService, midiaService, webhookService, sistemaService, authService)
+	apiHandler.UsarChat(chatService)
 	apiHandler.UsarMetaWebhook(service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador))
 	dashboardHandler := dashboard.NovoHandler(cfg, authService)
 	registrarRotas(engine, cfg, apiHandler, dashboardHandler, authService, gerenciador)

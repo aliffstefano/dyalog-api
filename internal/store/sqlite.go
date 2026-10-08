@@ -450,6 +450,27 @@ CREATE TABLE IF NOT EXISTS instancias_perfil (
     FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS chat_mensagens (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL,
+    mensagem_id TEXT NOT NULL,
+    direcao TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    conteudo TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    remetente_jid TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT '',
+    erro TEXT NOT NULL DEFAULT '',
+    midia_id TEXT NOT NULL DEFAULT '',
+    mime_type TEXT NOT NULL DEFAULT '',
+    nome_arquivo TEXT NOT NULL DEFAULT '',
+    criado_em DATETIME NOT NULL,
+    UNIQUE(instancia_id, mensagem_id),
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_chat_mensagens_chat ON chat_mensagens(instancia_id, chat_jid, criado_em);
+CREATE INDEX IF NOT EXISTS idx_chat_mensagens_criado ON chat_mensagens(criado_em);
+
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL DEFAULT '',
@@ -626,6 +647,27 @@ CREATE TABLE IF NOT EXISTS instancias_perfil (
     atualizado_em TIMESTAMPTZ NOT NULL,
     FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS chat_mensagens (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL,
+    mensagem_id TEXT NOT NULL,
+    direcao TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    conteudo TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    remetente_jid TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT '',
+    erro TEXT NOT NULL DEFAULT '',
+    midia_id TEXT NOT NULL DEFAULT '',
+    mime_type TEXT NOT NULL DEFAULT '',
+    nome_arquivo TEXT NOT NULL DEFAULT '',
+    criado_em TIMESTAMPTZ NOT NULL,
+    UNIQUE(instancia_id, mensagem_id),
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_chat_mensagens_chat ON chat_mensagens(instancia_id, chat_jid, criado_em);
+CREATE INDEX IF NOT EXISTS idx_chat_mensagens_criado ON chat_mensagens(criado_em);
 
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,

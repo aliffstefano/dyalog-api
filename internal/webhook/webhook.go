@@ -29,6 +29,15 @@ type Dispatcher struct {
 	lote          int
 	sinal         chan struct{}
 	processando   atomic.Bool
+	// observadores recebem todo evento, mesmo sem webhook cadastrado (a tela
+	// de Chat do painel usa isso). Sao ligados na inicializacao.
+	observadores []func(ctx context.Context, instanciaID, evento string, dados interface{})
+}
+
+// Observar registra uma funcao chamada a cada evento, antes da fila de
+// entregas. So deve ser usada na inicializacao.
+func (d *Dispatcher) Observar(fn func(ctx context.Context, instanciaID, evento string, dados interface{})) {
+	d.observadores = append(d.observadores, fn)
 }
 
 func NovoDispatcher(webhookStore store.WebhookStore, entregaStore store.WebhookEntregaStore, timeout, intervaloBase, maxDuracao, maxIntervalo time.Duration, maxTentativas, concorrencia, lote int) *Dispatcher {
@@ -75,7 +84,13 @@ func (d *Dispatcher) Iniciar(ctx context.Context) {
 }
 
 func (d *Dispatcher) DispararEvento(ctx context.Context, instanciaID, evento string, dados interface{}) {
-	if d == nil || d.webhookStore == nil || d.entregaStore == nil {
+	if d == nil {
+		return
+	}
+	for _, observar := range d.observadores {
+		observar(ctx, instanciaID, evento, dados)
+	}
+	if d.webhookStore == nil || d.entregaStore == nil {
 		return
 	}
 	webhooks, err := d.webhookStore.ListarWebhooksAtivosPorEvento(ctx, instanciaID, evento)
