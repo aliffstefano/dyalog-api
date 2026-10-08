@@ -284,6 +284,10 @@ func (s *SQLStore) prepararSchema() error {
 	if err := s.garantirColunasRuntimeLocks(); err != nil {
 		return err
 	}
+	// Webhooks antigos continuam recebendo o base64, como antes.
+	if _, err := s.db.Exec(`ALTER TABLE webhooks ADD COLUMN incluir_base64 BOOLEAN NOT NULL DEFAULT TRUE`); err != nil && !erroColunaDuplicada(err) {
+		return fmt.Errorf("erro ao garantir coluna incluir_base64 do webhook: %w", err)
+	}
 	return nil
 }
 
@@ -988,7 +992,7 @@ func (s *SQLStore) salvarWebhook(ctx context.Context, webhook models.WebhookInst
 	defer tx.Rollback()
 
 	if atualizar {
-		result, err := tx.ExecContext(ctx, s.q(`UPDATE webhooks SET nome = ?, url = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND instancia_id = ?`), webhook.Nome, webhook.URL, s.boolDB(webhook.Ativo), webhook.AtualizadoEm.UTC(), webhook.ID, webhook.InstanciaID)
+		result, err := tx.ExecContext(ctx, s.q(`UPDATE webhooks SET nome = ?, url = ?, ativo = ?, incluir_base64 = ?, atualizado_em = ? WHERE id = ? AND instancia_id = ?`), webhook.Nome, webhook.URL, s.boolDB(webhook.Ativo), s.boolDB(webhook.IncluirBase64), webhook.AtualizadoEm.UTC(), webhook.ID, webhook.InstanciaID)
 		if err != nil {
 			return fmt.Errorf("erro ao atualizar webhook: %w", err)
 		}
@@ -999,7 +1003,7 @@ func (s *SQLStore) salvarWebhook(ctx context.Context, webhook models.WebhookInst
 			return fmt.Errorf("erro ao limpar eventos do webhook: %w", err)
 		}
 	} else {
-		_, err = tx.ExecContext(ctx, s.q(`INSERT INTO webhooks (id, instancia_id, nome, url, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)`), webhook.ID, webhook.InstanciaID, webhook.Nome, webhook.URL, s.boolDB(webhook.Ativo), webhook.CriadoEm.UTC(), webhook.AtualizadoEm.UTC())
+		_, err = tx.ExecContext(ctx, s.q(`INSERT INTO webhooks (id, instancia_id, nome, url, ativo, incluir_base64, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`), webhook.ID, webhook.InstanciaID, webhook.Nome, webhook.URL, s.boolDB(webhook.Ativo), s.boolDB(webhook.IncluirBase64), webhook.CriadoEm.UTC(), webhook.AtualizadoEm.UTC())
 		if err != nil {
 			return fmt.Errorf("erro ao criar webhook: %w", err)
 		}
@@ -1019,11 +1023,11 @@ func (s *SQLStore) salvarWebhook(ctx context.Context, webhook models.WebhookInst
 
 func (s *SQLStore) ListarWebhooks(ctx context.Context, instanciaID string) ([]models.WebhookInstancia, error) {
 	query := strings.ReplaceAll(`
-SELECT w.id, w.instancia_id, w.nome, w.url, w.ativo, w.criado_em, w.atualizado_em, COALESCE({EVENTOS_AGG}, '')
+SELECT w.id, w.instancia_id, w.nome, w.url, w.ativo, w.incluir_base64, w.criado_em, w.atualizado_em, COALESCE({EVENTOS_AGG}, '')
 FROM webhooks w
 LEFT JOIN webhook_eventos we ON we.webhook_id = w.id
 WHERE w.instancia_id = ?
-GROUP BY w.id, w.instancia_id, w.nome, w.url, w.ativo, w.criado_em, w.atualizado_em
+GROUP BY w.id, w.instancia_id, w.nome, w.url, w.ativo, w.incluir_base64, w.criado_em, w.atualizado_em
 ORDER BY w.criado_em DESC`, "{EVENTOS_AGG}", s.agregarEventos("we.evento"))
 	rows, err := s.db.QueryContext(ctx, s.q(query), instanciaID)
 	if err != nil {
@@ -1034,12 +1038,13 @@ ORDER BY w.criado_em DESC`, "{EVENTOS_AGG}", s.agregarEventos("we.evento"))
 	var webhooks []models.WebhookInstancia
 	for rows.Next() {
 		var webhook models.WebhookInstancia
-		var ativo interface{}
+		var ativo, incluirBase64 interface{}
 		var eventos string
-		if err := rows.Scan(&webhook.ID, &webhook.InstanciaID, &webhook.Nome, &webhook.URL, &ativo, &webhook.CriadoEm, &webhook.AtualizadoEm, &eventos); err != nil {
+		if err := rows.Scan(&webhook.ID, &webhook.InstanciaID, &webhook.Nome, &webhook.URL, &ativo, &incluirBase64, &webhook.CriadoEm, &webhook.AtualizadoEm, &eventos); err != nil {
 			return nil, fmt.Errorf("erro ao ler webhook: %w", err)
 		}
 		webhook.Ativo = s.boolFromDB(ativo)
+		webhook.IncluirBase64 = s.boolFromDB(incluirBase64)
 		webhook.Eventos = splitEventos(eventos)
 		webhooks = append(webhooks, webhook)
 	}
@@ -1059,12 +1064,12 @@ func (s *SQLStore) ExcluirWebhook(ctx context.Context, instanciaID, webhookID st
 
 func (s *SQLStore) ListarWebhooksAtivosPorEvento(ctx context.Context, instanciaID, evento string) ([]models.WebhookInstancia, error) {
 	query := strings.ReplaceAll(`
-SELECT w.id, w.instancia_id, w.nome, w.url, w.ativo, w.criado_em, w.atualizado_em, COALESCE({EVENTOS_AGG}, '')
+SELECT w.id, w.instancia_id, w.nome, w.url, w.ativo, w.incluir_base64, w.criado_em, w.atualizado_em, COALESCE({EVENTOS_AGG}, '')
 FROM webhooks w
 INNER JOIN webhook_eventos we ON we.webhook_id = w.id AND we.evento = ?
 LEFT JOIN webhook_eventos we2 ON we2.webhook_id = w.id
 WHERE w.instancia_id = ? AND w.ativo = TRUE
-GROUP BY w.id, w.instancia_id, w.nome, w.url, w.ativo, w.criado_em, w.atualizado_em`, "{EVENTOS_AGG}", s.agregarEventos("we2.evento"))
+GROUP BY w.id, w.instancia_id, w.nome, w.url, w.ativo, w.incluir_base64, w.criado_em, w.atualizado_em`, "{EVENTOS_AGG}", s.agregarEventos("we2.evento"))
 	rows, err := s.db.QueryContext(ctx, s.q(query), evento, instanciaID)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao listar webhooks por evento: %w", err)
@@ -1074,12 +1079,13 @@ GROUP BY w.id, w.instancia_id, w.nome, w.url, w.ativo, w.criado_em, w.atualizado
 	var webhooks []models.WebhookInstancia
 	for rows.Next() {
 		var webhook models.WebhookInstancia
-		var ativo interface{}
+		var ativo, incluirBase64 interface{}
 		var eventos string
-		if err := rows.Scan(&webhook.ID, &webhook.InstanciaID, &webhook.Nome, &webhook.URL, &ativo, &webhook.CriadoEm, &webhook.AtualizadoEm, &eventos); err != nil {
+		if err := rows.Scan(&webhook.ID, &webhook.InstanciaID, &webhook.Nome, &webhook.URL, &ativo, &incluirBase64, &webhook.CriadoEm, &webhook.AtualizadoEm, &eventos); err != nil {
 			return nil, fmt.Errorf("erro ao ler webhook por evento: %w", err)
 		}
 		webhook.Ativo = s.boolFromDB(ativo)
+		webhook.IncluirBase64 = s.boolFromDB(incluirBase64)
 		webhook.Eventos = splitEventos(eventos)
 		webhooks = append(webhooks, webhook)
 	}

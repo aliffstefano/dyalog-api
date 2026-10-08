@@ -56,6 +56,9 @@ type webhookRequest struct {
 	URL     string   `json:"url" binding:"required"`
 	Eventos []string `json:"eventos" binding:"required"`
 	Ativo   *bool    `json:"ativo,omitempty"`
+	// IncluirBase64 omitido: na criacao vale true (como antes); na edicao
+	// mantem o que estava.
+	IncluirBase64 *bool `json:"incluir_base64,omitempty"`
 }
 
 type loginDashboardRequest struct {
@@ -684,7 +687,7 @@ func (h *APIHandler) CriarWebhook(c *gin.Context) {
 	if req.Ativo != nil {
 		ativo = *req.Ativo
 	}
-	webhook, err := h.webhookService.Criar(c.Request.Context(), c.Param("id"), req.Nome, req.URL, req.Eventos, ativo)
+	webhook, err := h.webhookService.Criar(c.Request.Context(), c.Param("id"), req.Nome, req.URL, req.Eventos, ativo, req.IncluirBase64)
 	if err != nil {
 		h.tratarErro(c, err)
 		return
@@ -704,7 +707,7 @@ func (h *APIHandler) AtualizarWebhook(c *gin.Context) {
 	if req.Ativo != nil {
 		ativo = *req.Ativo
 	}
-	webhook, err := h.webhookService.Atualizar(c.Request.Context(), c.Param("id"), c.Param("webhookId"), req.Nome, req.URL, req.Eventos, ativo)
+	webhook, err := h.webhookService.Atualizar(c.Request.Context(), c.Param("id"), c.Param("webhookId"), req.Nome, req.URL, req.Eventos, ativo, req.IncluirBase64)
 	if err != nil {
 		h.tratarErro(c, err)
 		return

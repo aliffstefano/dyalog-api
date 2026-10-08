@@ -24,14 +24,18 @@ var EventosWebhookSuportados = map[string]struct{}{
 }
 
 type WebhookInstancia struct {
-	ID           string    `json:"id"`
-	InstanciaID  string    `json:"instancia_id"`
-	Nome         string    `json:"nome"`
-	URL          string    `json:"url"`
-	Eventos      []string  `json:"eventos"`
-	Ativo        bool      `json:"ativo"`
-	CriadoEm     time.Time `json:"criado_em"`
-	AtualizadoEm time.Time `json:"atualizado_em"`
+	ID          string   `json:"id"`
+	InstanciaID string   `json:"instancia_id"`
+	Nome        string   `json:"nome"`
+	URL         string   `json:"url"`
+	Eventos     []string `json:"eventos"`
+	Ativo       bool     `json:"ativo"`
+	// IncluirBase64 manda o arquivo das midias recebidas em base64 (e
+	// data_uri) no payload. Desligado, so vao os links de download: o payload
+	// fica pequeno e a fila de entregas nao enche o banco com videos.
+	IncluirBase64 bool      `json:"incluir_base64"`
+	CriadoEm      time.Time `json:"criado_em"`
+	AtualizadoEm  time.Time `json:"atualizado_em"`
 }
 
 type EventoWebhook struct {

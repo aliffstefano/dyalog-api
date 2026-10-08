@@ -151,3 +151,65 @@ func waitUntil(t *testing.T, timeout time.Duration, cond func() bool) {
 	}
 	t.Fatalf("condicao nao atendida em %s", timeout)
 }
+
+func TestDispatcherBase64SoParaQuemPediu(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	st := novoStoreTeste(t)
+	instancia := criarInstanciaTeste(t, st)
+
+	corpos := make(chan map[string]any, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload struct {
+			Dados map[string]any `json:"dados"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		payload.Dados["_webhook"] = r.URL.Path
+		corpos <- payload.Dados
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	for _, w := range []models.WebhookInstancia{
+		{ID: "com", Nome: "Com", URL: server.URL + "/com", IncluirBase64: true},
+		{ID: "sem", Nome: "Sem", URL: server.URL + "/sem", IncluirBase64: false},
+	} {
+		w.InstanciaID, w.Eventos, w.Ativo, w.CriadoEm, w.AtualizadoEm = instancia.ID, []string{models.EventoWebhookMensagens}, true, time.Now().UTC(), time.Now().UTC()
+		if _, err := st.CriarWebhook(ctx, w); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lista, _ := st.ListarWebhooks(ctx, instancia.ID)
+	for _, w := range lista {
+		if w.IncluirBase64 != (w.ID == "com") {
+			t.Fatalf("incluir_base64 nao foi salvo: %+v", w)
+		}
+	}
+
+	dispatcher := NovoDispatcher(st, st, 2*time.Second, 10*time.Millisecond, time.Hour, time.Minute, 3, 2, 10)
+	dispatcher.Iniciar(ctx)
+	dados := map[string]interface{}{
+		"tipo":  "video",
+		"midia": map[string]interface{}{"id": "M1", "download_url": "http://x/m1", "base64": "QUJD", "data_uri": "data:video/mp4;base64,QUJD"},
+	}
+	dispatcher.DispararEvento(ctx, instancia.ID, models.EventoWebhookMensagens, dados)
+
+	for i := 0; i < 2; i++ {
+		select {
+		case corpo := <-corpos:
+			midia, _ := corpo["midia"].(map[string]any)
+			_, temBase64 := midia["base64"]
+			_, temDataURI := midia["data_uri"]
+			querBase64 := corpo["_webhook"] == "/com"
+			if temBase64 != querBase64 || temDataURI != querBase64 || midia["download_url"] != "http://x/m1" {
+				t.Fatalf("webhook %v recebeu midia %v", corpo["_webhook"], midia)
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatal("entrega nao chegou")
+		}
+	}
+	if _, ok := dados["midia"].(map[string]interface{})["base64"]; !ok {
+		t.Fatal("o payload original foi alterado")
+	}
+}

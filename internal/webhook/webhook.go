@@ -111,8 +111,24 @@ func (d *Dispatcher) DispararEvento(ctx context.Context, instanciaID, evento str
 	if err != nil {
 		return
 	}
+	// Sem base64 so e montado se algum webhook pedir; reaproveita o completo
+	// quando o evento nao tem midia.
+	var corpoSemBase64 []byte
 	agora := time.Now().UTC()
 	for _, webhook := range webhooks {
+		corpoWebhook := corpo
+		if !webhook.IncluirBase64 {
+			if corpoSemBase64 == nil {
+				corpoSemBase64 = corpo
+				if leve, ok := semBase64(dados); ok {
+					payload.Dados = leve
+					if c, err := json.Marshal(payload); err == nil {
+						corpoSemBase64 = c
+					}
+				}
+			}
+			corpoWebhook = corpoSemBase64
+		}
 		entrega := models.WebhookEntrega{
 			ID:                 uuid.NewString(),
 			WebhookID:          webhook.ID,
@@ -120,7 +136,7 @@ func (d *Dispatcher) DispararEvento(ctx context.Context, instanciaID, evento str
 			WebhookNome:        webhook.Nome,
 			URL:                webhook.URL,
 			Evento:             evento,
-			Payload:            append([]byte(nil), corpo...),
+			Payload:            append([]byte(nil), corpoWebhook...),
 			Status:             models.WebhookEntregaPendente,
 			MaxTentativas:      d.maxTentativas,
 			ProximaTentativaEm: agora,
@@ -291,4 +307,35 @@ func (d *Dispatcher) backoff(tentativas int) time.Duration {
 		return d.maxIntervalo
 	}
 	return intervalo
+}
+
+// semBase64 tira o arquivo em base64 (e o data_uri) da midia do payload,
+// deixando os links de download. Devolve false quando nao ha o que tirar.
+// Copia os mapas alterados: o mesmo dados vai para os outros webhooks.
+func semBase64(dados interface{}) (interface{}, bool) {
+	mapa, ok := dados.(map[string]interface{})
+	if !ok {
+		return dados, false
+	}
+	midia, ok := mapa["midia"].(map[string]interface{})
+	if !ok {
+		return dados, false
+	}
+	_, temBase64 := midia["base64"]
+	_, temDataURI := midia["data_uri"]
+	if !temBase64 && !temDataURI {
+		return dados, false
+	}
+	midiaLeve := make(map[string]interface{}, len(midia))
+	for chave, valor := range midia {
+		if chave != "base64" && chave != "data_uri" {
+			midiaLeve[chave] = valor
+		}
+	}
+	copia := make(map[string]interface{}, len(mapa))
+	for chave, valor := range mapa {
+		copia[chave] = valor
+	}
+	copia["midia"] = midiaLeve
+	return copia, true
 }

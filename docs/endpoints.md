@@ -1139,20 +1139,28 @@ Lista os webhooks cadastrados para a instancia.
 Campos:
 
 - obrigatorios: `nome`, `url`, `eventos`
-- opcional: `ativo`
+- opcionais: `ativo`, `incluir_base64`
 
 ```json
 {
   "nome": "Teste n8n",
   "url": "https://seu-n8n/webhook/teste",
   "eventos": ["mensagens", "recibos", "status", "digitando", "gravando_audio"],
-  "ativo": true
+  "ativo": true,
+  "incluir_base64": false
 }
 ```
 
+`incluir_base64` (padrao `true`) decide se as midias recebidas vem com o
+arquivo em `midia.base64` e `midia.data_uri`. Com `false` o webhook recebe so
+os dados da midia e o link `midia.download_url` (precisa de `API_BASE_URL`
+configurado), e a entrega na fila fica pequena: um video em base64 ocupa o
+banco ate a entrega ser limpa. Cada webhook da instancia tem a sua escolha.
+
 ### `PUT /api/v1/instancias/:id/webhooks/:webhookId`
 
-Mesmo payload do `POST`, atualizando um webhook existente.
+Mesmo payload do `POST`, atualizando um webhook existente. Sem
+`incluir_base64`, mantem o que estava.
 
 ### `DELETE /api/v1/instancias/:id/webhooks/:webhookId`
 

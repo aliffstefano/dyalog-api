@@ -36,7 +36,7 @@ func (s *WebhookService) Listar(ctx context.Context, instanciaID string) ([]mode
 	return webhooks, nil
 }
 
-func (s *WebhookService) Criar(ctx context.Context, instanciaID, nome, webhookURL string, eventos []string, ativo bool) (models.WebhookInstancia, error) {
+func (s *WebhookService) Criar(ctx context.Context, instanciaID, nome, webhookURL string, eventos []string, ativo bool, incluirBase64 *bool) (models.WebhookInstancia, error) {
 	if _, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err != nil {
 		return models.WebhookInstancia{}, s.mapearErro(err)
 	}
@@ -44,6 +44,7 @@ func (s *WebhookService) Criar(ctx context.Context, instanciaID, nome, webhookUR
 	if err != nil {
 		return models.WebhookInstancia{}, err
 	}
+	webhook.IncluirBase64 = incluirBase64 == nil || *incluirBase64
 	webhook.ID = uuid.NewString()
 	webhook.CriadoEm = time.Now().UTC()
 	webhook.AtualizadoEm = webhook.CriadoEm
@@ -54,7 +55,7 @@ func (s *WebhookService) Criar(ctx context.Context, instanciaID, nome, webhookUR
 	return criado, nil
 }
 
-func (s *WebhookService) Atualizar(ctx context.Context, instanciaID, webhookID, nome, webhookURL string, eventos []string, ativo bool) (models.WebhookInstancia, error) {
+func (s *WebhookService) Atualizar(ctx context.Context, instanciaID, webhookID, nome, webhookURL string, eventos []string, ativo bool, incluirBase64 *bool) (models.WebhookInstancia, error) {
 	if _, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err != nil {
 		return models.WebhookInstancia{}, s.mapearErro(err)
 	}
@@ -75,6 +76,9 @@ func (s *WebhookService) Atualizar(ctx context.Context, instanciaID, webhookID, 
 	webhook, err := s.montarWebhook(atual, instanciaID, nome, webhookURL, eventos, ativo)
 	if err != nil {
 		return models.WebhookInstancia{}, err
+	}
+	if incluirBase64 != nil {
+		webhook.IncluirBase64 = *incluirBase64
 	}
 	webhook.ID = webhookID
 	webhook.CriadoEm = atual.CriadoEm

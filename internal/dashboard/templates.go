@@ -542,7 +542,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'webhook-novo': {
       kicker: 'Webhooks', titulo: 'Novo webhook',
-      html: '<form id="modal-form" class="stack-form"><label><span>Nome</span><input type="text" id="mf-wh-nome" placeholder="Ex.: Notificacoes" required autocomplete="off"></label><label><span>URL destino</span><input type="url" id="mf-wh-url" placeholder="https://meusite.com/webhook" required autocomplete="off"></label><label><span>Eventos (selecione um ou mais)</span><div class="checkbox-group" id="mf-wh-eventos"><label class="check-item"><input type="checkbox" value="mensagens"> Mensagens</label><label class="check-item"><input type="checkbox" value="recibos"> Recibos</label><label class="check-item"><input type="checkbox" value="chamadas"> Chamadas</label><label class="check-item"><input type="checkbox" value="status"> Status</label><label class="check-item"><input type="checkbox" value="digitando"> Digitando</label><label class="check-item"><input type="checkbox" value="gravando_audio"> Gravando audio</label></div></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar webhook</button></div></form>',
+      html: '<form id="modal-form" class="stack-form"><label><span>Nome</span><input type="text" id="mf-wh-nome" placeholder="Ex.: Notificacoes" required autocomplete="off"></label><label><span>URL destino</span><input type="url" id="mf-wh-url" placeholder="https://meusite.com/webhook" required autocomplete="off"></label><label><span>Eventos (selecione um ou mais)</span><div class="checkbox-group" id="mf-wh-eventos"><label class="check-item"><input type="checkbox" value="mensagens"> Mensagens</label><label class="check-item"><input type="checkbox" value="recibos"> Recibos</label><label class="check-item"><input type="checkbox" value="chamadas"> Chamadas</label><label class="check-item"><input type="checkbox" value="status"> Status</label><label class="check-item"><input type="checkbox" value="digitando"> Digitando</label><label class="check-item"><input type="checkbox" value="gravando_audio"> Gravando audio</label></div></label><label class="check-item"><input type="checkbox" id="mf-wh-base64" checked> Enviar o arquivo em base64 nas midias recebidas</label><p class="status-copy" style="margin:0">Desmarcado, o webhook recebe so o link de download (<code>midia.download_url</code>). Video em base64 deixa o payload pesado e ocupa o banco na fila de entregas.</p><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar webhook</button></div></form>',
       init: function() { document.getElementById('mf-wh-nome').focus(); },
       submit: async function(e) {
         e.preventDefault();
@@ -551,7 +551,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         if (!eventos.length) { fb.className = 'modal-feedback error'; fb.textContent = 'Selecione ao menos um evento.'; return; }
         btn.disabled = true; btn.textContent = 'Criando...'; fb.className = 'modal-feedback hidden';
         try {
-          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/webhooks', { method:'POST', body: JSON.stringify({ nome: document.getElementById('mf-wh-nome').value, url: document.getElementById('mf-wh-url').value, eventos: eventos }) });
+          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/webhooks', { method:'POST', body: JSON.stringify({ nome: document.getElementById('mf-wh-nome').value, url: document.getElementById('mf-wh-url').value, eventos: eventos, incluir_base64: document.getElementById('mf-wh-base64').checked }) });
           fb.className = 'modal-feedback success'; fb.textContent = 'Webhook criado com sucesso!';
           mostrarToast('Webhook criado.', 'success');
           await carregarWebhooks();
@@ -562,13 +562,14 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'webhook-editar': {
       kicker: 'Webhooks', titulo: 'Editar webhook',
-      html: '<form id="modal-form" class="stack-form"><label><span>Nome</span><input type="text" id="mf-wh-nome" required autocomplete="off"></label><label><span>URL destino</span><input type="url" id="mf-wh-url" required autocomplete="off"></label><label><span>Ativo</span><select id="mf-wh-ativo" style="width:100%;border:1px solid var(--line);background:rgba(255,255,255,.76);border-radius:16px;padding:14px 15px;outline:none;color:var(--ink)"><option value="true">Ativo</option><option value="false">Inativo</option></select></label><label><span>Eventos</span><div class="checkbox-group" id="mf-wh-eventos"><label class="check-item"><input type="checkbox" value="mensagens"> Mensagens</label><label class="check-item"><input type="checkbox" value="recibos"> Recibos</label><label class="check-item"><input type="checkbox" value="chamadas"> Chamadas</label><label class="check-item"><input type="checkbox" value="status"> Status</label><label class="check-item"><input type="checkbox" value="digitando"> Digitando</label><label class="check-item"><input type="checkbox" value="gravando_audio"> Gravando audio</label></div></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar webhook</button></div></form>',
+      html: '<form id="modal-form" class="stack-form"><label><span>Nome</span><input type="text" id="mf-wh-nome" required autocomplete="off"></label><label><span>URL destino</span><input type="url" id="mf-wh-url" required autocomplete="off"></label><label><span>Ativo</span><select id="mf-wh-ativo" style="width:100%;border:1px solid var(--line);background:rgba(255,255,255,.76);border-radius:16px;padding:14px 15px;outline:none;color:var(--ink)"><option value="true">Ativo</option><option value="false">Inativo</option></select></label><label><span>Eventos</span><div class="checkbox-group" id="mf-wh-eventos"><label class="check-item"><input type="checkbox" value="mensagens"> Mensagens</label><label class="check-item"><input type="checkbox" value="recibos"> Recibos</label><label class="check-item"><input type="checkbox" value="chamadas"> Chamadas</label><label class="check-item"><input type="checkbox" value="status"> Status</label><label class="check-item"><input type="checkbox" value="digitando"> Digitando</label><label class="check-item"><input type="checkbox" value="gravando_audio"> Gravando audio</label></div></label><label class="check-item"><input type="checkbox" id="mf-wh-base64" checked> Enviar o arquivo em base64 nas midias recebidas</label><p class="status-copy" style="margin:0">Desmarcado, o webhook recebe so o link de download (<code>midia.download_url</code>). Video em base64 deixa o payload pesado e ocupa o banco na fila de entregas.</p><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar webhook</button></div></form>',
       init: function() {
         const wh = estadoUI.webhookEditando;
         if (!wh) return;
         document.getElementById('mf-wh-nome').value = wh.nome || '';
         document.getElementById('mf-wh-url').value = wh.url || '';
         document.getElementById('mf-wh-ativo').value = wh.ativo ? 'true' : 'false';
+        document.getElementById('mf-wh-base64').checked = wh.incluir_base64 !== false;
         const eventos = new Set(wh.eventos || []);
         document.querySelectorAll('#mf-wh-eventos input').forEach(i => i.checked = eventos.has(i.value));
         document.getElementById('mf-wh-nome').focus();
@@ -582,7 +583,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         if (!eventos.length) { fb.className = 'modal-feedback error'; fb.textContent = 'Selecione ao menos um evento.'; return; }
         btn.disabled = true; btn.textContent = 'Salvando...'; fb.className = 'modal-feedback hidden';
         try {
-          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/webhooks/' + wh.id, { method:'PUT', body: JSON.stringify({ nome: document.getElementById('mf-wh-nome').value, url: document.getElementById('mf-wh-url').value, eventos: eventos, ativo: document.getElementById('mf-wh-ativo').value === 'true' }) });
+          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/webhooks/' + wh.id, { method:'PUT', body: JSON.stringify({ nome: document.getElementById('mf-wh-nome').value, url: document.getElementById('mf-wh-url').value, eventos: eventos, ativo: document.getElementById('mf-wh-ativo').value === 'true', incluir_base64: document.getElementById('mf-wh-base64').checked }) });
           fb.className = 'modal-feedback success'; fb.textContent = 'Webhook atualizado com sucesso!';
           mostrarToast('Webhook atualizado.', 'success');
           await carregarWebhooks();
@@ -1532,7 +1533,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
           '<span class="mini-status '+(wh.ativo?'online':'offline')+'">'+(wh.ativo?'Ativo':'Inativo')+'</span>' +
         '</div>' +
         '<div class="webhook-url">'+textoSeguro(wh.url)+'</div>' +
-        '<div class="webhook-eventos">'+textoSeguro((wh.eventos||[]).join(', '))+'</div>' +
+        '<div class="webhook-eventos">'+textoSeguro((wh.eventos||[]).join(', '))+(wh.incluir_base64 === false ? ' · midia so com link' : ' · midia com base64')+'</div>' +
         '<div class="webhook-actions">' +
           '<button class="ghost small" onclick="editarWebhook(\''+wh.id+'\')">Editar</button>' +
           '<button class="ghost small" onclick="alternarWebhookAtivo(\''+wh.id+'\')">'+(wh.ativo?'Desativar':'Ativar')+'</button>' +
