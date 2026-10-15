@@ -55,6 +55,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/instancias/:id/pairing-code", apiHandler.SolicitarCodigoPareamentoInstancia)
 		apiAuth.POST("/instancias/:id/desconectar", apiHandler.DesconectarInstancia)
 		apiAuth.PUT("/instancias/:id/meta", apiHandler.ConfigurarMetaInstancia)
+		apiAuth.GET("/instancias/:id/meta/modelos", apiHandler.ListarModelosMeta)
 		apiAuth.GET("/instancias/:id/status", apiHandler.StatusInstancia)
 		apiAuth.GET("/instancias/:id/qrcode", apiHandler.QRCodeInstancia)
 		apiAuth.GET("/instancias/:id/qrcode/imagem", apiHandler.QRCodeInstanciaImagem)

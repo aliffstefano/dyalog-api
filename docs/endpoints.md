@@ -901,6 +901,43 @@ Envia um modelo aprovado na Meta. So existe nas instancias oficiais.
 }
 ```
 
+### `GET /api/v1/instancias/:id/meta/modelos`
+
+Lista os modelos de mensagem (templates) da conta do WhatsApp Business da
+instancia oficial, para iniciar ou retomar conversa fora da janela de 24h.
+Precisa do WABA ID: informe em `PUT /instancias/:id/meta` (`waba_id`) ou deixe
+a API preencher sozinha quando chegar o primeiro webhook da Meta. Sem ele a
+resposta e `422 sem_waba_id`.
+
+A lista fica 10 minutos em cache; `?atualizar=true` busca de novo na Meta.
+Cada modelo traz `nome`, `idioma`, `status` (so `APPROVED` pode ser enviado),
+`categoria`, `formato_parametros` (`positional` ou `named`), os textos
+(`cabecalho`, `corpo`, `rodape`, `botoes`), `cabecalho_formato` (`TEXT`,
+`IMAGE`, `VIDEO`, `DOCUMENT`) e as variaveis de cada parte
+(`variaveis_cabecalho`, `variaveis_corpo`), alem dos `componentes` crus da
+Meta.
+
+Para enviar, use `POST /batepapo/enviar/template` com `nome` e `idioma` do
+modelo. Corpo so com variaveis posicionais: `parametros` em ordem. Cabecalho
+com variavel ou midia, ou variaveis nomeadas: mande `componentes`:
+
+```json
+{
+  "instancia": "ID",
+  "numero": "556799440667",
+  "nome": "retomar_atendimento",
+  "idioma": "pt_BR",
+  "componentes": [
+    {"type": "header", "parameters": [{"type": "image", "image": {"link": "https://.../banner.jpg"}}]},
+    {"type": "body", "parameters": [{"type": "text", "parameter_name": "nome", "text": "Aliff"}]}
+  ]
+}
+```
+
+No painel, a aba Chat das instancias oficiais mostra se a janela de 24h da
+conversa esta aberta e tem o botao de modelo, que lista os aprovados, pede as
+variaveis e mostra a previa antes de enviar.
+
 ### `GET /api/v1/instancias`
 
 Lista instancias cadastradas.

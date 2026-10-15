@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/whatsapp"
 )
@@ -189,5 +190,15 @@ func (s *MensagemService) EnviarTemplate(ctx context.Context, req models.EnvioTe
 	if !instancia.EhMeta() || s.meta == nil {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: template so existe em instancia da API oficial da Meta", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia, "📄 Template "+req.Nome)(s.meta.EnviarTemplate(ctx, req))
+	resultado, err := s.meta.EnviarTemplate(ctx, req)
+	conteudo := "📄 Modelo " + req.Nome
+	if err == nil {
+		// Texto do modelo para o chat do painel (lista em cache por 10 min).
+		ctxTexto, cancelar := context.WithTimeout(ctx, 3*time.Second)
+		if texto := s.meta.TextoModelo(ctxTexto, req.Instancia, req.Nome, req.Idioma, meta.ValoresModelo(req)); texto != "" {
+			conteudo = "📄 " + texto
+		}
+		cancelar()
+	}
+	return s.registrarEnvio(req.Instancia, conteudo)(resultado, err)
 }

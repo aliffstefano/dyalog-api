@@ -300,6 +300,20 @@ func (h *APIHandler) ConfigurarMetaInstancia(c *gin.Context) {
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Credenciais da Meta validadas e salvas", resumo))
 }
 
+// ListarModelosMeta lista os modelos de mensagem da conta da Meta.
+// ?atualizar=true busca de novo na Meta em vez de usar o cache de 10 min.
+func (h *APIHandler) ListarModelosMeta(c *gin.Context) {
+	if !h.garantirInstancia(c, c.Param("id")) {
+		return
+	}
+	modelos, err := h.instanciaService.ListarModelosMeta(c.Request.Context(), c.Param("id"), c.Query("atualizar") == "true")
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Modelos listados com sucesso", gin.H{"modelos": modelos}))
+}
+
 func (h *APIHandler) EnviarTemplate(c *gin.Context) {
 	var req models.EnvioTemplateRequest
 	if !h.lerEnvio(c, &req, &req.Instancia, "Campos obrigatorios: nome do template e numero") {
@@ -1249,6 +1263,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusConflict, "nenhuma_atualizacao", "Nao existe atualizacao disponivel para aplicar")
 	case errors.Is(err, service.ErrModoAtualizacaoInvalido):
 		h.responderErro(c, nethttp.StatusConflict, "modo_atualizacao_invalido", "O sistema esta em modo aviso; troque para modo preparo para gerar artefato")
+	case errors.Is(err, meta.ErrSemWABA):
+		h.responderErro(c, nethttp.StatusUnprocessableEntity, "sem_waba_id", err.Error())
 	case errors.Is(err, meta.ErrNaoSuportado):
 		h.responderErro(c, nethttp.StatusUnprocessableEntity, "nao_suportado_api_oficial", err.Error())
 	case meta.ErroJanela24h(err):

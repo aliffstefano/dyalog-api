@@ -108,6 +108,7 @@ func (s *InstanciaService) ConfigurarMeta(ctx context.Context, id string, req mo
 	if err := s.metaStore.SalvarCredenciaisMeta(ctx, cred); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrEntradaInvalida, err)
 	}
+	s.meta.EsquecerModelos(id)
 	if _, err := s.store.AtualizarStatus(ctx, id, models.StatusInstanciaConectada); err != nil {
 		return nil, s.mapearErro(err)
 	}
@@ -138,6 +139,15 @@ func (s *InstanciaService) validarCredenciaisMeta(ctx context.Context, cred mode
 		return meta.InfoNumero{}, fmt.Errorf("%w: a Meta recusou as credenciais: %v", ErrEntradaInvalida, err)
 	}
 	return info, nil
+}
+
+// ListarModelosMeta lista os modelos de mensagem (templates) da conta da
+// instancia oficial, para iniciar conversa fora da janela de 24h.
+func (s *InstanciaService) ListarModelosMeta(ctx context.Context, id string, atualizar bool) ([]meta.Modelo, error) {
+	if _, err := s.instanciaMeta(ctx, id); err != nil {
+		return nil, err
+	}
+	return s.meta.Modelos(ctx, id, atualizar)
 }
 
 func (s *InstanciaService) instanciaMeta(ctx context.Context, id string) (models.Instancia, error) {

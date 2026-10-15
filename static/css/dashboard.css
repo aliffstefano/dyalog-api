@@ -3285,3 +3285,74 @@ body::before {
     max-width: 88%;
   }
 }
+
+/* Janela de 24h e modelos da API oficial */
+.dc-chat-janela-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.dc-chat-janela-aviso.aberta {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.dc-chat-janela-aviso.fechada {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+[data-theme="clean"] .dc-chat-janela-aviso.fechada {
+  color: #8a5a00;
+}
+
+[data-theme="clean"] .dc-chat-janela-aviso.aberta {
+  color: #137a3c;
+}
+
+button.dc-chat-anexo {
+  padding: 0;
+  background: transparent;
+}
+
+.dc-modelo-previa:empty {
+  display: none;
+}
+
+.dc-modelo-previa {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  font-size: 14px;
+}
+
+.dc-modelo-previa p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.dc-modelo-previa small {
+  color: var(--muted);
+}
+
+.dc-modelo-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dc-modelo-botoes span {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-2);
+  font-size: 13px;
+}

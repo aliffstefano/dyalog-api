@@ -19,6 +19,7 @@ import (
 type Enviador struct {
 	cliente *Cliente
 	store   store.MetaStore
+	modelos cacheModelos
 }
 
 func NovoEnviador(cliente *Cliente, metaStore store.MetaStore) *Enviador {

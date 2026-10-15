@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261009">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261015">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -42,6 +42,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 21v-.01"/></symbol>
     <symbol id="i-engrenagem" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+    <symbol id="i-modelo" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
     <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
   </svg>
@@ -205,8 +206,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <span class="dc-avatar dc-avatar-mini" id="chat-topo-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></span>
                   <span class="dc-linha-texto"><strong id="chat-topo-nome">Selecione uma conversa</strong><span id="chat-topo-sub">Mensagens recebidas e enviadas por esta instancia aparecem aqui.</span></span>
                 </header>
+                <div class="dc-chat-janela-aviso hidden" id="chat-janela-aviso"></div>
                 <div class="dc-chat-mensagens" id="chat-mensagens" aria-live="polite"></div>
                 <form class="dc-chat-envio" onsubmit="enviarMensagemChat(event)">
+                  <button type="button" class="dc-chat-anexo so-meta" id="chat-modelo" onclick="abrirModeloChat()" title="Enviar modelo (template) da Meta"><svg class="dc-ico"><use href="#i-modelo"/></svg></button>
                   <label class="dc-chat-anexo" title="Anexar arquivo"><input type="file" id="chat-arquivo" onchange="anexoChatSelecionado()"><svg class="dc-ico"><use href="#i-clipe"/></svg></label>
                   <div class="dc-chat-campo">
                     <span id="chat-anexo-nome" class="dc-chat-anexo-nome hidden"></span>
@@ -538,6 +541,32 @@ const paginaInicialHTML = `<!DOCTYPE html>
           setTimeout(fecharModal, 1600);
         } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }
         finally { btn.disabled = false; btn.textContent = 'Salvar'; }
+      }
+    },
+    'modelo-meta': {
+      kicker: 'API oficial', titulo: 'Enviar modelo', largo: false,
+      html: '<form id="modal-form" class="stack-form"><p class="helper-text">Modelos aprovados na sua conta do WhatsApp Business. Sao a unica mensagem que chega fora da janela de 24h.</p><label><span>Modelo</span><span class="dc-campo-acao"><select id="mf-modelo" onchange="renderizarCamposModelo()"></select><button type="button" class="ghost small" onclick="carregarModelosMeta(true)" title="Buscar de novo na Meta">Atualizar</button></span></label><div id="mf-modelo-campos" class="stack-form"></div><div class="dc-modelo-previa" id="mf-modelo-previa"></div><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit" disabled>Enviar modelo</button></div></form>',
+      init: function() { carregarModelosMeta(false); },
+      submit: async function(e) {
+        e.preventDefault();
+        const m = modeloSelecionado();
+        if (!m || !chatUI.chat) return;
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; btn.textContent = 'Enviando...'; fb.className = 'modal-feedback hidden';
+        const corpo = { instancia: estadoUI.instanciaSelecionada, nome: m.nome, idioma: m.idioma };
+        if (chatUI.chat.endsWith('@g.us')) corpo.chat_jid = chatUI.chat; else corpo.numero = numeroDoJid(chatUI.chat);
+        const componentes = componentesModelo(m);
+        if (componentes.length) corpo.componentes = componentes;
+        try {
+          const r = await chamar('/api/v1/batepapo/enviar/template', { method:'POST', body: JSON.stringify(corpo) });
+          const jid = r?.dados?.chat_jid;
+          if (jid && jid.endsWith('@s.whatsapp.net') && jid !== chatUI.chat) { chatUI.chat = jid; renderizarJanelaChat(); }
+          mostrarToast('Modelo enviado.', 'success');
+          fecharModal();
+          chatUI.assinatura = '';
+          await carregarChat();
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }
+        finally { btn.disabled = false; btn.textContent = 'Enviar modelo'; }
       }
     },
     'webhook-novo': {
@@ -1299,6 +1328,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('chat-topo-nome').textContent = aberta ? nomeConversa(conversa) : 'Selecione uma conversa';
     document.getElementById('chat-topo-sub').textContent = aberta ? (conversa.grupo ? conversa.chat_jid : formatarTelefone(numeroDoJid(conversa.chat_jid))) : 'Mensagens recebidas e enviadas por esta instancia aparecem aqui.';
     document.getElementById('chat-topo-avatar').innerHTML = aberta ? '<span>' + textoSeguro(conversa.grupo ? 'G' : iniciais(conversa.nome || numeroDoJid(conversa.chat_jid).slice(-2))) + '</span>' : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
+    if (!aberta) document.getElementById('chat-janela-aviso').classList.add('hidden');
     if (!aberta) document.getElementById('chat-mensagens').innerHTML = '<div class="dc-lista-vazia"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Escolha uma conversa ao lado.</div>';
   }
   async function carregarMensagensChat() {
@@ -1327,7 +1357,30 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (mime.startsWith('video/')) return '<video class="dc-chat-midia" controls preload="none" src="' + url + '"></video>';
     return '<a class="dc-chat-arquivo" href="' + url + '" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-clipe"/></svg>' + textoSeguro(m.nome_arquivo || 'arquivo') + '</a>';
   }
+  function instanciaChatEhMeta() {
+    const item = (estadoUI.instancias || []).find(i => i.id === estadoUI.instanciaSelecionada);
+    return !!item && item.tipo === 'meta';
+  }
+  // Na API oficial, texto livre so chega ate 24h depois da ultima mensagem do
+  // contato; depois disso so modelo aprovado.
+  function atualizarAvisoJanelaChat(mensagens) {
+    const aviso = document.getElementById('chat-janela-aviso');
+    if (!chatUI.chat || !instanciaChatEhMeta()) { aviso.classList.add('hidden'); return; }
+    const recebidas = (mensagens || []).filter(m => m.direcao === 'entrada');
+    const ultima = recebidas.length ? new Date(recebidas[recebidas.length - 1].criado_em) : null;
+    const fim = ultima ? new Date(ultima.getTime() + 24 * 3600 * 1000) : null;
+    aviso.classList.remove('hidden');
+    if (fim && fim > new Date()) {
+      aviso.className = 'dc-chat-janela-aviso aberta';
+      aviso.textContent = 'Janela de 24h aberta ate ' + horaChat(fim.toISOString()) + '. Pode enviar texto livre.';
+    } else {
+      aviso.className = 'dc-chat-janela-aviso fechada';
+      aviso.innerHTML = textoSeguro(ultima ? 'Passaram mais de 24h desde a ultima mensagem do contato.' : 'O contato ainda nao mandou mensagem.') +
+        ' Texto livre nao chega: comece com um modelo aprovado. <button type="button" class="ghost small" onclick="abrirModeloChat()">Enviar modelo</button>';
+    }
+  }
   function renderizarMensagensChat(mensagens) {
+    atualizarAvisoJanelaChat(mensagens);
     const caixa = document.getElementById('chat-mensagens');
     const noFim = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 80;
     if (!mensagens.length) { caixa.innerHTML = '<div class="dc-lista-vazia">Nenhuma mensagem nesta conversa ainda.</div>'; return; }
@@ -1407,6 +1460,84 @@ const paginaInicialHTML = `<!DOCTYPE html>
       chatUI.enviando = false; botao.disabled = !chatUI.chat;
       campo.focus();
     }
+  }
+
+  // ── Modelos (templates) da Meta ─────────────────────────────────────────────
+  const modeloUI = { lista: [] };
+  function abrirModeloChat() {
+    if (!chatUI.chat) { mostrarToast('Abra uma conversa ou informe o numero primeiro.', 'error'); return; }
+    abrirModal('modelo-meta');
+  }
+  async function carregarModelosMeta(atualizar) {
+    const sel = document.getElementById('mf-modelo'), fb = document.getElementById('mf-feedback');
+    sel.innerHTML = '<option value="">Carregando modelos...</option>';
+    fb.className = 'modal-feedback hidden';
+    try {
+      const d = await buscarChat('/api/v1/instancias/' + encodeURIComponent(estadoUI.instanciaSelecionada) + '/meta/modelos' + (atualizar ? '?atualizar=true' : ''));
+      modeloUI.lista = (d?.modelos || []).slice().sort((a, b) => (b.status === 'APPROVED') - (a.status === 'APPROVED') || a.nome.localeCompare(b.nome));
+      if (!modeloUI.lista.length) { sel.innerHTML = '<option value="">Nenhum modelo na conta</option>'; renderizarCamposModelo(); return; }
+      sel.innerHTML = modeloUI.lista.map((m, i) => '<option value="' + i + '"' + (m.status === 'APPROVED' ? '' : ' disabled') + '>' +
+        textoSeguro(m.nome + ' · ' + m.idioma + ' · ' + (m.status === 'APPROVED' ? (m.categoria || '').toLowerCase() : m.status.toLowerCase())) + '</option>').join('');
+      const primeiro = modeloUI.lista.findIndex(m => m.status === 'APPROVED');
+      sel.value = primeiro >= 0 ? String(primeiro) : '';
+      renderizarCamposModelo();
+    } catch (err) {
+      sel.innerHTML = '<option value="">Sem modelos</option>';
+      fb.className = 'modal-feedback error'; fb.textContent = err.message;
+      renderizarCamposModelo();
+    }
+  }
+  // Chaves escritas por codigo: esta pagina passa pelo html/template do Go.
+  function rotuloVariavel(v) { return '\x7b\x7b' + textoSeguro(v) + '\x7d\x7d'; }
+  function modeloSelecionado() { return modeloUI.lista[parseInt(document.getElementById('mf-modelo').value, 10)] || null; }
+  function renderizarCamposModelo() {
+    const m = modeloSelecionado(), campos = document.getElementById('mf-modelo-campos');
+    document.getElementById('mf-submit').disabled = !m;
+    if (!m) { campos.innerHTML = ''; document.getElementById('mf-modelo-previa').innerHTML = ''; return; }
+    let html = '';
+    const formato = String(m.cabecalho_formato || '').toUpperCase();
+    if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formato)) {
+      html += '<label><span>Link da ' + ({IMAGE:'imagem', VIDEO:'video', DOCUMENT:'documento'})[formato] + ' do cabecalho <em>*</em></span><input type="url" id="mf-modelo-midia" placeholder="https://..." required oninput="previaModelo()"></label>';
+    }
+    (m.variaveis_cabecalho || []).forEach(v => { html += '<label><span>Cabecalho ' + rotuloVariavel(v) + ' <em>*</em></span><input type="text" class="mf-var-cab" data-var="' + textoSeguro(v) + '" required oninput="previaModelo()"></label>'; });
+    (m.variaveis_corpo || []).forEach(v => { html += '<label><span>Variavel ' + rotuloVariavel(v) + ' <em>*</em></span><input type="text" class="mf-var-corpo" data-var="' + textoSeguro(v) + '" required oninput="previaModelo()"></label>'; });
+    campos.innerHTML = html;
+    previaModelo();
+  }
+  function valoresModelo(classe) {
+    const valores = {};
+    document.querySelectorAll('.' + classe).forEach(i => { valores[i.dataset.var] = i.value; });
+    return valores;
+  }
+  function preencherModelo(texto, valores) {
+    return String(texto || '').replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (t, nome) => valores[nome] ? valores[nome] : t);
+  }
+  function previaModelo() {
+    const m = modeloSelecionado();
+    if (!m) return;
+    const cab = m.cabecalho ? '<strong>' + textoSeguro(preencherModelo(m.cabecalho, valoresModelo('mf-var-cab'))) + '</strong>' : (m.cabecalho_formato && m.cabecalho_formato !== 'TEXT' ? '<em>[' + textoSeguro(m.cabecalho_formato.toLowerCase()) + ']</em>' : '');
+    document.getElementById('mf-modelo-previa').innerHTML = cab +
+      '<p>' + textoSeguro(preencherModelo(m.corpo, valoresModelo('mf-var-corpo'))) + '</p>' +
+      (m.rodape ? '<small>' + textoSeguro(m.rodape) + '</small>' : '') +
+      ((m.botoes || []).length ? '<div class="dc-modelo-botoes">' + m.botoes.map(b => '<span>' + textoSeguro(b) + '</span>').join('') + '</div>' : '');
+  }
+  function componentesModelo(m) {
+    const nomeado = m.formato_parametros === 'named';
+    const parametro = (nome, valor) => nomeado ? { type:'text', parameter_name: nome, text: valor } : { type:'text', text: valor };
+    const componentes = [];
+    const formato = String(m.cabecalho_formato || '').toUpperCase();
+    if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formato)) {
+      const tipo = formato.toLowerCase();
+      componentes.push({ type:'header', parameters:[{ type: tipo, [tipo]: { link: document.getElementById('mf-modelo-midia').value.trim() } }] });
+    } else if ((m.variaveis_cabecalho || []).length) {
+      const v = valoresModelo('mf-var-cab');
+      componentes.push({ type:'header', parameters: m.variaveis_cabecalho.map(n => parametro(n, v[n])) });
+    }
+    if ((m.variaveis_corpo || []).length) {
+      const v = valoresModelo('mf-var-corpo');
+      componentes.push({ type:'body', parameters: m.variaveis_corpo.map(n => parametro(n, v[n])) });
+    }
+    return componentes;
   }
 
   function usoAberto() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'geral'; }

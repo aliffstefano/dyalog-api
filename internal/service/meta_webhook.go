@@ -90,6 +90,14 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 	ctx, cancelar := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancelar()
 	for _, entrada := range webhook.Entradas {
+		// O id da entrada e o WABA ID: guarda se ainda nao foi informado, para
+		// a lista de modelos funcionar sem o usuario precisar procurar.
+		if cred.WABAID == "" && entrada.ID != "" {
+			cred.WABAID = entrada.ID
+			if err := s.metaStore.SalvarCredenciaisMeta(ctx, cred); err != nil {
+				fmt.Printf("meta: erro ao guardar o WABA ID da instancia %s: %v\n", instancia.ID, err)
+			}
+		}
 		for _, mudanca := range entrada.Mudancas {
 			if mudanca.Campo != "messages" {
 				continue
