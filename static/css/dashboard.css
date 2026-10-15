@@ -3356,3 +3356,24 @@ button.dc-chat-anexo {
   color: var(--accent-2);
   font-size: 13px;
 }
+
+/* Controles nativos (lista aberta do select, calendario, barras de rolagem)
+   seguem o tema; sem isso a lista abria branca com texto claro no escuro. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="clean"] {
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+
+select option:disabled {
+  color: var(--muted);
+}
