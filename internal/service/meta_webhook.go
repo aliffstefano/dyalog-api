@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"dyalog-api-go/internal/meta"
@@ -28,18 +30,43 @@ type salvadorMidia interface {
 // MetaWebhookService recebe os webhooks da API oficial e os repassa para os
 // webhooks cadastrados na instancia, no mesmo formato das instancias por QR
 // code.
+//
+// Todo webhook e gravado no banco antes de responder 200 para a Meta: ela so
+// reenvia o que nao confirmamos (por ate 7 dias), entao o que ja confirmamos
+// precisa sobreviver a uma queda do container. O processamento sai do banco e
+// o que ficar pendente e retomado por qualquer replica.
 type MetaWebhookService struct {
 	instancias  store.InstanciaStore
 	metaStore   store.MetaStore
+	entradas    store.MetaWebhookStore
 	processadas store.MensagemProcessadaStore
 	cliente     *meta.Cliente
 	dispatcher  *webhookdispatch.Dispatcher
 	midias      salvadorMidia
+	dono        string
+	// appSecret e verifyToken sao do app da Meta (provedor): valem para a URL
+	// de callback unica do app, /webhook/meta, que atende todas as instancias.
+	appSecret   string
+	verifyToken string
 }
 
-func NovoMetaWebhookService(instancias store.InstanciaStore, metaStore store.MetaStore, processadas store.MensagemProcessadaStore, cliente *meta.Cliente, dispatcher *webhookdispatch.Dispatcher, midias salvadorMidia) *MetaWebhookService {
-	return &MetaWebhookService{instancias: instancias, metaStore: metaStore, processadas: processadas, cliente: cliente, dispatcher: dispatcher, midias: midias}
+func NovoMetaWebhookService(instancias store.InstanciaStore, metaStore store.MetaStore, entradas store.MetaWebhookStore, processadas store.MensagemProcessadaStore, cliente *meta.Cliente, dispatcher *webhookdispatch.Dispatcher, midias salvadorMidia) *MetaWebhookService {
+	dono, _ := os.Hostname()
+	return &MetaWebhookService{instancias: instancias, metaStore: metaStore, entradas: entradas, processadas: processadas, cliente: cliente, dispatcher: dispatcher, midias: midias, dono: dono}
 }
+
+// UsarApp liga a URL de callback unica do app (META_APP_SECRET e
+// META_WEBHOOK_VERIFY_TOKEN).
+func (s *MetaWebhookService) UsarApp(appSecret, verifyToken string) {
+	s.appSecret, s.verifyToken = strings.TrimSpace(appSecret), strings.TrimSpace(verifyToken)
+}
+
+// reservaWebhook e quanto tempo um container segura um webhook antes de outro
+// poder retomar (se o primeiro caiu no meio).
+const reservaWebhook = 5 * time.Minute
+
+// maxTentativasWebhook evita repetir para sempre um webhook que sempre falha.
+const maxTentativasWebhook = 10
 
 func (s *MetaWebhookService) credenciais(ctx context.Context, instanciaID string) (models.Instancia, models.CredenciaisMeta, error) {
 	instancia, err := s.instancias.BuscarPorID(ctx, instanciaID)
@@ -66,42 +93,147 @@ func (s *MetaWebhookService) Verificar(ctx context.Context, instanciaID, modo, t
 	return challenge, nil
 }
 
-// Receber valida a assinatura e processa o webhook. Sem App Secret salvo, a
+// VerificarApp e o GET de verificacao da URL de callback unica do app.
+func (s *MetaWebhookService) VerificarApp(modo, token, challenge string) (string, error) {
+	if s.verifyToken == "" {
+		return "", ErrInstanciaNaoEncontrada
+	}
+	if modo != "subscribe" || token != s.verifyToken {
+		return "", ErrAssinaturaMetaInvalida
+	}
+	return challenge, nil
+}
+
+// Receber valida a assinatura, grava e responde. Sem App Secret salvo, a
 // assinatura nao e conferida (o painel avisa para cadastrar).
 func (s *MetaWebhookService) Receber(ctx context.Context, instanciaID string, corpo []byte, assinatura string) error {
-	instancia, cred, err := s.credenciais(ctx, instanciaID)
+	_, cred, err := s.credenciais(ctx, instanciaID)
 	if err != nil {
 		return err
 	}
-	if cred.AppSecret != "" && !meta.AssinaturaValida(corpo, assinatura, cred.AppSecret) {
+	segredo := cmp.Or(cred.AppSecret, s.appSecret)
+	if segredo != "" && !meta.AssinaturaValida(corpo, assinatura, segredo) {
 		fmt.Printf("meta: webhook recusado na instancia %s: assinatura nao confere com o App Secret salvo\n", instanciaID)
 		return ErrAssinaturaMetaInvalida
 	}
 	fmt.Printf("meta: webhook recebido na instancia %s (%d bytes)\n", instanciaID, len(corpo))
-	var webhook meta.Webhook
-	if err := json.Unmarshal(corpo, &webhook); err != nil {
+	return s.guardar(ctx, instanciaID, corpo)
+}
+
+// ReceberApp atende a URL de callback unica do app: os eventos de todos os
+// numeros chegam aqui e vao para a instancia pelo phone_number_id. Exige o
+// App Secret do app, senao qualquer um mandaria mensagem em nome de qualquer
+// instancia.
+func (s *MetaWebhookService) ReceberApp(ctx context.Context, corpo []byte, assinatura string) error {
+	if s.appSecret == "" {
+		return ErrInstanciaNaoEncontrada
+	}
+	if !meta.AssinaturaValida(corpo, assinatura, s.appSecret) {
+		fmt.Println("meta: webhook do app recusado: assinatura nao confere com META_APP_SECRET")
+		return ErrAssinaturaMetaInvalida
+	}
+	fmt.Printf("meta: webhook do app recebido (%d bytes)\n", len(corpo))
+	return s.guardar(ctx, "", corpo)
+}
+
+func (s *MetaWebhookService) guardar(ctx context.Context, instanciaID string, corpo []byte) error {
+	if !json.Valid(corpo) {
 		return fmt.Errorf("%w: corpo do webhook invalido", ErrEntradaInvalida)
 	}
-	// A Meta espera resposta rapida (e reenvia se demorar); baixar midia e
-	// repassar ficam em segundo plano.
-	go s.processar(instancia, cred, webhook)
+	if s.entradas == nil {
+		go s.processar(instanciaID, corpo)
+		return nil
+	}
+	// Se nao der para gravar, responde erro: a Meta reenvia depois.
+	id, err := s.entradas.GuardarWebhookMeta(ctx, instanciaID, corpo)
+	if err != nil {
+		return err
+	}
+	go s.processarGuardado(store.WebhookMetaPendente{ID: id, InstanciaID: instanciaID, Corpo: corpo})
 	return nil
 }
 
-func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.CredenciaisMeta, webhook meta.Webhook) {
+func (s *MetaWebhookService) processarGuardado(p store.WebhookMetaPendente) {
+	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
+	reservado, err := s.entradas.ReservarWebhookMeta(ctx, p.ID, s.dono, reservaWebhook)
+	cancelar()
+	if err != nil || !reservado {
+		return
+	}
+	erro := ""
+	if p.Tentativas >= maxTentativasWebhook {
+		erro = "desistiu apos varias tentativas"
+	} else if err := s.processar(p.InstanciaID, p.Corpo); err != nil {
+		erro = err.Error()
+	}
+	ctx, cancelar = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelar()
+	if err := s.entradas.ConcluirWebhookMeta(ctx, p.ID, erro); err != nil {
+		fmt.Printf("meta: %v\n", err)
+	}
+}
+
+// Iniciar retoma os webhooks que ficaram pendentes (container caiu no meio)
+// e limpa os ja processados com mais de 7 dias.
+func (s *MetaWebhookService) Iniciar(ctx context.Context) {
+	if s.entradas == nil {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		ultimaLimpeza := time.Time{}
+		for {
+			s.retomarPendentes(ctx)
+			if time.Since(ultimaLimpeza) > 24*time.Hour {
+				ultimaLimpeza = time.Now()
+				if apagados, err := s.entradas.LimparWebhooksMetaAntigos(ctx, time.Now().AddDate(0, 0, -7)); err != nil {
+					fmt.Printf("meta: %v\n", err)
+				} else if apagados > 0 {
+					fmt.Printf("meta: %d webhooks processados antigos removidos\n", apagados)
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+}
+
+func (s *MetaWebhookService) retomarPendentes(ctx context.Context) {
+	// So os parados ha mais de um minuto: os recentes ainda estao sendo
+	// processados por quem recebeu.
+	pendentes, err := s.entradas.ListarWebhooksMetaPendentes(ctx, time.Now().Add(-time.Minute), 50)
+	if err != nil {
+		fmt.Printf("meta: %v\n", err)
+		return
+	}
+	for _, p := range pendentes {
+		fmt.Printf("meta: retomando webhook pendente %s\n", p.ID)
+		s.processarGuardado(p)
+	}
+}
+
+// processar trata o corpo gravado. instanciaFixa vem da URL por instancia;
+// vazia, o destino de cada evento sai do phone_number_id (URL unica do app).
+func (s *MetaWebhookService) processar(instanciaFixa string, corpo []byte) error {
+	var webhook meta.Webhook
+	if err := json.Unmarshal(corpo, &webhook); err != nil {
+		return fmt.Errorf("corpo do webhook invalido: %w", err)
+	}
 	ctx, cancelar := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancelar()
 	for _, entrada := range webhook.Entradas {
 		for _, mudanca := range entrada.Mudancas {
 			if mudanca.Campo != "messages" {
-				fmt.Printf("meta: webhook do campo %q ignorado na instancia %s\n", mudanca.Campo, instancia.ID)
+				fmt.Printf("meta: webhook do campo %q ignorado\n", mudanca.Campo)
 				continue
 			}
 			valor := mudanca.Valor
-			// Uma mesma URL pode receber eventos de outro numero do app (ou o
-			// exemplo do botao "Testar" da Meta); so interessa o desta instancia.
-			if id := valor.Metadados.PhoneNumberID; id != cred.PhoneNumberID {
-				fmt.Printf("meta: webhook do phone_number_id %q ignorado na instancia %s (esperado %s)\n", id, instancia.ID, cred.PhoneNumberID)
+			instancia, cred, ok := s.destino(ctx, instanciaFixa, valor.Metadados.PhoneNumberID)
+			if !ok {
 				continue
 			}
 			// O id da entrada e o WABA ID: guarda se ainda nao foi informado,
@@ -113,6 +245,7 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 				}
 			}
 			for _, mensagem := range valor.Mensagens {
+				fmt.Printf("meta: mensagem %s recebida de %s na instancia %s\n", mensagem.ID, mensagem.De, instancia.ID)
 				s.processarMensagem(ctx, instancia, cred, valor, mensagem)
 			}
 			for _, status := range valor.Status {
@@ -128,6 +261,35 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 			}
 		}
 	}
+	return nil
+}
+
+// destino acha a instancia do evento. Na URL por instancia, so aceita o
+// numero dela (a mesma URL pode receber outro numero do app, ou o exemplo do
+// botao "Testar" da Meta).
+func (s *MetaWebhookService) destino(ctx context.Context, instanciaFixa, phoneNumberID string) (models.Instancia, models.CredenciaisMeta, bool) {
+	if instanciaFixa != "" {
+		instancia, cred, err := s.credenciais(ctx, instanciaFixa)
+		if err != nil {
+			fmt.Printf("meta: instancia %s do webhook nao existe mais\n", instanciaFixa)
+			return models.Instancia{}, models.CredenciaisMeta{}, false
+		}
+		if phoneNumberID != cred.PhoneNumberID {
+			fmt.Printf("meta: webhook do phone_number_id %q ignorado na instancia %s (esperado %s)\n", phoneNumberID, instanciaFixa, cred.PhoneNumberID)
+			return models.Instancia{}, models.CredenciaisMeta{}, false
+		}
+		return instancia, cred, true
+	}
+	cred, err := s.metaStore.ObterCredenciaisMetaPorNumero(ctx, phoneNumberID)
+	if err != nil {
+		fmt.Printf("meta: webhook do phone_number_id %q ignorado: nenhuma instancia com esse numero\n", phoneNumberID)
+		return models.Instancia{}, models.CredenciaisMeta{}, false
+	}
+	instancia, err := s.instancias.BuscarPorID(ctx, cred.InstanciaID)
+	if err != nil {
+		return models.Instancia{}, models.CredenciaisMeta{}, false
+	}
+	return instancia, cred, true
 }
 
 func (s *MetaWebhookService) processarMensagem(ctx context.Context, instancia models.Instancia, cred models.CredenciaisMeta, valor meta.Valor, mensagem meta.Mensagem) {

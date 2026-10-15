@@ -18,6 +18,8 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 
 	// Webhooks da API oficial: publicos, a Meta nao manda o nosso token. A
 	// seguranca vem do verify_token (GET) e da assinatura com o App Secret (POST).
+	engine.GET("/webhook/meta", apiHandler.VerificarWebhookMetaApp)
+	engine.POST("/webhook/meta", apiHandler.ReceberWebhookMetaApp)
 	engine.GET("/webhook/meta/:id", apiHandler.VerificarWebhookMeta)
 	engine.POST("/webhook/meta/:id", apiHandler.ReceberWebhookMeta)
 

@@ -17,6 +17,9 @@ type CredenciaisMeta struct {
 	WABAID        string `json:"waba_id,omitempty"`
 	AccessToken   string `json:"-"`
 	AppSecret     string `json:"-"`
+	// PinRegistro e o PIN de 6 digitos usado ao registrar o numero na Cloud
+	// API (cadastro incorporado). Precisa dele para registrar de novo.
+	PinRegistro string `json:"-"`
 	// VerifyToken e o texto que a Meta manda na verificacao do webhook.
 	VerifyToken string `json:"verify_token"`
 	// NumeroExibicao e NomeVerificado vem da propria Meta ao validar.

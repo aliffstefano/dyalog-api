@@ -143,7 +143,10 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	engine.Static("/static", "./static")
 	apiHandler := NovoAPIHandler(cfg, instanciaService, mensagemService, chamadaService, midiaService, webhookService, sistemaService, authService)
 	apiHandler.UsarChat(chatService)
-	apiHandler.UsarMetaWebhook(service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador))
+	metaWebhook := service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador)
+	metaWebhook.UsarApp(cfg.MetaAppSecret, cfg.MetaWebhookVerifyToken)
+	metaWebhook.Iniciar(context.Background())
+	apiHandler.UsarMetaWebhook(metaWebhook)
 	dashboardHandler := dashboard.NovoHandler(cfg, authService)
 	registrarRotas(engine, cfg, apiHandler, dashboardHandler, authService, gerenciador)
 	return &Servidor{engine: engine}, nil

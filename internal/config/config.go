@@ -73,6 +73,13 @@ type Config struct {
 	// MetaGraphVersao e a versao da Graph API usada pelas instancias da API
 	// oficial.
 	MetaGraphVersao string
+	// App da Meta do provedor: cadastro incorporado e URL de callback unica
+	// (/webhook/meta). META_CONFIG_ID e a configuracao do "Login do Facebook
+	// para Empresas" do tipo cadastro incorporado do WhatsApp.
+	MetaAppID              string
+	MetaAppSecret          string
+	MetaConfigID           string
+	MetaWebhookVerifyToken string
 	// MetaGraphBaseURL troca o endereco da Graph API (so para testes).
 	MetaGraphBaseURL              string
 	ReconexaoIntervaloSegundos    int
@@ -155,6 +162,10 @@ func Carregar() (*Config, error) {
 		LimiteEnviosPorMinuto:         obterInt("RATE_LIMIT_ENVIOS_POR_MINUTO", 100),
 		MetaGraphVersao:               obter("META_GRAPH_VERSION", "v25.0"),
 		MetaGraphBaseURL:              obter("META_GRAPH_BASE_URL", ""),
+		MetaAppID:                     obter("META_APP_ID", ""),
+		MetaAppSecret:                 obter("META_APP_SECRET", ""),
+		MetaConfigID:                  obter("META_CONFIG_ID", ""),
+		MetaWebhookVerifyToken:        obter("META_WEBHOOK_VERIFY_TOKEN", ""),
 		LimiteFalhasAuthPorMinuto:     obterInt("RATE_LIMIT_FALHAS_AUTH_POR_MINUTO", 10),
 		ProxiesConfiaveis:             strings.FieldsFunc(obter("TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,::1/128,fc00::/7"), func(r rune) bool { return r == ',' || r == ' ' }),
 		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),

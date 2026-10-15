@@ -284,6 +284,10 @@ func (s *SQLStore) prepararSchema() error {
 	if err := s.garantirColunasRuntimeLocks(); err != nil {
 		return err
 	}
+	// PIN de registro do numero na Cloud API (cadastro incorporado).
+	if _, err := s.db.Exec(`ALTER TABLE instancias_meta ADD COLUMN pin_registro TEXT NOT NULL DEFAULT ''`); err != nil && !erroColunaDuplicada(err) {
+		return fmt.Errorf("erro ao garantir coluna pin_registro: %w", err)
+	}
 	// Webhooks antigos continuam recebendo o base64, como antes.
 	if _, err := s.db.Exec(`ALTER TABLE webhooks ADD COLUMN incluir_base64 BOOLEAN NOT NULL DEFAULT TRUE`); err != nil && !erroColunaDuplicada(err) {
 		return fmt.Errorf("erro ao garantir coluna incluir_base64 do webhook: %w", err)
@@ -474,6 +478,19 @@ CREATE TABLE IF NOT EXISTS chat_mensagens (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_mensagens_chat ON chat_mensagens(instancia_id, chat_jid, criado_em);
 CREATE INDEX IF NOT EXISTS idx_chat_mensagens_criado ON chat_mensagens(criado_em);
+
+CREATE TABLE IF NOT EXISTS meta_webhooks (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL DEFAULT '',
+    corpo TEXT NOT NULL,
+    recebido_em DATETIME NOT NULL,
+    reservado_em DATETIME,
+    dono TEXT NOT NULL DEFAULT '',
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    processado_em DATETIME,
+    erro TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
 
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
@@ -672,6 +689,19 @@ CREATE TABLE IF NOT EXISTS chat_mensagens (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_mensagens_chat ON chat_mensagens(instancia_id, chat_jid, criado_em);
 CREATE INDEX IF NOT EXISTS idx_chat_mensagens_criado ON chat_mensagens(criado_em);
+
+CREATE TABLE IF NOT EXISTS meta_webhooks (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL DEFAULT '',
+    corpo TEXT NOT NULL,
+    recebido_em TIMESTAMPTZ NOT NULL,
+    reservado_em TIMESTAMPTZ,
+    dono TEXT NOT NULL DEFAULT '',
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    processado_em TIMESTAMPTZ,
+    erro TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
 
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
