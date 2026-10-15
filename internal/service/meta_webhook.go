@@ -74,8 +74,10 @@ func (s *MetaWebhookService) Receber(ctx context.Context, instanciaID string, co
 		return err
 	}
 	if cred.AppSecret != "" && !meta.AssinaturaValida(corpo, assinatura, cred.AppSecret) {
+		fmt.Printf("meta: webhook recusado na instancia %s: assinatura nao confere com o App Secret salvo\n", instanciaID)
 		return ErrAssinaturaMetaInvalida
 	}
+	fmt.Printf("meta: webhook recebido na instancia %s (%d bytes)\n", instanciaID, len(corpo))
 	var webhook meta.Webhook
 	if err := json.Unmarshal(corpo, &webhook); err != nil {
 		return fmt.Errorf("%w: corpo do webhook invalido", ErrEntradaInvalida)
@@ -90,23 +92,25 @@ func (s *MetaWebhookService) processar(instancia models.Instancia, cred models.C
 	ctx, cancelar := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancelar()
 	for _, entrada := range webhook.Entradas {
-		// O id da entrada e o WABA ID: guarda se ainda nao foi informado, para
-		// a lista de modelos funcionar sem o usuario precisar procurar.
-		if cred.WABAID == "" && entrada.ID != "" {
-			cred.WABAID = entrada.ID
-			if err := s.metaStore.SalvarCredenciaisMeta(ctx, cred); err != nil {
-				fmt.Printf("meta: erro ao guardar o WABA ID da instancia %s: %v\n", instancia.ID, err)
-			}
-		}
 		for _, mudanca := range entrada.Mudancas {
 			if mudanca.Campo != "messages" {
+				fmt.Printf("meta: webhook do campo %q ignorado na instancia %s\n", mudanca.Campo, instancia.ID)
 				continue
 			}
 			valor := mudanca.Valor
-			// Uma mesma URL pode receber eventos de outro numero do app; so
-			// interessa o numero desta instancia.
-			if id := valor.Metadados.PhoneNumberID; id != "" && id != cred.PhoneNumberID {
+			// Uma mesma URL pode receber eventos de outro numero do app (ou o
+			// exemplo do botao "Testar" da Meta); so interessa o desta instancia.
+			if id := valor.Metadados.PhoneNumberID; id != cred.PhoneNumberID {
+				fmt.Printf("meta: webhook do phone_number_id %q ignorado na instancia %s (esperado %s)\n", id, instancia.ID, cred.PhoneNumberID)
 				continue
+			}
+			// O id da entrada e o WABA ID: guarda se ainda nao foi informado,
+			// para a lista de modelos funcionar sem precisar procurar.
+			if cred.WABAID == "" && entrada.ID != "" {
+				cred.WABAID = entrada.ID
+				if err := s.metaStore.SalvarCredenciaisMeta(ctx, cred); err != nil {
+					fmt.Printf("meta: erro ao guardar o WABA ID da instancia %s: %v\n", instancia.ID, err)
+				}
 			}
 			for _, mensagem := range valor.Mensagens {
 				s.processarMensagem(ctx, instancia, cred, valor, mensagem)
