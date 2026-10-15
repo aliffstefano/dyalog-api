@@ -340,7 +340,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   </div>
 
   <!-- ===== MODAL ===== -->
-  <div id="modal-overlay" class="modal-overlay hidden" onclick="fecharModalExterno(event)" role="dialog" aria-modal="true">
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-dialog glass-card">
       <div class="modal-header">
         <div><p class="panel-kicker" id="modal-kicker">Acao</p><h3 id="modal-titulo">-</h3></div>
@@ -648,7 +648,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('modal-overlay').classList.add('hidden');
     modalTipoAtual = '';
   }
-  function fecharModalExterno(e) { if (e.target === document.getElementById('modal-overlay')) fecharModal(); }
+  // Clicar fora nao fecha: o clique de colar, o preenchimento do navegador ou
+  // arrastar a selecao para fora do campo fechavam o modal no meio do cadastro.
   document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
 
   async function iniciarChamadaPainel(numero) {
