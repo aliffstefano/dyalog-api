@@ -176,6 +176,15 @@ func (c *Cliente) ValidarNumero(ctx context.Context, cred models.CredenciaisMeta
 	return info, err
 }
 
+// AssinarWebhooksWABA inscreve o app nos webhooks da conta (WABA). Sem isso a
+// Meta aceita a URL de callback mas nao manda as mensagens recebidas.
+func (c *Cliente) AssinarWebhooksWABA(ctx context.Context, cred models.CredenciaisMeta) error {
+	if strings.TrimSpace(cred.WABAID) == "" {
+		return ErrSemWABA
+	}
+	return c.requisitar(ctx, http.MethodPost, c.url(cred.WABAID+"/subscribed_apps"), cred.AccessToken, nil, "", nil)
+}
+
 // RespostaEnvio e o retorno de POST /{phone-number-id}/messages.
 type RespostaEnvio struct {
 	Contatos []struct {

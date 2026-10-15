@@ -113,7 +113,19 @@ func (s *InstanciaService) ConfigurarMeta(ctx context.Context, id string, req mo
 		return nil, s.mapearErro(err)
 	}
 	instancia.Status = models.StatusInstanciaConectada
-	return s.resumoMeta(instancia, cred, &info), nil
+	resumo := s.resumoMeta(instancia, cred, &info)
+	// Com o WABA ID, inscreve o app nos webhooks da conta; sem isso as
+	// mensagens recebidas nao chegam mesmo com a URL verificada.
+	if cred.WABAID != "" {
+		if err := s.meta.Cliente().AssinarWebhooksWABA(ctx, cred); err != nil {
+			fmt.Printf("meta: erro ao inscrever o app nos webhooks da WABA %s: %v\n", cred.WABAID, err)
+			resumo["webhook_assinado"] = false
+			resumo["webhook_assinatura_erro"] = err.Error()
+		} else {
+			resumo["webhook_assinado"] = true
+		}
+	}
+	return resumo, nil
 }
 
 func mesclarCredenciaisMeta(atual models.CredenciaisMeta, req models.ConfigurarMetaRequest) models.CredenciaisMeta {

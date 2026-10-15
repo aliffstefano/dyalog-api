@@ -456,10 +456,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
         const v = id => document.getElementById(id).value.trim();
         btn.disabled = true; btn.textContent = 'Validando na Meta...'; fb.className = 'modal-feedback hidden';
         try {
-          await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/meta', { method:'PUT', body: JSON.stringify({
+          const r = await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/meta', { method:'PUT', body: JSON.stringify({
             phone_number_id: v('mf-meta-phone'), waba_id: v('mf-meta-waba'), access_token: v('mf-meta-token'),
             app_secret: v('mf-meta-secret'), verify_token: v('mf-meta-verify') }) });
-          mostrarToast('Credenciais validadas e salvas.', 'success');
+          const d = r?.dados || {};
+          if (d.webhook_assinado === false) {
+            fb.className = 'modal-feedback error';
+            fb.textContent = 'Credenciais salvas, mas a Meta recusou inscrever o app nos webhooks da conta: ' + (d.webhook_assinatura_erro || '') + '. Sem isso as mensagens recebidas nao chegam.';
+            return;
+          }
+          mostrarToast(d.webhook_assinado ? 'Credenciais salvas e app inscrito nos webhooks da conta.' : 'Credenciais validadas e salvas. Informe o WABA ID para inscrever os webhooks.', 'success');
           fecharModal();
           await atualizarInstanciaSelecionada(true);
         } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }

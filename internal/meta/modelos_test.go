@@ -59,3 +59,19 @@ func TestListarModelosComPaginacao(t *testing.T) {
 		t.Fatalf("texto nomeado = %q", texto)
 	}
 }
+
+func TestAssinarWebhooksWABA(t *testing.T) {
+	var chamada string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chamada = r.Method + " " + r.URL.Path + " " + r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{"success":true}`))
+	}))
+	defer srv.Close()
+	c := NovoCliente("v25.0", srv.URL)
+	if err := c.AssinarWebhooksWABA(context.Background(), models.CredenciaisMeta{AccessToken: "tok"}); !errors.Is(err, ErrSemWABA) {
+		t.Fatalf("sem WABA: %v", err)
+	}
+	if err := c.AssinarWebhooksWABA(context.Background(), models.CredenciaisMeta{AccessToken: "tok", WABAID: "969"}); err != nil || chamada != "POST /v25.0/969/subscribed_apps Bearer tok" {
+		t.Fatalf("chamada = %q, err = %v", chamada, err)
+	}
+}
