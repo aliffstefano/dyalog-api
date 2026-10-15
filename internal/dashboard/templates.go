@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261016">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261017">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -245,8 +245,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
                 <div><dt>Qualidade</dt><dd id="meta-qualidade">-</dd></div>
                 <div><dt>Phone number ID</dt><dd id="meta-phone-id">-</dd></div>
               </dl>
-              <p class="dc-rotulo">Webhook (cole em WhatsApp &gt; Configuracao &gt; Webhook no painel da Meta e assine o campo <code>messages</code>)</p>
-              <div class="dc-lista">
+              <p class="dc-rotulo hidden" id="meta-webhook-app">Webhook: os eventos chegam pela URL do app no Dyalog Connect. Nada a configurar no painel da Meta.</p>
+              <div class="dc-lista hidden" id="meta-pin-linha"><div class="dc-config-linha"><div><strong>PIN do numero (verificacao em duas etapas)</strong><span class="dc-mono" id="meta-pin">-</span></div><button class="ghost small" onclick="copiarTexto('meta-pin')">Copiar</button></div></div>
+              <p class="dc-rotulo" id="meta-webhook-instrucao">Webhook (cole em WhatsApp &gt; Configuracao &gt; Webhook no painel da Meta e assine o campo <code>messages</code>)</p>
+              <div class="dc-lista" id="meta-webhook-campos">
                 <div class="dc-config-linha"><div><strong>URL de callback</strong><span class="dc-mono" id="meta-webhook-url">-</span></div><button class="ghost small" onclick="copiarTexto('meta-webhook-url')">Copiar</button></div>
                 <div class="dc-config-linha"><div><strong>Token de verificacao</strong><span class="dc-mono" id="meta-verify-token">-</span></div><button class="ghost small" onclick="copiarTexto('meta-verify-token')">Copiar</button></div>
               </div>
@@ -373,12 +375,14 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'nova-instancia': {
       kicker: 'Configure tudo antes de criar', titulo: 'Nova instancia', semInstancia: true, largo: true,
-      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" class="so-qr" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label><p class="dc-rotulo">Tipo de conexao</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-tipo" value="whatsapp" checked><span>QR code</span></label><label><input type="radio" name="ni-tipo" value="meta"><span>API oficial (Meta)</span></label></div><div id="ni-meta-campos" class="hidden"><p class="helper-text">Dados do app no Meta for Developers (WhatsApp &gt; Configuracao da API). Use um token permanente de Usuario do Sistema: o temporario expira em 24h.</p><div class="form-grid"><label><span>Phone number ID <em>*</em></span><input type="text" id="ni-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="ni-meta-waba" autocomplete="off"></label></div><label><span>Access token <em>*</em></span><input type="password" id="ni-meta-token" autocomplete="new-password"></label><label><span>App secret (recomendado)</span><input type="password" id="ni-meta-secret" autocomplete="new-password" placeholder="Confere a assinatura dos webhooks da Meta"></label></div></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao so-qr"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label class="so-qr"><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
+      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" class="so-qr" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label><p class="dc-rotulo">Tipo de conexao</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-tipo" value="whatsapp" checked><span>QR code</span></label><label><input type="radio" name="ni-tipo" value="meta"><span>API oficial (Meta)</span></label></div><div id="ni-meta-campos" class="hidden"><div id="ni-meta-es" class="dc-meta-es hidden"><button type="button" class="dc-botao-meta" id="ni-meta-es-botao" onclick="conectarComMeta()"><svg class="dc-ico" viewBox="0 0 24 24"><path d="M2.5 15.5c0-4.5 2.3-9 5.2-9 3.6 0 5.6 9.5 9.1 9.5 1.7 0 2.7-1.6 2.7-3.8 0-3-1.6-5.7-3.6-5.7-2.6 0-4.4 4.4-6.5 7.7-1.4 2.2-2.6 3.3-4 3.3-1.8 0-2.9-1.2-2.9-2Z"/></svg>Conectar com a Meta</button><p class="helper-text" id="ni-meta-es-texto">Quem for usar entra com o Facebook da empresa, escolhe a conta do WhatsApp Business e o numero. A instancia ja nasce conectada, sem copiar token.</p><button type="button" class="dc-link" onclick="mostrarMetaManual(true)">Prefiro informar os dados manualmente</button></div><div id="ni-meta-manual"><p class="helper-text">Dados do app no Meta for Developers (WhatsApp &gt; Configuracao da API). Use um token permanente de Usuario do Sistema: o temporario expira em 24h.</p><div class="form-grid"><label><span>Phone number ID <em>*</em></span><input type="text" id="ni-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="ni-meta-waba" autocomplete="off"></label></div><label><span>Access token <em>*</em></span><input type="password" id="ni-meta-token" autocomplete="new-password"></label><label><span>App secret (recomendado)</span><input type="password" id="ni-meta-secret" autocomplete="new-password" placeholder="Confere a assinatura dos webhooks da Meta"></label><button type="button" class="dc-link hidden" id="ni-meta-voltar-es" onclick="mostrarMetaManual(false)">Voltar para Conectar com a Meta</button></div></div></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao so-qr"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label class="so-qr"><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
       init: function() {
         ['ni-webhook-ativo','ni-proxy-ativo','ni-rejeitar-chamadas'].forEach(id => document.getElementById(id).addEventListener('change', atualizarNovaInstancia));
         document.querySelectorAll('input[name="ni-tipo"]').forEach(el => el.addEventListener('change', atualizarNovaInstancia));
         passoNovaInstancia('geral');
         document.getElementById('modal-form').addEventListener('input', () => { document.getElementById('mf-feedback').className = 'modal-feedback hidden'; });
+        cadastroMetaUI.resultado = null; cadastroMetaUI.manual = false;
+        carregarConfigCadastroMeta();
         atualizarNovaInstancia();
         document.getElementById('ni-nome').focus();
       },
@@ -1599,6 +1603,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     definir('meta-phone-id', d.phone_number_id);
     definir('meta-webhook-url', d.webhook_url);
     definir('meta-verify-token', d.webhook_verify_token);
+    definir('meta-pin', d.pin_registro);
+    document.getElementById('meta-pin-linha').classList.toggle('hidden', !d.pin_registro);
+    document.getElementById('meta-webhook-app').classList.toggle('hidden', !d.webhook_do_app);
+    document.getElementById('meta-webhook-instrucao').classList.toggle('hidden', !!d.webhook_do_app);
+    document.getElementById('meta-webhook-campos').classList.toggle('hidden', !!d.webhook_do_app);
     document.getElementById('meta-aviso-secret').textContent = d.app_secret_salvo ? '' :
       'Sem App secret salvo: a assinatura dos webhooks nao e conferida. Cadastre em Atualizar credenciais.';
   }
@@ -1860,9 +1869,75 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('ni-mensagem-wrap').classList.toggle('hidden', !document.getElementById('ni-rejeitar-chamadas').checked);
     const meta = tipoNovaInstancia() === 'meta';
     document.getElementById('ni-meta-campos').classList.toggle('hidden', !meta);
+    const incorporado = !!(cadastroMetaUI.config && cadastroMetaUI.config.habilitado) && !cadastroMetaUI.manual;
+    document.getElementById('ni-meta-es').classList.toggle('hidden', !incorporado);
+    document.getElementById('ni-meta-manual').classList.toggle('hidden', incorporado);
+    document.getElementById('ni-meta-voltar-es').classList.toggle('hidden', !(cadastroMetaUI.config && cadastroMetaUI.config.habilitado));
     document.getElementById('modal-form').classList.toggle('eh-meta', meta);
     document.getElementById('mf-submit').textContent = meta ? 'Validar e criar' : 'Criar instancia';
   }
+  // ── Cadastro incorporado da Meta ──────────────────────────────────────────────
+  // O login da Meta abre num popup (SDK do Facebook). Ao terminar, o SDK devolve
+  // um code e a Meta manda, por postMessage, a conta (WABA) e o numero escolhidos.
+  const cadastroMetaUI = { config: null, resultado: null, manual: false, sessao: null };
+  window.addEventListener('message', ev => {
+    let host = '';
+    try { host = new URL(ev.origin).hostname; } catch (e) { return; }
+    if (!/(^|\.)facebook\.com$/.test(host)) return;
+    let dados;
+    try { dados = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
+    if (!dados || dados.type !== 'WA_EMBEDDED_SIGNUP') return;
+    if (String(dados.event || '').startsWith('FINISH')) cadastroMetaUI.sessao = dados.data || {};
+    else if (dados.event === 'CANCEL') cadastroMetaUI.sessao = { cancelado: true, etapa: dados.data && dados.data.current_step };
+  });
+  async function carregarConfigCadastroMeta() {
+    try {
+      const r = await fetch('/api/v1/meta/cadastro', { headers:{'Content-Type':'application/json'} });
+      const d = await r.json().catch(() => null);
+      cadastroMetaUI.config = r.ok ? (d && d.dados) : null;
+    } catch (e) { cadastroMetaUI.config = null; }
+    if (document.getElementById('ni-meta-es')) atualizarNovaInstancia();
+  }
+  function mostrarMetaManual(manual) { cadastroMetaUI.manual = manual; atualizarNovaInstancia(); }
+  function carregarSdkMeta(cfg) {
+    return new Promise((ok, falha) => {
+      if (window.FB) { ok(); return; }
+      window.fbAsyncInit = function() { FB.init({ appId: cfg.app_id, autoLogAppEvents: true, xfbml: false, version: cfg.versao || 'v25.0' }); ok(); };
+      const script = document.createElement('script');
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true; script.defer = true; script.crossOrigin = 'anonymous';
+      script.onerror = () => falha(new Error('Nao foi possivel carregar o login da Meta (bloqueador de anuncios?).'));
+      document.body.appendChild(script);
+    });
+  }
+  async function conectarComMeta() {
+    const fb = document.getElementById('mf-feedback'), botao = document.getElementById('ni-meta-es-botao'), texto = document.getElementById('ni-meta-es-texto');
+    const nome = document.getElementById('ni-nome').value.trim();
+    if (!nome) { fb.className = 'modal-feedback error'; fb.textContent = 'Informe o nome da instancia antes de conectar.'; document.getElementById('ni-nome').focus(); return; }
+    const cfg = cadastroMetaUI.config;
+    botao.disabled = true;
+    try {
+      await carregarSdkMeta(cfg);
+      cadastroMetaUI.sessao = null;
+      const code = await new Promise(ok => {
+        FB.login(function(resp) { ok(resp && resp.authResponse ? resp.authResponse.code : ''); }, {
+          config_id: cfg.config_id, response_type: 'code', override_default_response_type: true,
+          extras: { setup: {}, sessionInfoVersion: '3' }
+        });
+      });
+      // A mensagem com a conta e o numero pode chegar logo depois do login.
+      for (let i = 0; i < 25 && !cadastroMetaUI.sessao; i++) await new Promise(r => setTimeout(r, 200));
+      const sessao = cadastroMetaUI.sessao || {};
+      if (!code || sessao.cancelado) { fb.className = 'modal-feedback error'; fb.textContent = 'Cadastro na Meta cancelado' + (sessao.etapa ? ' (etapa ' + sessao.etapa + ')' : '') + '.'; return; }
+      if (!sessao.phone_number_id || !sessao.waba_id) { fb.className = 'modal-feedback error'; fb.textContent = 'A Meta nao informou o numero. Refaca o cadastro escolhendo um numero de telefone.'; return; }
+      cadastroMetaUI.resultado = { code: code, waba_id: sessao.waba_id, phone_number_id: sessao.phone_number_id };
+      texto.textContent = 'Conta conectada. Criando a instancia...';
+      await criarNovaInstancia({ preventDefault() {} });
+    } catch (err) {
+      fb.className = 'modal-feedback error'; fb.textContent = err.message;
+    } finally { botao.disabled = false; }
+  }
+
   function tipoNovaInstancia() {
     return (document.querySelector('input[name="ni-tipo"]:checked') || {}).value || 'whatsapp';
   }
@@ -1883,7 +1958,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const eventos = Array.from(document.querySelectorAll('.ni-evento:checked')).map(el => el.value);
     if (webhook && (!valor('ni-webhook-url') || !eventos.length)) return falhar('webhook', 'Informe a URL e ao menos um evento do webhook.');
     const meta = tipoNovaInstancia() === 'meta';
-    if (meta && (!valor('ni-meta-phone') || !document.getElementById('ni-meta-token').value.trim())) return falhar('geral', 'Informe o Phone number ID e o access token da Meta.');
+    const incorporado = meta && cadastroMetaUI.resultado;
+    if (meta && !incorporado && !cadastroMetaUI.manual && cadastroMetaUI.config && cadastroMetaUI.config.habilitado) return falhar('geral', 'Clique em "Conectar com a Meta" ou escolha informar os dados manualmente.');
+    if (meta && !incorporado && (!valor('ni-meta-phone') || !document.getElementById('ni-meta-token').value.trim())) return falhar('geral', 'Informe o Phone number ID e o access token da Meta.');
     const proxy = !meta && marcado('ni-proxy-ativo');
     if (proxy && (!valor('ni-proxy-host') || !valor('ni-proxy-porta'))) return falhar('proxy', 'Informe host e porta do proxy.');
 
@@ -1897,7 +1974,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
         corpo.meta = { phone_number_id: valor('ni-meta-phone'), waba_id: valor('ni-meta-waba'),
           access_token: document.getElementById('ni-meta-token').value.trim(), app_secret: document.getElementById('ni-meta-secret').value.trim() };
       }
-      const r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify(corpo) });
+      let r;
+      if (incorporado) {
+        // O code da Meta vale poucos segundos: usa assim que o login termina.
+        const dadosMeta = cadastroMetaUI.resultado;
+        cadastroMetaUI.resultado = null;
+        r = await chamar('/api/v1/meta/cadastro', { method:'POST', body: JSON.stringify(Object.assign({ nome }, dadosMeta)) });
+        if (r) (r.dados.avisos || []).forEach(a => pendencias.push(a));
+      } else {
+        r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify(corpo) });
+      }
       if (!r) return;
       id = r.dados.id;
       const base = '/api/v1/instancias/' + id;
@@ -1927,7 +2013,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     fecharModal();
     await carregarTudo(true);
     if (pendencias.length) mostrarToast('Instancia criada, mas falhou: ' + pendencias.join(' | ') + '. Ajuste na pagina da instancia.', 'error');
-    else mostrarToast(meta ? 'Instancia oficial criada. Cadastre a URL de webhook na Meta (aba Configuracoes).' : 'Instancia criada. Conecte para ler o QR code.', 'success');
+    else mostrarToast(incorporado ? 'Instancia oficial conectada pela Meta.' : meta ? 'Instancia oficial criada. Cadastre a URL de webhook na Meta (aba Configuracoes).' : 'Instancia criada. Conecte para ler o QR code.', 'success');
     await selecionarInstancia(id);
     if (meta) trocarAbaInstancia('config');
   }

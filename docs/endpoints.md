@@ -901,6 +901,38 @@ Envia um modelo aprovado na Meta. So existe nas instancias oficiais.
 }
 ```
 
+### Cadastro incorporado (provedor de tecnologia)
+
+Com o app da Meta aprovado como provedor, a empresa conecta o proprio
+WhatsApp pelo botao **Conectar com a Meta** no assistente de nova instancia:
+entra com o Facebook, escolhe a conta do WhatsApp Business e o numero, e a
+instancia nasce conectada (token da empresa, app inscrito nos webhooks da
+conta e numero registrado na Cloud API com um PIN guardado na instancia).
+
+Variaveis: `META_APP_ID`, `META_APP_SECRET`, `META_CONFIG_ID` e
+`META_WEBHOOK_VERIFY_TOKEN`. No app da Meta:
+
+1. Login do Facebook para Empresas > Configuracoes: crie a configuracao do
+   tipo "Cadastro incorporado do WhatsApp" e use o ID em `META_CONFIG_ID`.
+2. Login do Facebook para Empresas > Configuracoes do cliente OAuth: ative
+   "Login com o SDK do JavaScript" e coloque o dominio do painel em
+   "Dominios permitidos" e "URIs de redirecionamento OAuth validos" (HTTPS).
+3. WhatsApp > Configuracao > Webhook: URL de callback
+   `https://SEU_DOMINIO/webhook/meta`, token `META_WEBHOOK_VERIFY_TOKEN`, e
+   assine o campo `messages`. Essa URL unica atende todas as instancias: cada
+   evento vai para a instancia pelo `phone_number_id`.
+
+Pela API: `GET /api/v1/meta/cadastro` devolve `app_id`, `config_id` e se esta
+habilitado; `POST /api/v1/meta/cadastro` com `nome`, `code` (do `FB.login`),
+`waba_id` e `phone_number_id` (da mensagem `WA_EMBEDDED_SIGNUP`) cria a
+instancia. O `code` vale poucos segundos. Passos que falharem depois da
+criacao (inscricao ou registro do numero) voltam em `avisos`.
+
+Os webhooks da Meta sao gravados no banco antes de responder 200 e
+processados a partir dele; se o container cair no meio, outra replica (ou o
+mesmo container ao voltar) retoma. Enquanto o Dyalog estiver fora do ar, a
+Meta reenvia por ate 7 dias.
+
 ### `GET /api/v1/instancias/:id/meta/modelos`
 
 Lista os modelos de mensagem (templates) da conta do WhatsApp Business da

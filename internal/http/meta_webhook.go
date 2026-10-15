@@ -5,6 +5,7 @@ import (
 	"io"
 	nethttp "net/http"
 
+	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,34 @@ func (h *APIHandler) ReceberWebhookMeta(c *gin.Context) {
 		return
 	}
 	responderWebhookMeta(c, h.metaWebhook.Receber(c.Request.Context(), c.Param("id"), corpo, c.GetHeader("X-Hub-Signature-256")))
+}
+
+// ConfigCadastroMeta entrega ao painel o app_id e o config_id para abrir o
+// login da Meta (cadastro incorporado).
+func (h *APIHandler) ConfigCadastroMeta(c *gin.Context) {
+	if !h.garantirMaster(c) {
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Configuracao do cadastro incorporado", h.instanciaService.ConfigCadastroMeta()))
+}
+
+// CadastrarViaMeta conclui o cadastro incorporado e cria a instancia oficial.
+func (h *APIHandler) CadastrarViaMeta(c *gin.Context) {
+	if !h.garantirMaster(c) {
+		return
+	}
+	var req service.CadastroMetaRequest
+	if !h.lerJSON(c, &req, nil, "Informe nome, code, waba_id e phone_number_id") {
+		return
+	}
+	instancia, avisos, err := h.instanciaService.CadastrarViaMeta(c.Request.Context(), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia oficial criada pelo cadastro da Meta", gin.H{
+		"id": instancia.ID, "instancia": instancia, "avisos": avisos,
+	}))
 }
 
 // VerificarWebhookMetaApp e ReceberWebhookMetaApp atendem a URL de callback

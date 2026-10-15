@@ -103,6 +103,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	// Meta, nas mesmas rotas das instancias por QR code.
 	enviadorMeta := meta.NovoEnviador(meta.NovoCliente(cfg.MetaGraphVersao, cfg.MetaGraphBaseURL), storeSQL)
 	instanciaService.UsarMeta(enviadorMeta, storeSQL, cfg.BaseURL)
+	instanciaService.UsarAppMeta(service.AppMeta{AppID: cfg.MetaAppID, AppSecret: cfg.MetaAppSecret, ConfigID: cfg.MetaConfigID, Versao: cfg.MetaGraphVersao})
 	mensagemService.UsarMeta(enviadorMeta)
 	// Tela de Chat do painel: guarda recebidas (pelos eventos de webhook) e
 	// enviadas pela API.

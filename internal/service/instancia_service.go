@@ -26,6 +26,7 @@ type InstanciaService struct {
 	meta      *meta.Enviador
 	metaStore store.MetaStore
 	baseURL   string
+	appMeta   AppMeta
 }
 
 func NovoInstanciaService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *InstanciaService {

@@ -200,7 +200,11 @@ func (s *InstanciaService) resumoMeta(instancia models.Instancia, cred models.Cr
 		"app_secret_salvo":     cred.AppSecret != "",
 		"webhook_url":          s.URLWebhookMeta(instancia.ID),
 		"webhook_verify_token": cred.VerifyToken,
-		"atualizado_em":        cred.AtualizadoEm,
+		"pin_registro":         cred.PinRegistro,
+		// Conectada pelo cadastro incorporado: os eventos chegam pela URL
+		// unica do app (/webhook/meta), nada a configurar na Meta.
+		"webhook_do_app": s.appMeta.habilitado() && cred.AppSecret == s.appMeta.AppSecret,
+		"atualizado_em":  cred.AtualizadoEm,
 	}
 	if info != nil {
 		resumo["qualidade"] = info.Qualidade

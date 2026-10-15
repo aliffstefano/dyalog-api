@@ -3377,3 +3377,42 @@ select optgroup {
 select option:disabled {
   color: var(--muted);
 }
+
+/* Cadastro incorporado da Meta */
+.dc-meta-es {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-soft);
+}
+
+.dc-botao-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  color: #fff;
+  background: #0866ff;
+  font-weight: 700;
+}
+
+.dc-botao-meta:not(:disabled):hover {
+  background: #0757d9;
+}
+
+.dc-botao-meta .dc-ico {
+  fill: none;
+  stroke: currentColor;
+}
+
+.dc-link {
+  padding: 0;
+  border: 0;
+  color: var(--accent-2);
+  background: transparent;
+  font-size: 13px;
+  text-decoration: underline;
+}

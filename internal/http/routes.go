@@ -45,6 +45,8 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.PUT("/sistema/proxy", apiHandler.AtualizarProxySistema)
 
 		apiAuth.POST("/instancias", apiHandler.CriarInstancia)
+		apiAuth.GET("/meta/cadastro", apiHandler.ConfigCadastroMeta)
+		apiAuth.POST("/meta/cadastro", apiHandler.CadastrarViaMeta)
 		apiAuth.GET("/instancias", apiHandler.ListarInstancias)
 		apiAuth.GET("/instancias/:id", apiHandler.BuscarInstancia)
 		apiAuth.DELETE("/instancias/:id", apiHandler.ExcluirInstancia)

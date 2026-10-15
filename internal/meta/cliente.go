@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"strings"
 	"time"
 
@@ -116,7 +117,9 @@ func (c *Cliente) requisitar(ctx context.Context, metodo, url, token string, cor
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -183,6 +186,31 @@ func (c *Cliente) AssinarWebhooksWABA(ctx context.Context, cred models.Credencia
 		return ErrSemWABA
 	}
 	return c.requisitar(ctx, http.MethodPost, c.url(cred.WABAID+"/subscribed_apps"), cred.AccessToken, nil, "", nil)
+}
+
+// TrocarCode troca o code do cadastro incorporado (FB.login) pelo token de
+// acesso da empresa que conectou. O code vale poucos segundos.
+func (c *Cliente) TrocarCode(ctx context.Context, appID, appSecret, code string) (string, error) {
+	consulta := url.Values{"client_id": {appID}, "client_secret": {appSecret}, "code": {code}}
+	var resp struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := c.requisitar(ctx, http.MethodGet, c.url("oauth/access_token")+"?"+consulta.Encode(), "", nil, "", &resp); err != nil {
+		return "", err
+	}
+	if resp.AccessToken == "" {
+		return "", fmt.Errorf("a Meta nao devolveu o token de acesso")
+	}
+	return resp.AccessToken, nil
+}
+
+// RegistrarNumero ativa o numero na Cloud API com o PIN de verificacao em
+// duas etapas (6 digitos). Numero ja registrado devolve erro da Meta.
+func (c *Cliente) RegistrarNumero(ctx context.Context, cred models.CredenciaisMeta, pin string) error {
+	return c.postarJSON(ctx, cred.PhoneNumberID+"/register", cred.AccessToken, map[string]any{
+		"messaging_product": "whatsapp",
+		"pin":               pin,
+	}, nil)
 }
 
 // RespostaEnvio e o retorno de POST /{phone-number-id}/messages.
