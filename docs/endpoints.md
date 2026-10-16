@@ -1858,6 +1858,18 @@ Modos:
   em 16/10/2026): `ListMessage` dentro de `documentWithCaptionMessage`, com
   `messageSecret` e `botMetadata`, e envelope `<biz><list type="product_list"
   v="2"/></biz>`
+- `variacoes`: **teste** - manda, como mensagens separadas, cada variacao abaixo
+  com `[n modo]` no comeco do texto; a `observacao` da resposta diz quais o
+  servidor aceitou. Serve para descobrir no celular qual renderiza (ex.: a
+  partir de conta Business). Cada uma tambem pode ser enviada sozinha pelo nome:
+  - `lista_documento`: a de cima
+  - `lista_documento_single`: igual, com `<list type="single_select">`
+  - `lista_documento_sem_biz`: igual, sem `<biz>`
+  - `lista_documento_sem_bot`: igual, so com `messageSecret` (sem `botMetadata`)
+  - `lista_bot`: `ListMessage` sem embrulho, com `messageSecret` e `botMetadata`, `product_list`
+  - `lista_bot_single`: igual, com `single_select`
+  - `native_flow_bot`: menu `native_flow` `single_select` com `botMetadata`
+  - `native_flow_documento`: o mesmo dentro de `documentWithCaptionMessage`
 - `lista`: envia `ListMessage` interativa simples
 - `list`: alias do mesmo formato
 - `native_flow` (ou `single_select`): **em teste** - envia o menu como

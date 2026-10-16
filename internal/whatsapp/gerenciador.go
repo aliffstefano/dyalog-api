@@ -1230,6 +1230,9 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 	if usarFallbackTextoLista(req) {
 		return g.enviarListaComoTexto(ctx, runtime.client, req, jids)
 	}
+	if modoListaVariacoes(req) {
+		return g.enviarVariacoesLista(ctx, runtime.client, req, jids)
+	}
 
 	var (
 		ultimoErro error
@@ -5378,6 +5381,9 @@ func montarTentativasLista(req models.EnvioListaRequest, business bool) []tentat
 	case "lista_view_once", "list_view_once", "view_once", "viewonce":
 		return []tentativaLista{{modo: "lista_view_once", montar: func() *waE2E.Message { return montarMensagemListaViewOnce(req) }}}
 	default:
+		if variacao, ok := tentativaListaPorNome(req, strings.ToLower(strings.TrimSpace(req.Modo))); ok {
+			return []tentativaLista{variacao}
+		}
 		return []tentativaLista{listaClassica}
 	}
 }

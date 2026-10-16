@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 
 	"dyalog-api-go/internal/models"
@@ -73,4 +74,33 @@ func getMediaTypeLista(msg *waE2E.Message) string {
 		return "list"
 	}
 	return ""
+}
+
+func TestVariacoesListaTeste(t *testing.T) {
+	req := models.EnvioListaRequest{Descricao: "Escolha", BotaoTexto: "Ver", Secoes: []models.ListaSecaoRequest{{Titulo: "S", Linhas: []models.ListaLinhaRequest{{ID: "a", Titulo: "A"}}}}}
+	vistos := map[string]bool{}
+	for _, v := range variacoesListaTeste(req) {
+		if vistos[v.modo] {
+			t.Fatalf("modo repetido %s", v.modo)
+		}
+		vistos[v.modo] = true
+		msg := v.montar()
+		if msg.GetMessageContextInfo() == nil || len(msg.GetMessageContextInfo().GetMessageSecret()) != 32 {
+			t.Fatalf("%s sem messageSecret", v.modo)
+		}
+		if unica := montarTentativasLista(models.EnvioListaRequest{Modo: v.modo}, true); len(unica) != 1 || unica[0].modo != v.modo {
+			t.Fatalf("modo %s nao selecionavel: %#v", v.modo, unica)
+		}
+	}
+	if sem := montarListaComContexto(req, true, false); sem.GetDocumentWithCaptionMessage().GetMessage().GetMessageContextInfo().GetBotMetadata() != nil {
+		t.Fatal("variacao sem_bot levou botMetadata")
+	}
+	// O native_flow embrulhado precisa do envelope <biz> achado dentro do documentWithCaption.
+	embrulhado := montarNativeFlowComBot(req, true)
+	if len(nosInterativoNativeFlowComNome(embrulhado, types.EmptyJID, "")) == 0 {
+		t.Fatal("native_flow_documento sem <biz>")
+	}
+	if !modoListaVariacoes(models.EnvioListaRequest{Modo: "variacoes"}) {
+		t.Fatal("modo variacoes nao reconhecido")
+	}
 }

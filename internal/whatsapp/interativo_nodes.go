@@ -182,6 +182,8 @@ func extrairInteractiveMessage(msg *waE2E.Message) *waE2E.InteractiveMessage {
 		return extrairInteractiveMessage(msg.GetViewOnceMessageV2().GetMessage())
 	case msg.GetEphemeralMessage() != nil:
 		return extrairInteractiveMessage(msg.GetEphemeralMessage().GetMessage())
+	case msg.GetDocumentWithCaptionMessage() != nil:
+		return extrairInteractiveMessage(msg.GetDocumentWithCaptionMessage().GetMessage())
 	default:
 		return msg.GetInteractiveMessage()
 	}
