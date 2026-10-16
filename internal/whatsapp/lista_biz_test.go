@@ -70,7 +70,7 @@ func TestNosBizListaIgualAoCapturado(t *testing.T) {
 }
 
 func TestModoListaBizUsaEnvelopeProprio(t *testing.T) {
-	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "lista_biz"})
+	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "lista_biz"}, true)
 	if len(tentativas) != 1 || tentativas[0].modo != "lista_biz" || tentativas[0].nosBiz == nil {
 		t.Fatalf("tentativas = %#v", tentativas)
 	}

@@ -140,7 +140,7 @@ func TestListMessageNaoRecebeBizExtra(t *testing.T) {
 // estivesse no modo auto, a cadeia pararia nele e o destinatario receberia uma
 // mensagem invisivel, em vez do fallback de texto que ele consegue ler.
 func TestMontarTentativasListaAutoNaoUsaNativeFlow(t *testing.T) {
-	tentativas := montarTentativasLista(models.EnvioListaRequest{})
+	tentativas := montarTentativasLista(models.EnvioListaRequest{}, true)
 	if len(tentativas) == 0 {
 		t.Fatal("modo auto nao deveria ficar sem tentativas")
 	}
@@ -156,7 +156,7 @@ func TestMontarTentativasListaAutoNaoUsaNativeFlow(t *testing.T) {
 
 // O modo explicito continua disponivel para experimentacao futura.
 func TestModoNativeFlowExplicitoContinuaDisponivel(t *testing.T) {
-	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "native_flow"})
+	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "native_flow"}, true)
 	if len(tentativas) != 1 || tentativas[0].modo != "native_flow" {
 		t.Fatalf("modo explicito native_flow = %#v", tentativas)
 	}
@@ -164,7 +164,7 @@ func TestModoNativeFlowExplicitoContinuaDisponivel(t *testing.T) {
 
 // A variacao view once leva o mesmo envelope <biz> do native_flow direto.
 func TestListaNativeFlowViewOnceLevaEnvelope(t *testing.T) {
-	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "native_flow_view_once"})
+	tentativas := montarTentativasLista(models.EnvioListaRequest{Modo: "native_flow_view_once"}, true)
 	if len(tentativas) != 1 || tentativas[0].modo != "native_flow_view_once" {
 		t.Fatalf("tentativas = %#v", tentativas)
 	}

@@ -1238,7 +1238,7 @@ func (g *GerenciadorInstancias) EnviarLista(ctx context.Context, req models.Envi
 		modoUsado  string
 	)
 
-	for _, tentativa := range montarTentativasLista(req) {
+	for _, tentativa := range montarTentativasLista(req, contaBusiness(runtime.client)) {
 		msg := tentativa.montar()
 		resp, jidUsado, ultimoErro = enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
 			if tentativa.nosBiz != nil {
@@ -5335,7 +5335,12 @@ func modoListaAuto(req models.EnvioListaRequest) bool {
 	}
 }
 
-func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
+func montarTentativasLista(req models.EnvioListaRequest, business bool) []tentativaLista {
+	listaDocumento := tentativaLista{
+		modo:   "lista_documento",
+		montar: func() *waE2E.Message { return montarMensagemListaDocumento(req) },
+		nosBiz: nosBizListaDocumento,
+	}
 	nativeFlow := tentativaLista{
 		modo:   "native_flow",
 		montar: func() *waE2E.Message { return montarMensagemListaNativeFlow(req) },
@@ -5346,6 +5351,12 @@ func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
 	case "", "auto":
+		// Conta pessoal: a lista dentro de documentWithCaption renderiza
+		// (ver lista_documento.go). Conta Business: nenhum formato de menu
+		// funciona hoje, segue a cadeia abaixo ate o texto.
+		if !business {
+			return []tentativaLista{listaDocumento, listaClassica}
+		}
 		// Nenhum formato de menu interativo funciona hoje a partir de um cliente
 		// multi-device comum (ver montarMensagemListaNativeFlow). O auto tenta o
 		// ListMessage - que o servidor recusa com 405 - justamente para que a
@@ -5358,6 +5369,8 @@ func montarTentativasLista(req models.EnvioListaRequest) []tentativaLista {
 		}
 	case "native_flow", "single_select", "nativeflow":
 		return []tentativaLista{nativeFlow}
+	case "lista_documento", "documento", "lista_pessoal":
+		return []tentativaLista{listaDocumento}
 	case "lista_biz", "list_biz":
 		return []tentativaLista{{modo: "lista_biz", montar: func() *waE2E.Message { return montarMensagemListaBiz(req) }, nosBiz: nosBizLista}}
 	case "native_flow_view_once":

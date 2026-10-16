@@ -1851,7 +1851,14 @@ Campos:
 
 Modos:
 
-- `lista`: padrao, envia `ListMessage` interativa
+- sem `modo` (ou `auto`): se a instancia estiver num **WhatsApp pessoal**, usa
+  `lista_documento` (renderiza); num **WhatsApp Business**, nenhum formato de
+  lista renderiza hoje e as opcoes vao como texto
+- `lista_documento`: a lista que renderiza a partir de conta pessoal (capturada
+  em 16/10/2026): `ListMessage` dentro de `documentWithCaptionMessage`, com
+  `messageSecret` e `botMetadata`, e envelope `<biz><list type="product_list"
+  v="2"/></biz>`
+- `lista`: envia `ListMessage` interativa simples
 - `list`: alias do mesmo formato
 - `native_flow` (ou `single_select`): **em teste** - envia o menu como
   `InteractiveMessage` com botao `single_select`, usando o mesmo envelope dos
