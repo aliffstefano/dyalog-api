@@ -4095,3 +4095,125 @@ select option:disabled {
   .dc-chamada-botoes { width: 100%; }
   .dc-chamada-botoes button { flex: 1; }
 }
+
+.dc-filtros-auditoria-conta {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+}
+
+@media (max-width: 1100px) {
+  .dc-filtros-auditoria-conta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .dc-filtros-auditoria-conta { grid-template-columns: 1fr; }
+}
+
+/* Grupos */
+.dc-grupos {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  min-height: 560px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dc-grupos-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 72vh;
+  border-right: 1px solid var(--line);
+}
+
+.dc-grupo-detalhe {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.dc-grupo-detalhe > .dc-lista-vazia {
+  margin: auto;
+}
+
+.dc-grupo-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dc-grupo-topo .dc-linha-texto {
+  flex: 1;
+}
+
+.dc-grupo-topo .ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dc-grupo-corpo {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.dc-grupo-descricao {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.dc-participantes {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.dc-participante {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.dc-participante:first-child {
+  border-top: 0;
+}
+
+.dc-participante .dc-linha-texto {
+  flex: 1;
+}
+
+.dc-participante .dc-selo,
+.dc-chat-conversa small .dc-selo {
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+.dc-perigo-linha {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dc-grupos .dc-chat-voltar {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .dc-grupos { grid-template-columns: 1fr; }
+  .dc-grupos-lista { border-right: 0; }
+  .dc-grupos.com-grupo .dc-grupos-lista { display: none; }
+  .dc-grupos:not(.com-grupo) .dc-grupo-detalhe { display: none; }
+  .dc-grupos .dc-chat-voltar { display: inline-flex; }
+  .dc-grupo-topo { flex-wrap: wrap; }
+}
+
+.dc-pagina-topo > .ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

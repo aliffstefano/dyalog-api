@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261019">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261020">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -68,6 +68,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <button class="nav-link" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Visao geral</button>
         <button class="nav-link" data-aba-inst="chat" onclick="trocarAbaInstancia('chat')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Chat</button>
         <button class="nav-link nav-so-qr" data-aba-inst="contatos" onclick="trocarAbaInstancia('contatos')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contatos</button>
+        <button class="nav-link nav-so-qr" data-aba-inst="grupos" onclick="trocarAbaInstancia('grupos')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Grupos</button>
         <p class="dc-nav-secao">Conexoes</p>
         <button class="nav-link" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')"><svg class="dc-ico"><use href="#i-link"/></svg>Webhooks</button>
         <p class="dc-nav-secao">Gerenciar</p>
@@ -83,6 +84,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <button class="nav-link" data-tab="instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-celular"/></svg>Instancias<span class="dc-nav-contador" id="nav-contador-instancias">0</span></button>
         <p class="dc-nav-secao so-equipe-ou-master">Administracao</p>
         <button class="nav-link so-equipe" data-tab="equipe" onclick="abrirEquipe('')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Equipe</button>
+        <button class="nav-link so-equipe-ou-master" data-tab="auditoria-conta" onclick="trocarAba('auditoria-conta')"><svg class="dc-ico"><use href="#i-historico"/></svg>Auditoria</button>
         <button class="nav-link so-master" data-tab="contas" onclick="trocarAba('contas')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contas</button>
         <p class="dc-nav-secao so-master">Sistema</p>
         <button class="nav-link so-master" data-tab="atualizacao" onclick="trocarAba('atualizacao')"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizacao</button>
@@ -342,6 +344,24 @@ const paginaInicialHTML = `<!DOCTYPE html>
             </div>
           </section>
 
+          <!-- Grupos -->
+          <section class="dc-aba-painel hidden" data-painel-inst="grupos">
+            <div class="dc-pagina-topo dc-topo-aba">
+              <div><h2>Grupos</h2><p>Grupos desta conta: participantes, convite e administracao.</p></div>
+              <div class="dc-acoes-topo">
+                <button class="ghost small" onclick="carregarGrupos()"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizar</button>
+                <button class="primary small so-gerente" onclick="abrirModal('grupo-novo')"><svg class="dc-ico"><use href="#i-mais"/></svg>Novo grupo</button>
+              </div>
+            </div>
+            <article class="dc-card dc-grupos" id="grupos-card">
+              <aside class="dc-grupos-lista">
+                <label class="dc-busca dc-chat-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="grupos-busca" placeholder="Buscar grupo..." oninput="renderizarGrupos()"></label>
+                <div id="grupos-itens" class="dc-chat-conversas"><div class="dc-lista-vazia">Carregando...</div></div>
+              </aside>
+              <section class="dc-grupo-detalhe" id="grupo-detalhe"><div class="dc-lista-vazia"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Escolha um grupo ao lado.</div></section>
+            </article>
+          </section>
+
           <!-- Perfil -->
           <section class="dc-aba-painel hidden" data-painel-inst="perfil">
             <div class="dc-pagina-topo dc-topo-aba">
@@ -432,6 +452,32 @@ const paginaInicialHTML = `<!DOCTYPE html>
       <article class="dc-card">
         <div class="dc-card-topo"><h3>Convites pendentes</h3><span class="helper-text">Valem por 7 dias.</span></div>
         <div id="equipe-convites" class="dc-lista"></div>
+      </article>
+    </section>
+
+    <!-- ===== AUDITORIA DA CONTA ===== -->
+    <section class="tab-panel" data-panel="auditoria-conta">
+      <div class="dc-pagina-topo">
+        <div><h1>Auditoria</h1><p>Tudo que aconteceu nas instancias e na equipe: conexoes, acoes e quem fez.</p></div>
+        <button class="ghost" onclick="carregarAuditoriaConta(true)"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizar</button>
+      </div>
+      <article class="dc-card">
+        <form class="dc-filtros-auditoria dc-filtros-auditoria-conta" onsubmit="event.preventDefault(); carregarAuditoriaConta(true)" onchange="carregarAuditoriaConta(true)">
+          <label class="dc-campo"><span>Instancia</span><select id="audc-instancia"><option value="">Todas</option></select></label>
+          <label class="dc-campo"><span>Tipo</span><select id="audc-tipo"><option value="">Todos</option><option value="conexao">Conexao</option><option value="acao">Acao</option><option value="configuracao">Configuracao</option><option value="webhook">Webhook</option><option value="perfil">Perfil</option><option value="contato">Contato</option><option value="grupo">Grupo</option><option value="agendamento">Agendamento</option><option value="acesso">Acesso</option><option value="equipe">Equipe</option></select></label>
+          <label class="dc-campo"><span>Severidade</span><select id="audc-severidade"><option value="">Todas</option><option value="sucesso">Sucesso</option><option value="info">Info</option><option value="aviso">Aviso</option><option value="erro">Erro</option></select></label>
+          <label class="dc-campo"><span>Ator</span><input id="audc-ator" placeholder="Filtrar por quem fez..." oninput="buscarAuditoriaContaDepois()"></label>
+          <label class="dc-campo"><span>De</span><input type="date" id="audc-de"></label>
+          <label class="dc-campo"><span>Ate</span><input type="date" id="audc-ate"></label>
+          <button type="button" class="ghost small" onclick="limparFiltrosAuditoriaConta()">Limpar</button>
+        </form>
+      </article>
+      <article class="dc-card dc-card-tabela">
+        <table class="dc-tabela">
+          <thead><tr><th>Quando</th><th>Instancia</th><th>Ator</th><th>Acao</th><th>Origem</th></tr></thead>
+          <tbody id="audc-linhas"><tr><td colspan="5" class="dc-lista-vazia">Carregando...</td></tr></tbody>
+        </table>
+        <div class="dc-paginacao"><span class="helper-text" id="audc-resumo"></span><button class="ghost small hidden" id="audc-mais" onclick="carregarAuditoriaConta(false)">Carregar mais</button></div>
       </article>
     </section>
 
@@ -1092,7 +1138,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!resp.ok) throw new Error(dados?.mensagem || 'Erro na requisicao');
     return dados;
   }
-  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao', equipe:'Equipe', contas:'Contas' };
+  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao', equipe:'Equipe', contas:'Contas', 'auditoria-conta':'Auditoria', agendamentos:'Agendamentos', 'respostas-rapidas':'Respostas rapidas' };
   function trocarAba(aba) {
     estadoUI.abaAtual = aba;
     // Dentro de uma instancia o menu lateral vira o menu dela.
@@ -1107,6 +1153,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     window.scrollTo(0, 0);
     if (aba === 'equipe') carregarEquipe();
     if (aba === 'contas') carregarContas();
+    if (typeof abrirAbaPrincipalExtra === 'function') abrirAbaPrincipalExtra(aba);
   }
   function formatarData(v) { const d = v ? new Date(v) : null; return d && d.getFullYear() > 2000 ? d.toLocaleString('pt-BR') : '-'; }
   function rotuloStatus(s) { return ({nao_inicializada:'Nao inicializada',desconectada:'Desconectada',conectando:'Conectando',aguardando_qrcode:'Aguardando QR',pareada:'Pareada',autenticando:'Autenticando',sincronizando_historico:'Sincronizando',conectada:'Conectada'})[s]||s||'-'; }
@@ -2535,6 +2582,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (estadoUI.acesso?.tipo === 'instancia' && estadoUI.instanciaSelecionada) trocarAba('instancia');
   })();
   </script>
-  <script src="/static/js/painel-instancia.js?v=20261019"></script>
+  <script src="/static/js/painel-instancia.js?v=20261020"></script>
+  <script src="/static/js/grupos.js?v=20261020"></script>
 </body>
 </html>`

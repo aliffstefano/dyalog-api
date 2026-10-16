@@ -12,6 +12,8 @@ const (
 	AuditoriaContato = "contato"
 	AuditoriaAcesso  = "acesso"
 	AuditoriaEquipe  = "equipe"
+	AuditoriaGrupo   = "grupo"
+	AuditoriaAgenda  = "agendamento"
 
 	SeveridadeInfo    = "info"
 	SeveridadeSucesso = "sucesso"

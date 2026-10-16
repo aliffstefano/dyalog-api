@@ -38,7 +38,7 @@
     renderizarOriginal(d);
     const oficial = d && d.tipo === 'meta';
     document.querySelectorAll('.nav-so-qr').forEach(el => el.classList.toggle('hidden', oficial));
-    if (oficial && ['contatos', 'perfil'].includes(estadoUI.abaInstancia)) trocarAbaInstancia('geral');
+    if (oficial && ['contatos', 'perfil', 'grupos'].includes(estadoUI.abaInstancia)) trocarAbaInstancia('geral');
   };
 
   // ── Contatos ────────────────────────────────────────────────────────────────
@@ -344,7 +344,7 @@
     try {
       const d = await buscarJSON(base() + '/auditoria?' + p.toString());
       if (!d) return;
-      const html = (d.registros || []).map(linhaAuditoria).join('');
+      const html = (d.registros || []).map(r => linhaAuditoria(r, false)).join('');
       if (reiniciar) { corpo.innerHTML = html || '<tr><td colspan="4">' + vazio('Nada registrado com esses filtros.', 'i-historico') + '</td></tr>'; auditoriaUI.linhas = 0; }
       else corpo.insertAdjacentHTML('beforeend', html);
       auditoriaUI.linhas += (d.registros || []).length;
@@ -356,16 +356,59 @@
     }
   };
 
-  function linhaAuditoria(r) {
+  function linhaAuditoria(r, comInstancia) {
     const sev = r.severidade || 'info';
     const origem = ORIGENS[r.ator_tipo] || r.ator_tipo || '-';
     return '<tr>' +
       '<td class="dc-nowrap">' + textoSeguro(formatarData(r.criado_em)) + '</td>' +
+      (comInstancia ? '<td>' + (r.instancia_nome ? textoSeguro(r.instancia_nome) : '<span class="helper-text">' + (r.instancia_id ? 'Excluida' : 'Conta') + '</span>') + '</td>' : '') +
       '<td>' + (r.ator_tipo === 'sistema' ? '<span class="helper-text">Sistema</span>' : textoSeguro(r.ator_nome || '-')) + '</td>' +
       '<td><span class="dc-aud-acao"><span class="dc-aud-icone ' + sev + '">' + (ICONES_SEVERIDADE[sev] || 'i') + '</span>' + textoSeguro(r.descricao || r.acao) + '</span></td>' +
       '<td><span>' + textoSeguro(origem) + '</span>' + (r.ip ? '<small class="helper-text dc-mono"> ' + textoSeguro(r.ip) + '</small>' : '') + '</td>' +
     '</tr>';
   }
+
+  // Auditoria da conta inteira (menu principal).
+  const auditoriaContaUI = { deslocamento: 0, linhas: 0, timer: null };
+  window.abrirAbaPrincipalExtra = function (aba) {
+    if (aba === 'auditoria-conta') {
+      const sel = document.getElementById('audc-instancia'), atual = sel.value;
+      sel.innerHTML = '<option value="">Todas</option>' + (estadoUI.instancias || []).map(i => '<option value="' + textoSeguro(i.id) + '">' + textoSeguro(i.nome) + '</option>').join('');
+      sel.value = atual;
+      carregarAuditoriaConta(true);
+    }
+    if (typeof window.abrirAbaPrincipalExtra2 === 'function') window.abrirAbaPrincipalExtra2(aba);
+  };
+  window.buscarAuditoriaContaDepois = function () {
+    clearTimeout(auditoriaContaUI.timer);
+    auditoriaContaUI.timer = setTimeout(() => carregarAuditoriaConta(true), 350);
+  };
+  window.limparFiltrosAuditoriaConta = function () {
+    ['audc-instancia', 'audc-tipo', 'audc-severidade', 'audc-ator', 'audc-de', 'audc-ate'].forEach(id => document.getElementById(id).value = '');
+    carregarAuditoriaConta(true);
+  };
+  window.carregarAuditoriaConta = async function (reiniciar) {
+    if (reiniciar) { auditoriaContaUI.deslocamento = 0; auditoriaContaUI.linhas = 0; }
+    const corpo = document.getElementById('audc-linhas');
+    const p = new URLSearchParams({ limite: '50', deslocamento: String(auditoriaContaUI.deslocamento) });
+    [['instancia_id', 'audc-instancia'], ['tipo', 'audc-tipo'], ['severidade', 'audc-severidade'], ['ator', 'audc-ator'], ['de', 'audc-de'], ['ate', 'audc-ate']].forEach(([k, id]) => {
+      const v = document.getElementById(id).value.trim(); if (v) p.set(k, v);
+    });
+    try {
+      const d = await buscarJSON('/api/v1/auditoria?' + p.toString());
+      if (!d) return;
+      const registros = d.registros || [];
+      const html = registros.map(r => linhaAuditoria(r, true)).join('');
+      if (reiniciar) corpo.innerHTML = html || '<tr><td colspan="5">' + vazio('Nada registrado com esses filtros.', 'i-historico') + '</td></tr>';
+      else corpo.insertAdjacentHTML('beforeend', html);
+      auditoriaContaUI.linhas += registros.length;
+      auditoriaContaUI.deslocamento += registros.length;
+      document.getElementById('audc-mais').classList.toggle('hidden', !d.tem_mais);
+      document.getElementById('audc-resumo').textContent = auditoriaContaUI.linhas ? auditoriaContaUI.linhas + ' registro' + (auditoriaContaUI.linhas === 1 ? '' : 's') + (d.tem_mais ? ' (ha mais)' : '') : '';
+    } catch (err) {
+      corpo.innerHTML = '<tr><td colspan="5">' + vazio(mensagemErro(err)) + '</td></tr>';
+    }
+  };
 })();
 
 // ── Chamadas recebidas no painel ──────────────────────────────────────────────
