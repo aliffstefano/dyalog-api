@@ -19,6 +19,7 @@ import (
 	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/service"
+	"dyalog-api-go/internal/store"
 	"dyalog-api-go/internal/whatsapp"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,10 @@ type APIHandler struct {
 	limiteEsqueci *limitador
 	// auditoria: historico de quem fez o que (nil = desligada).
 	auditoria *service.AuditoriaService
+	// agendamentos: mensagens para enviar depois.
+	agendamentos *service.AgendamentoService
+	// respostas: respostas rapidas e etiquetas do chat.
+	respostas store.RespostasStore
 }
 
 type criarInstanciaRequest struct {

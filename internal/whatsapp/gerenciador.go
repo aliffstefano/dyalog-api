@@ -2102,6 +2102,14 @@ func carregarAudioEnvio(ctx context.Context, req models.EnvioMidiaRequest) ([]by
 		return nil, "", err
 	}
 	mimeBase := detectarMimeType(nomeArquivo, primeiroValorNaoVazio(req.MimeType, mimeCabecalho), dados)
+	// Gravado no navegador (WebM/Opus): vira Ogg/Opus para tocar como nota de voz.
+	if ehWebM(dados) {
+		convertido, err := WebMParaOgg(dados)
+		if err != nil {
+			return nil, "", fmt.Errorf("%w: audio webm: %v", ErrMidiaInvalida, err)
+		}
+		return convertido, "audio/ogg; codecs=opus", nil
+	}
 	mimeType, err := normalizarMimeAudio(mimeBase, nomeArquivo)
 	if err != nil {
 		return nil, "", err

@@ -44,6 +44,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
     <symbol id="i-modelo" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
     <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></symbol>
+    <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7Z"/></symbol>
+    <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+    <symbol id="i-microfone" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></symbol>
     <symbol id="i-historico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
     <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
     <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
@@ -70,6 +74,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <button class="nav-link nav-so-qr" data-aba-inst="contatos" onclick="trocarAbaInstancia('contatos')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contatos</button>
         <button class="nav-link nav-so-qr" data-aba-inst="grupos" onclick="trocarAbaInstancia('grupos')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Grupos</button>
         <p class="dc-nav-secao">Conexoes</p>
+        <button class="nav-link" data-aba-inst="agendamentos" onclick="trocarAbaInstancia('agendamentos')"><svg class="dc-ico"><use href="#i-relogio"/></svg>Agendamentos</button>
         <button class="nav-link" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')"><svg class="dc-ico"><use href="#i-link"/></svg>Webhooks</button>
         <p class="dc-nav-secao">Gerenciar</p>
         <button class="nav-link nav-so-qr" data-aba-inst="perfil" onclick="trocarAbaInstancia('perfil')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Perfil</button>
@@ -82,6 +87,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <p class="dc-nav-secao">Visao geral</p>
         <button class="nav-link" data-tab="dashboard" onclick="trocarAba('dashboard')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Dashboard</button>
         <button class="nav-link" data-tab="instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-celular"/></svg>Instancias<span class="dc-nav-contador" id="nav-contador-instancias">0</span></button>
+        <button class="nav-link" data-tab="agendamentos" onclick="trocarAba('agendamentos')"><svg class="dc-ico"><use href="#i-relogio"/></svg>Agendamentos</button>
+        <button class="nav-link" data-tab="respostas-rapidas" onclick="trocarAba('respostas-rapidas')"><svg class="dc-ico"><use href="#i-raio"/></svg>Respostas rapidas</button>
         <p class="dc-nav-secao so-equipe-ou-master">Administracao</p>
         <button class="nav-link so-equipe" data-tab="equipe" onclick="abrirEquipe('')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Equipe</button>
         <button class="nav-link so-equipe-ou-master" data-tab="auditoria-conta" onclick="trocarAba('auditoria-conta')"><svg class="dc-ico"><use href="#i-historico"/></svg>Auditoria</button>
@@ -217,6 +224,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <button class="primary small dc-botao-icone" type="submit" title="Abrir conversa"><svg class="dc-ico"><use href="#i-mais"/></svg></button>
                 </form>
                 <label class="dc-busca dc-chat-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="chat-busca" placeholder="Buscar conversa..." autocomplete="off" oninput="chatUI.assinaturaLista=''; renderizarConversasChat()"></label>
+                <select id="chat-filtro-etiqueta" class="dc-chat-filtro hidden" onchange="chatUI.assinaturaLista=''; renderizarConversasChat()"><option value="">Todas as etiquetas</option></select>
                 <div id="chat-conversas" class="dc-chat-conversas"></div>
               </aside>
               <section class="dc-chat-janela">
@@ -224,6 +232,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <button class="ghost small dc-botao-icone dc-chat-voltar" onclick="fecharConversaChat()" title="Conversas"><svg class="dc-ico"><use href="#i-voltar"/></svg></button>
                   <span class="dc-avatar dc-avatar-mini" id="chat-topo-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></span>
                   <span class="dc-linha-texto"><strong id="chat-topo-nome">Selecione uma conversa</strong><span id="chat-topo-sub">Mensagens recebidas e enviadas por esta instancia aparecem aqui.</span></span>
+                  <div class="dc-chat-etiquetas" id="chat-topo-etiquetas"></div>
+                  <div class="dc-menu-etiquetas hidden" id="chat-etiquetar-wrap"><button type="button" class="ghost small dc-botao-icone" onclick="abrirEtiquetasConversa(event)" title="Etiquetas da conversa"><svg class="dc-ico"><use href="#i-etiqueta"/></svg></button><div class="dc-menu-itens hidden" id="chat-etiquetar-menu"></div></div>
                 </header>
                 <div class="dc-chat-janela-aviso hidden" id="chat-janela-aviso"></div>
                 <div class="dc-chat-mensagens" id="chat-mensagens" aria-live="polite"></div>
@@ -233,8 +243,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <div class="dc-chat-campo">
                     <div id="chat-resposta" class="dc-chat-resposta hidden"><div><strong id="chat-resposta-nome"></strong><span id="chat-resposta-texto"></span></div><button type="button" class="dc-chat-resposta-fechar" onclick="cancelarRespostaChat()" title="Cancelar resposta">&times;</button></div>
                     <span id="chat-anexo-nome" class="dc-chat-anexo-nome hidden"></span>
+                    <div id="chat-rapidas" class="dc-chat-rapidas hidden" role="listbox"></div>
                     <textarea id="chat-texto" rows="1" placeholder="Digite uma mensagem" onkeydown="teclaChat(event)" oninput="ajustarAlturaChat()" disabled></textarea>
                   </div>
+                  <button type="button" class="dc-chat-anexo" id="chat-agendar" onclick="agendarDoChat()" title="Agendar esta mensagem"><svg class="dc-ico"><use href="#i-relogio"/></svg></button>
+                  <button type="button" class="dc-chat-anexo so-qr" id="chat-gravar" onclick="alternarGravacaoChat()" title="Gravar audio"><svg class="dc-ico"><use href="#i-microfone"/></svg></button>
                   <button class="primary dc-botao-icone dc-chat-enviar" type="submit" id="chat-enviar" title="Enviar" disabled><svg class="dc-ico"><use href="#i-enviar"/></svg></button>
                 </form>
               </section>
@@ -310,6 +323,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
             <article class="dc-card dc-perigo so-gerente">
               <div class="dc-config-linha"><div><strong>Excluir instancia</strong><span>Remove a instancia e a sessao do WhatsApp. Nao da para desfazer.</span></div><button class="dc-botao-perigo" id="botao-excluir" onclick="excluirSelecionada()">Excluir</button></div>
             </article>
+          </section>
+
+          <!-- Agendamentos da instancia -->
+          <section class="dc-aba-painel hidden" data-painel-inst="agendamentos">
+            <div class="dc-pagina-topo dc-topo-aba">
+              <div><h2>Agendamentos</h2><p>Mensagens programadas desta instancia.</p></div>
+              <button class="primary small" onclick="abrirAgendamento({ instancia: estadoUI.instanciaSelecionada })"><svg class="dc-ico"><use href="#i-mais"/></svg>Agendar mensagem</button>
+            </div>
+            <div class="dc-filtros"><div class="dc-chips" id="agi-status"></div></div>
+            <article class="dc-card dc-card-tabela"><div id="agi-lista"></div></article>
           </section>
 
           <!-- Contatos -->
@@ -452,6 +475,33 @@ const paginaInicialHTML = `<!DOCTYPE html>
       <article class="dc-card">
         <div class="dc-card-topo"><h3>Convites pendentes</h3><span class="helper-text">Valem por 7 dias.</span></div>
         <div id="equipe-convites" class="dc-lista"></div>
+      </article>
+    </section>
+
+    <!-- ===== AGENDAMENTOS ===== -->
+    <section class="tab-panel" data-panel="agendamentos">
+      <div class="dc-pagina-topo">
+        <div><h1>Agendamentos</h1><p>Mensagens programadas para sair mais tarde, de todas as instancias.</p></div>
+        <button class="primary" onclick="abrirAgendamento({})"><svg class="dc-ico"><use href="#i-mais"/></svg>Agendar mensagem</button>
+      </div>
+      <div class="dc-filtros">
+        <select id="agp-instancia" class="dc-filtro-select" onchange="carregarAgendamentos('agp')"><option value="">Todas as instancias</option></select>
+        <div class="dc-chips" id="agp-status"></div>
+      </div>
+      <article class="dc-card dc-card-tabela"><div id="agp-lista"></div></article>
+    </section>
+
+    <!-- ===== RESPOSTAS RAPIDAS ===== -->
+    <section class="tab-panel" data-panel="respostas-rapidas">
+      <div class="dc-pagina-topo">
+        <div><h1>Respostas rapidas</h1><p>Textos prontos para o chat: digite <code>/</code> no campo de mensagem para usar.</p></div>
+        <button class="primary" onclick="abrirRespostaRapida(null)"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova resposta</button>
+      </div>
+      <article class="dc-card"><div id="rr-lista" class="dc-lista"></div></article>
+      <article class="dc-card">
+        <div class="dc-card-topo"><h3>Etiquetas</h3><span class="helper-text">Marque as conversas do chat (ex.: Novo cliente, Aguardando pagamento).</span></div>
+        <div id="et-lista" class="dc-etiquetas-lista"></div>
+        <form class="dc-campo-acao" onsubmit="criarEtiqueta(event)"><input id="et-nome" maxlength="30" placeholder="Nova etiqueta"><input type="color" id="et-cor" value="#1995bd" title="Cor"><button class="primary small" type="submit">Adicionar</button></form>
       </article>
     </section>
 
@@ -1689,12 +1739,14 @@ const paginaInicialHTML = `<!DOCTYPE html>
     // Conversa aberta pelo numero ainda sem mensagens aparece no topo.
     if (chatUI.chat && !conversas.some(c => c.chat_jid === chatUI.chat)) conversas.unshift({ chat_jid: chatUI.chat, nova: true });
     const busca = (document.getElementById('chat-busca')?.value || '').trim().toLowerCase();
+    const filtroEtiqueta = document.getElementById('chat-filtro-etiqueta')?.value || '';
+    if (filtroEtiqueta && window.etiquetasDaConversa) conversas = conversas.filter(c => etiquetasDaConversa(c.chat_jid).includes(filtroEtiqueta));
     if (busca) {
       const digitos = busca.replace(/\D/g, '');
       conversas = conversas.filter(c => nomeConversa(c).toLowerCase().includes(busca) || (digitos && numeroDoJid(c.chat_jid).includes(digitos)) || resumoMensagemChat(c.ultima).toLowerCase().includes(busca));
     }
     const vistos = vistosChat();
-    const assinatura = busca + '#' + chatUI.chat + '#' + conversas.map(c => c.chat_jid + (c.ultima ? c.ultima.mensagem_id + c.ultima.status : '') + (vistos[c.chat_jid] || '')).join('|');
+    const assinatura = busca + '#' + filtroEtiqueta + '#' + (window.versaoEtiquetasChat || 0) + '#' + chatUI.chat + '#' + conversas.map(c => c.chat_jid + (c.ultima ? c.ultima.mensagem_id + c.ultima.status : '') + (vistos[c.chat_jid] || '')).join('|');
     if (assinatura === chatUI.assinaturaLista) return;
     chatUI.assinaturaLista = assinatura;
     if (!conversas.length) {
@@ -1706,7 +1758,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       const rotulo = c.grupo ? 'G' : iniciais(c.nome || numeroDoJid(c.chat_jid).slice(-2));
       return '<button type="button" class="dc-chat-conversa' + (c.chat_jid === chatUI.chat ? ' ativa' : '') + (naoLida ? ' nao-lida' : '') + '" data-jid="' + textoSeguro(c.chat_jid) + '">' +
         '<span class="dc-avatar dc-avatar-mini" data-avatar-jid="' + textoSeguro(c.chat_jid) + '">' + avatarChatHTML(c.chat_jid, rotulo) + '</span>' +
-        '<span class="dc-linha-texto"><strong>' + textoSeguro(nomeConversa(c)) + '</strong><span>' + textoSeguro(c.nova ? 'Nova conversa' : resumoMensagemChat(c.ultima)) + '</span></span>' +
+        '<span class="dc-linha-texto"><strong>' + textoSeguro(nomeConversa(c)) + '</strong><span>' + textoSeguro(c.nova ? 'Nova conversa' : resumoMensagemChat(c.ultima)) + '</span>' + (window.etiquetasConversaHTML ? etiquetasConversaHTML(c.chat_jid) : '') + '</span>' +
         '<small>' + textoSeguro(c.ultima ? horaChat(c.ultima.criado_em) : '') + (naoLida ? '<i class="dc-chat-ponto" title="Nao lida"></i>' : '') + '</small></button>';
     }).join('');
     lista.querySelectorAll('.dc-chat-conversa').forEach(b => b.addEventListener('click', () => abrirConversaChat(b.dataset.jid)));
@@ -1736,6 +1788,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const topoAvatar = document.getElementById('chat-topo-avatar');
     topoAvatar.dataset.avatarJid = aberta ? conversa.chat_jid : '';
     topoAvatar.innerHTML = aberta ? avatarChatHTML(conversa.chat_jid, conversa.grupo ? 'G' : iniciais(conversa.nome || numeroDoJid(conversa.chat_jid).slice(-2))) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
+    if (window.atualizarEtiquetasTopo) atualizarEtiquetasTopo();
     if (!aberta) document.getElementById('chat-janela-aviso').classList.add('hidden');
     if (!aberta) document.getElementById('chat-mensagens').innerHTML = '<div class="dc-lista-vazia"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Escolha uma conversa ao lado.</div>';
   }
@@ -2584,5 +2637,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   </script>
   <script src="/static/js/painel-instancia.js?v=20261020"></script>
   <script src="/static/js/grupos.js?v=20261020"></script>
+  <script src="/static/js/agendamentos.js?v=20261020"></script>
+  <script src="/static/js/chat-extras.js?v=20261020"></script>
 </body>
 </html>`

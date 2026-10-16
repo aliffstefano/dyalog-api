@@ -517,6 +517,61 @@ CREATE INDEX IF NOT EXISTS idx_auditoria_instancia ON auditoria(instancia_id, cr
 CREATE INDEX IF NOT EXISTS idx_auditoria_conta ON auditoria(conta_id, criado_em);
 CREATE INDEX IF NOT EXISTS idx_auditoria_criado ON auditoria(criado_em);
 
+CREATE TABLE IF NOT EXISTS agendamentos (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL,
+    conta_id TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT 'texto',
+    numero TEXT NOT NULL DEFAULT '',
+    chat_jid TEXT NOT NULL DEFAULT '',
+    mensagem TEXT NOT NULL DEFAULT '',
+    arquivo_url TEXT NOT NULL DEFAULT '',
+    arquivo_base64 TEXT NOT NULL DEFAULT '',
+    nome_arquivo TEXT NOT NULL DEFAULT '',
+    mime_type TEXT NOT NULL DEFAULT '',
+    enviar_em DATETIME NOT NULL,
+    tentar_em DATETIME NOT NULL,
+    recorrencia TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pendente',
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    erro TEXT NOT NULL DEFAULT '',
+    mensagem_id TEXT NOT NULL DEFAULT '',
+    dono TEXT NOT NULL DEFAULT '',
+    reservado_em DATETIME,
+    criado_por TEXT NOT NULL DEFAULT '',
+    criado_em DATETIME NOT NULL,
+    enviado_em DATETIME,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_fila ON agendamentos(status, tentar_em);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_instancia ON agendamentos(instancia_id, enviar_em);
+
+CREATE TABLE IF NOT EXISTS respostas_rapidas (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    atalho TEXT NOT NULL,
+    texto TEXT NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    UNIQUE(conta_id, atalho)
+);
+
+CREATE TABLE IF NOT EXISTS etiquetas (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL,
+    cor TEXT NOT NULL DEFAULT '#1995bd',
+    UNIQUE(conta_id, nome)
+);
+
+CREATE TABLE IF NOT EXISTS chat_etiquetas (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL,
+    etiqueta_id TEXT NOT NULL,
+    PRIMARY KEY(instancia_id, chat_jid, etiqueta_id),
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE,
+    FOREIGN KEY(etiqueta_id) REFERENCES etiquetas(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS planos (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
@@ -809,6 +864,61 @@ CREATE TABLE IF NOT EXISTS auditoria (
 CREATE INDEX IF NOT EXISTS idx_auditoria_instancia ON auditoria(instancia_id, criado_em);
 CREATE INDEX IF NOT EXISTS idx_auditoria_conta ON auditoria(conta_id, criado_em);
 CREATE INDEX IF NOT EXISTS idx_auditoria_criado ON auditoria(criado_em);
+
+CREATE TABLE IF NOT EXISTS agendamentos (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL,
+    conta_id TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT 'texto',
+    numero TEXT NOT NULL DEFAULT '',
+    chat_jid TEXT NOT NULL DEFAULT '',
+    mensagem TEXT NOT NULL DEFAULT '',
+    arquivo_url TEXT NOT NULL DEFAULT '',
+    arquivo_base64 TEXT NOT NULL DEFAULT '',
+    nome_arquivo TEXT NOT NULL DEFAULT '',
+    mime_type TEXT NOT NULL DEFAULT '',
+    enviar_em TIMESTAMPTZ NOT NULL,
+    tentar_em TIMESTAMPTZ NOT NULL,
+    recorrencia TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pendente',
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    erro TEXT NOT NULL DEFAULT '',
+    mensagem_id TEXT NOT NULL DEFAULT '',
+    dono TEXT NOT NULL DEFAULT '',
+    reservado_em TIMESTAMPTZ,
+    criado_por TEXT NOT NULL DEFAULT '',
+    criado_em TIMESTAMPTZ NOT NULL,
+    enviado_em TIMESTAMPTZ,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_fila ON agendamentos(status, tentar_em);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_instancia ON agendamentos(instancia_id, enviar_em);
+
+CREATE TABLE IF NOT EXISTS respostas_rapidas (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    atalho TEXT NOT NULL,
+    texto TEXT NOT NULL,
+    atualizado_em TIMESTAMPTZ NOT NULL,
+    UNIQUE(conta_id, atalho)
+);
+
+CREATE TABLE IF NOT EXISTS etiquetas (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL,
+    cor TEXT NOT NULL DEFAULT '#1995bd',
+    UNIQUE(conta_id, nome)
+);
+
+CREATE TABLE IF NOT EXISTS chat_etiquetas (
+    instancia_id TEXT NOT NULL,
+    chat_jid TEXT NOT NULL,
+    etiqueta_id TEXT NOT NULL,
+    PRIMARY KEY(instancia_id, chat_jid, etiqueta_id),
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE,
+    FOREIGN KEY(etiqueta_id) REFERENCES etiquetas(id) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS planos (
     id TEXT PRIMARY KEY,

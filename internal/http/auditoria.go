@@ -53,6 +53,9 @@ var acoesAuditadas = map[string]acaoAuditada{
 	"DELETE /api/v1/instancias/:id/grupos/:grupo/foto":        {models.AuditoriaGrupo, "grupo.foto_removida", "Foto do grupo removida", models.SeveridadeInfo},
 	"POST /api/v1/instancias/:id/grupos/:grupo/participantes": {models.AuditoriaGrupo, "grupo.participantes", "Participantes do grupo alterados", models.SeveridadeInfo},
 	"POST /api/v1/instancias/:id/grupos/:grupo/sair":          {models.AuditoriaGrupo, "grupo.saiu", "Saiu do grupo", models.SeveridadeAviso},
+	"POST /api/v1/agendamentos":                               {models.AuditoriaAgenda, "agendamento.criado", "Mensagem agendada", models.SeveridadeInfo},
+	"PUT /api/v1/agendamentos/:agendamentoId":                 {models.AuditoriaAgenda, "agendamento.alterado", "Agendamento alterado", models.SeveridadeInfo},
+	"DELETE /api/v1/agendamentos/:agendamentoId":              {models.AuditoriaAgenda, "agendamento.cancelado", "Agendamento cancelado", models.SeveridadeAviso},
 	"PUT /api/v1/auth/senha":                                  {models.AuditoriaAcesso, "acesso.senha", "Senha trocada", models.SeveridadeInfo},
 	"PUT /api/v1/contas/:contaId":                             {models.AuditoriaConfig, "conta.alterada", "Conta alterada (plano, limite ou status)", models.SeveridadeInfo},
 }
