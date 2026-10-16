@@ -23,7 +23,7 @@ const paginaDocsHTML = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <a class="back-link" href="/">&#8592; Voltar ao painel</a>
+  <a class="back-link" href="/docs">&#8592; Voltar aos exemplos</a>
   <div id="swagger-ui"></div>
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
@@ -39,7 +39,14 @@ const paginaDocsHTML = `<!DOCTYPE html>
 </body>
 </html>`
 
+// Docs e o guia com exemplos de curl de todas as funcoes (static/docs.html).
 func (h *Handler) Docs(c *gin.Context) {
+	c.Header("Cache-Control", "no-cache")
+	c.File("./static/docs.html")
+}
+
+// DocsSwagger e a referencia OpenAPI (parcial).
+func (h *Handler) DocsSwagger(c *gin.Context) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	_, _ = c.Writer.WriteString(paginaDocsHTML)
 }

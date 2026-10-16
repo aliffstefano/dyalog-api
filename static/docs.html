@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/static/img/favicon-32.png" sizes="32x32" type="image/png">
+  <title>Dyalog Connect - Documentacao da API</title>
+  <script>
+    try { document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || ''); } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="/static/css/docs.css?v=20261016">
+</head>
+<body>
+  <header class="dd-topo">
+    <a class="dd-marca" href="/"><img src="/static/img/dyalog-connect.png" alt=""><span><strong>Dyalog Connect</strong><small>Documentacao da API</small></span></a>
+    <label class="dd-busca"><input type="search" id="dd-busca" placeholder="Buscar: lista, audio, grupo, webhook..." autocomplete="off"></label>
+    <a class="dd-voltar" href="/">Voltar ao painel</a>
+  </header>
+  <div class="dd-layout">
+    <nav class="dd-menu" id="dd-menu" aria-label="Secoes"></nav>
+    <main class="dd-conteudo">
+      <section class="dd-intro">
+        <h1>Como usar a API</h1>
+        <p>Todas as chamadas vao para <code id="dd-base-texto">https://connect.dyalog.com.br</code> e levam o token no cabecalho <code>X-Access-Token</code>. Preencha abaixo e os exemplos ficam prontos para copiar (nada do que voce digitar sai desta pagina).</p>
+        <div class="dd-campos">
+          <label><span>Token da instancia</span><input id="dd-token" placeholder="TOKEN_DA_INSTANCIA" autocomplete="off" spellcheck="false"></label>
+          <label><span>ID da instancia</span><input id="dd-instancia" placeholder="ID_DA_INSTANCIA" autocomplete="off" spellcheck="false"></label>
+          <label><span>Numero de destino (DDI + DDD)</span><input id="dd-numero" placeholder="5567999999999" autocomplete="off" inputmode="numeric"></label>
+        </div>
+        <div class="dd-dicas">
+          <p><strong>Qual token usar?</strong> O <em>token da instancia</em> (painel &gt; instancia &gt; chave no topo) envia por aquela instancia, e nao precisa informar <code>instancia</code> no corpo. O <em>token master</em> enxerga tudo: com ele, informe <code>"instancia": "ID"</code> nas rotas de envio.</p>
+          <p><strong>Numero:</strong> sempre com DDI e DDD, so digitos (ex.: <code>5567999999999</code>). Para grupo use <code>"chat_jid": "120363...@g.us"</code> no lugar de <code>numero</code>.</p>
+          <p><strong>Resposta:</strong> todas devolvem <code>{"sucesso": true, "mensagem": "...", "dados": {...}}</code>; em erro, <code>{"sucesso": false, "erro": "codigo", "mensagem": "..."}</code>.</p>
+        </div>
+      </section>
+      <div id="dd-secoes"></div>
+      <p class="dd-rodape">Referencia tecnica (OpenAPI, parcial): <a href="/docs/swagger">/docs/swagger</a></p>
+    </main>
+  </div>
+  <script src="/static/js/docs.js?v=20261016"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import (
 func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandler, dashboardHandler *dashboard.Handler, authService *service.AuthService, gerenciador *whatsapp.GerenciadorInstancias) {
 	engine.GET("/", dashboardHandler.PaginaInicial)
 	engine.GET("/docs", dashboardHandler.Docs)
+	engine.GET("/docs/swagger", dashboardHandler.DocsSwagger)
 	engine.GET("/convite", dashboardHandler.PaginaConvite)
 	engine.GET("/senha/redefinir", dashboardHandler.PaginaRedefinirSenha)
 	engine.GET("/status/:token", apiHandler.PaginaStatusPublica)

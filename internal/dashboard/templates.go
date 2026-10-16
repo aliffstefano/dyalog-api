@@ -1669,6 +1669,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
   // ── Pagina da instancia ───────────────────────────────────────────────────────
   function trocarAbaInstancia(aba) {
     estadoUI.abaInstancia = aba;
+    // O cabecalho (foto, status, token, conectar) so aparece na Visao geral;
+    // nas outras abas o espaco fica para o conteudo.
+    document.querySelector('.dc-inst-topo').classList.toggle('hidden', aba !== 'geral');
     document.querySelectorAll('#nav-instancia [data-aba-inst]').forEach(b => b.classList.toggle('active', b.dataset.abaInst === aba));
     document.querySelectorAll('.dc-aba-painel').forEach(p => p.classList.toggle('hidden', p.dataset.painelInst !== aba));
     if (!estadoUI.instanciaSelecionada) return;
