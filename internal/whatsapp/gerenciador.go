@@ -5374,22 +5374,21 @@ func montarTentativasLista(req models.EnvioListaRequest, business bool) []tentat
 	}
 	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
 	case "", "auto":
-		// Conta pessoal: a lista dentro de documentWithCaption renderiza
-		// (ver lista_documento.go). Conta Business: nenhum formato de menu
-		// funciona hoje, segue a cadeia abaixo ate o texto.
+		// Testado em 16/10/2026 contra celular real: a lista dentro de
+		// documentWithCaption com messageSecret + botMetadata (lista_documento)
+		// renderiza tanto a partir de conta pessoal quanto Business. A lista
+		// solta com botMetadata (lista_bot) tambem renderiza e fica de reserva.
+		// native_flow_bot e native_flow_documento sao aceitos mas NAO
+		// aparecem, por isso ficam fora (parariam a cadeia numa mensagem
+		// invisivel). Se tudo for recusado, cai no texto.
+		lista := []tentativaLista{listaDocumento}
+		if bot, ok := tentativaListaPorNome(req, "lista_bot"); ok {
+			lista = append(lista, bot)
+		}
 		if !business {
-			return []tentativaLista{listaDocumento, listaClassica}
+			lista = append(lista, listaClassica)
 		}
-		// Nenhum formato de menu interativo funciona hoje a partir de um cliente
-		// multi-device comum (ver montarMensagemListaNativeFlow). O auto tenta o
-		// ListMessage - que o servidor recusa com 405 - justamente para que a
-		// cadeia chegue ao fallback de texto, que e o unico resultado que o
-		// destinatario realmente le. Nao inclua native_flow aqui: ele e ACEITO
-		// sem erro e a cadeia pararia nele, entregando uma mensagem invisivel.
-		return []tentativaLista{
-			listaClassica,
-			{modo: "lista_view_once", montar: func() *waE2E.Message { return montarMensagemListaViewOnce(req) }},
-		}
+		return lista
 	case "native_flow", "single_select", "nativeflow":
 		return []tentativaLista{nativeFlow}
 	case "lista_documento", "documento", "lista_pessoal":

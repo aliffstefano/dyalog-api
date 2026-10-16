@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"dyalog-api-go/internal/models"
@@ -144,11 +145,11 @@ func TestMontarTentativasListaAutoNaoUsaNativeFlow(t *testing.T) {
 	if len(tentativas) == 0 {
 		t.Fatal("modo auto nao deveria ficar sem tentativas")
 	}
-	if tentativas[0].modo != "lista" {
-		t.Fatalf("modo auto deveria comecar pela lista classica, obtido: %#v", tentativas)
+	if tentativas[0].modo != "lista_documento" {
+		t.Fatalf("modo auto deveria comecar pela lista_documento, obtido: %#v", tentativas)
 	}
 	for _, tentativa := range tentativas {
-		if tentativa.modo == "native_flow" {
+		if strings.HasPrefix(tentativa.modo, "native_flow") {
 			t.Fatalf("native_flow nao deve entrar no auto (bloquearia o fallback de texto): %#v", tentativas)
 		}
 	}

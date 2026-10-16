@@ -2035,9 +2035,12 @@ Campos:
 
 Modos:
 
-- sem `modo` (ou `auto`): se a instancia estiver num **WhatsApp pessoal**, usa
-  `lista_documento` (renderiza); num **WhatsApp Business**, nenhum formato de
-  lista renderiza hoje e as opcoes vao como texto
+- sem `modo` (ou `auto`): usa `lista_documento`, que renderiza tanto em
+  **WhatsApp pessoal** quanto **Business** (testado no celular em 16/10/2026);
+  se o servidor recusar, tenta `lista_bot` e, por ultimo, manda as opcoes como
+  texto. No teste do Business renderizaram `lista_documento`,
+  `lista_documento_sem_bot` e `lista_bot`; `native_flow_bot` e
+  `native_flow_documento` sao aceitos mas nao aparecem
 - `lista_documento`: a lista que renderiza a partir de conta pessoal (capturada
   em 16/10/2026): `ListMessage` dentro de `documentWithCaptionMessage`, com
   `messageSecret` e `botMetadata`, e envelope `<biz><list type="product_list"

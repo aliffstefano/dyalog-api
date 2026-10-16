@@ -54,13 +54,16 @@ func TestListaDocumentoIgualACapturada(t *testing.T) {
 	}
 }
 
-func TestListaAutoContaPessoalUsaDocumento(t *testing.T) {
+func TestListaAutoUsaDocumento(t *testing.T) {
 	pessoal := montarTentativasLista(models.EnvioListaRequest{}, false)
 	if len(pessoal) == 0 || pessoal[0].modo != "lista_documento" || pessoal[0].nosBiz == nil {
 		t.Fatalf("conta pessoal deveria comecar pela lista_documento: %#v", pessoal)
 	}
-	if business := montarTentativasLista(models.EnvioListaRequest{}, true); business[0].modo == "lista_documento" {
-		t.Fatal("conta Business nao deveria usar lista_documento no auto")
+	// Business (testado no celular): lista_documento e lista_bot renderizam;
+	// a lista classica e recusada com 405, entao fica de fora.
+	business := montarTentativasLista(models.EnvioListaRequest{}, true)
+	if len(business) != 2 || business[0].modo != "lista_documento" || business[1].modo != "lista_bot" {
+		t.Fatalf("auto Business = %#v", business)
 	}
 }
 
