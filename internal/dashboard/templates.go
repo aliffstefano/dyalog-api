@@ -253,11 +253,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
                 <div><dt>Phone number ID</dt><dd id="meta-phone-id">-</dd></div>
               </dl>
               <p class="dc-rotulo hidden" id="meta-webhook-app">Webhook: os eventos chegam pela URL do app no Dyalog Connect. Nada a configurar no painel da Meta.</p>
-              <div class="dc-lista hidden" id="meta-pin-linha"><div class="dc-config-linha"><div><strong>PIN do numero (verificacao em duas etapas)</strong><span class="dc-mono" id="meta-pin">-</span></div><button class="ghost small" onclick="copiarTexto('meta-pin')">Copiar</button></div></div>
+              <div class="dc-lista hidden" id="meta-pin-linha"><div class="dc-config-linha"><div><strong>PIN do numero (verificacao em duas etapas)</strong><span class="dc-mono" id="meta-pin">-</span></div><button class="ghost small" onclick="copiarDoElemento('meta-pin')">Copiar</button></div></div>
               <p class="dc-rotulo" id="meta-webhook-instrucao">Webhook (cole em WhatsApp &gt; Configuracao &gt; Webhook no painel da Meta e assine o campo <code>messages</code>)</p>
               <div class="dc-lista" id="meta-webhook-campos">
-                <div class="dc-config-linha"><div><strong>URL de callback</strong><span class="dc-mono" id="meta-webhook-url">-</span></div><button class="ghost small" onclick="copiarTexto('meta-webhook-url')">Copiar</button></div>
-                <div class="dc-config-linha"><div><strong>Token de verificacao</strong><span class="dc-mono" id="meta-verify-token">-</span></div><button class="ghost small" onclick="copiarTexto('meta-verify-token')">Copiar</button></div>
+                <div class="dc-config-linha"><div><strong>URL de callback</strong><span class="dc-mono" id="meta-webhook-url">-</span></div><button class="ghost small" onclick="copiarDoElemento('meta-webhook-url')">Copiar</button></div>
+                <div class="dc-config-linha"><div><strong>Token de verificacao</strong><span class="dc-mono" id="meta-verify-token">-</span></div><button class="ghost small" onclick="copiarDoElemento('meta-verify-token')">Copiar</button></div>
               </div>
               <p class="helper-text" id="meta-aviso-secret"></p>
             </article>
@@ -623,7 +623,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'link-convite': {
       kicker: 'Convite', titulo: 'Convite criado', semInstancia: true,
-      html: '<form id="modal-form" class="stack-form"><p class="status-copy" id="mf-convite-texto"></p><div class="dc-config-linha"><div><strong>Link do convite</strong><span class="dc-mono" id="mf-convite-link"></span></div><button type="button" class="ghost small" onclick="copiarTexto(\'mf-convite-link\')">Copiar</button></div><div class="modal-footer"><button type="button" class="primary" onclick="fecharModal()">Pronto</button></div></form>',
+      html: '<form id="modal-form" class="stack-form"><p class="status-copy" id="mf-convite-texto"></p><div class="dc-config-linha"><div><strong>Link do convite</strong><span class="dc-mono" id="mf-convite-link"></span></div><button type="button" class="ghost small" onclick="copiarDoElemento(\'mf-convite-link\')">Copiar</button></div><div class="modal-footer"><button type="button" class="primary" onclick="fecharModal()">Pronto</button></div></form>',
       init: function() {
         const r = contasUI.linkConvite || {};
         document.getElementById('mf-convite-link').textContent = r.link || '';
@@ -1902,9 +1902,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('meta-aviso-secret').textContent = d.app_secret_salvo ? '' :
       'Sem App secret salvo: a assinatura dos webhooks nao e conferida. Cadastre em Atualizar credenciais.';
   }
-  async function copiarTexto(id) {
-    const texto = document.getElementById(id).textContent;
-    try { await navigator.clipboard.writeText(texto); mostrarToast('Copiado.', 'success'); }
+  // Copia o texto de um elemento (usa copiarTexto, que tem alternativa para
+  // pagina sem HTTPS, onde o navegador bloqueia a area de transferencia).
+  async function copiarDoElemento(id) {
+    const texto = (document.getElementById(id).textContent || '').trim();
+    try { await copiarTexto(texto); mostrarToast('Copiado.', 'success'); }
     catch (err) { mostrarToast('Nao foi possivel copiar.', 'error'); }
   }
   function alternarTokenVisivel() {
