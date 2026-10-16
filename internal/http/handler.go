@@ -42,10 +42,15 @@ type APIHandler struct {
 	metaWebhook *service.MetaWebhookService
 	// chat alimenta a tela de Chat do painel (nil quando desligado).
 	chat *service.ChatService
+	// contas: login com e-mail e senha, equipe, contas e planos.
+	contas        *service.ContaService
+	limiteEsqueci *limitador
 }
 
 type criarInstanciaRequest struct {
 	Nome string `json:"nome" binding:"required"`
+	// ContaID: so o superadmin escolhe; usuario cria na propria conta.
+	ContaID string `json:"conta_id"`
 	// Tipo: "whatsapp" (QR code, padrao) ou "meta" (API oficial).
 	Tipo string                        `json:"tipo"`
 	Meta *models.ConfigurarMetaRequest `json:"meta"`
@@ -61,8 +66,12 @@ type webhookRequest struct {
 	IncluirBase64 *bool `json:"incluir_base64,omitempty"`
 }
 
+// loginDashboardRequest: e-mail e senha (usuarios) ou token (master ou
+// token de instancia).
 type loginDashboardRequest struct {
-	Token string `json:"token" binding:"required"`
+	Token string `json:"token"`
+	Email string `json:"email"`
+	Senha string `json:"senha"`
 }
 
 type atualizarTokenInstanciaRequest struct {
@@ -111,24 +120,52 @@ func NovoAPIHandler(cfg *config.Config, instanciaService *service.InstanciaServi
 
 func (h *APIHandler) LoginDashboard(c *gin.Context) {
 	var req loginDashboardRequest
-	if !h.lerJSON(c, &req, nil, "Informe o token de acesso") {
+	if !h.lerJSON(c, &req, nil, "Informe e-mail e senha, ou o token de acesso") {
 		return
 	}
 	if bloqueado, espera := h.limiteFalhasAuth.bloqueado(ipCliente(c)); bloqueado {
-		responderLimite(c, "muitas_tentativas", "Muitas tentativas com token invalido", espera)
+		responderLimite(c, "muitas_tentativas", "Muitas tentativas de acesso invalidas", espera)
+		return
+	}
+	if strings.TrimSpace(req.Email) != "" {
+		if h.contas == nil {
+			h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Login com e-mail nao habilitado")
+			return
+		}
+		token, acesso, err := h.contas.Login(c.Request.Context(), req.Email, req.Senha)
+		if err != nil {
+			h.limiteFalhasAuth.registrarFalha(ipCliente(c), strings.ToLower(strings.TrimSpace(req.Email)))
+			if errors.Is(err, service.ErrAcessoNegado) {
+				h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", mensagemEntradaInvalida(err))
+				return
+			}
+			h.responderErro(c, nethttp.StatusUnauthorized, "nao_autenticado", "E-mail ou senha incorretos")
+			return
+		}
+		h.definirCookieSessao(c, token)
+		c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Login realizado com sucesso", acesso))
 		return
 	}
 	acesso, err := h.authService.Autenticar(c.Request.Context(), req.Token)
-	if err != nil {
+	if err != nil || service.EhTokenDeSessao(req.Token) {
 		h.limiteFalhasAuth.registrarFalha(ipCliente(c), req.Token)
 		h.responderErro(c, nethttp.StatusUnauthorized, "nao_autenticado", "Token invalido")
 		return
 	}
-	c.SetCookie(h.cfg.DashboardCookieNome, req.Token, 86400*15, "/", "", false, true)
+	h.definirCookieSessao(c, req.Token)
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Login realizado com sucesso", acesso))
 }
 
+func (h *APIHandler) definirCookieSessao(c *gin.Context, token string) {
+	c.SetCookie(h.cfg.DashboardCookieNome, token, 86400*15, "/", "", false, true)
+}
+
 func (h *APIHandler) LogoutDashboard(c *gin.Context) {
+	if h.contas != nil {
+		if token, err := c.Cookie(h.cfg.DashboardCookieNome); err == nil {
+			h.contas.Logout(c.Request.Context(), token)
+		}
+	}
 	c.SetCookie(h.cfg.DashboardCookieNome, "", -1, "/", "", false, true)
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Logout realizado com sucesso", gin.H{}))
 }
@@ -143,15 +180,38 @@ func (h *APIHandler) garantirMaster(c *gin.Context) bool {
 	if h.authService.PodeGerenciarTudo(acesso) {
 		return true
 	}
-	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Acesso restrito ao token master")
+	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Acesso restrito ao administrador do sistema")
 	return false
 }
 
+// garantirInstancia: pode usar a instancia (ver, chat, enviar).
 func (h *APIHandler) garantirInstancia(c *gin.Context, instanciaID string) bool {
-	if err := h.authService.GarantirInstancia(obterAcessoDashboard(c), instanciaID); err == nil {
+	return h.conferirInstancia(c, instanciaID, false)
+}
+
+// garantirInstanciaGerenciar: pode configurar a instancia (dono/admin).
+func (h *APIHandler) garantirInstanciaGerenciar(c *gin.Context, instanciaID string) bool {
+	return h.conferirInstancia(c, instanciaID, true)
+}
+
+func (h *APIHandler) conferirInstancia(c *gin.Context, instanciaID string, gerenciar bool) bool {
+	if err := h.authService.GarantirInstancia(c.Request.Context(), obterAcessoDashboard(c), instanciaID, gerenciar); err == nil {
 		return true
 	}
-	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Esse token nao possui acesso a esta instancia")
+	mensagem := "Esse acesso nao inclui esta instancia"
+	if gerenciar {
+		mensagem = "Seu papel nao permite configurar esta instancia (fale com o dono ou um admin da conta)"
+	}
+	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", mensagem)
+	return false
+}
+
+// garantirCriarInstancia: superadmin, ou dono/admin da conta.
+func (h *APIHandler) garantirCriarInstancia(c *gin.Context) bool {
+	if h.authService.PodeCriarInstancias(obterAcessoDashboard(c)) {
+		return true
+	}
+	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Seu acesso nao permite criar instancias")
 	return false
 }
 
@@ -266,11 +326,15 @@ func (h *APIHandler) AtualizarProxySistema(c *gin.Context) {
 }
 
 func (h *APIHandler) CriarInstancia(c *gin.Context) {
-	if !h.garantirMaster(c) {
+	if !h.garantirCriarInstancia(c) {
 		return
 	}
 	var req criarInstanciaRequest
 	if !h.lerJSON(c, &req, nil, "Nome da instancia e obrigatorio") {
+		return
+	}
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	if !ok {
 		return
 	}
 	instancia, err := h.instanciaService.CriarComTipo(c.Request.Context(), req.Nome, req.Tipo, req.Meta)
@@ -278,13 +342,45 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 		h.tratarErro(c, err)
 		return
 	}
+	if !h.atribuirConta(c, &instancia, contaID) {
+		return
+	}
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia criada com sucesso", instancia))
+}
+
+// contaDaNovaInstancia: usuario cria na propria conta; o superadmin escolhe
+// (ou deixa sem conta). Confere o limite do plano antes de criar.
+func (h *APIHandler) contaDaNovaInstancia(c *gin.Context, pedida string) (string, bool) {
+	acesso := obterAcessoDashboard(c)
+	contaID := strings.TrimSpace(pedida)
+	if !acesso.TudoLiberado() {
+		contaID = acesso.ContaID
+	}
+	if h.contas != nil && contaID != "" {
+		if err := h.contas.GarantirLimite(c.Request.Context(), contaID); err != nil {
+			h.tratarErro(c, err)
+			return "", false
+		}
+	}
+	return contaID, true
+}
+
+func (h *APIHandler) atribuirConta(c *gin.Context, instancia *models.Instancia, contaID string) bool {
+	if contaID == "" || h.contas == nil {
+		return true
+	}
+	if err := h.contas.AtribuirInstanciaNova(c.Request.Context(), instancia.ID, contaID); err != nil {
+		h.tratarErro(c, err)
+		return false
+	}
+	instancia.ContaID = contaID
+	return true
 }
 
 // ConfigurarMetaInstancia cadastra ou troca as credenciais da API oficial e
 // valida na Meta antes de salvar.
 func (h *APIHandler) ConfigurarMetaInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req models.ConfigurarMetaRequest
@@ -333,18 +429,24 @@ func (h *APIHandler) ListarInstancias(c *gin.Context) {
 		h.tratarErro(c, err)
 		return
 	}
-	acesso := obterAcessoDashboard(c)
-	if acesso.Tipo == "instancia" {
-		filtradas := make([]models.Instancia, 0, 1)
-		for _, instancia := range instancias {
-			if instancia.ID == acesso.InstanciaID {
-				filtradas = append(filtradas, instancia)
-				break
-			}
-		}
-		instancias = filtradas
-	}
+	instancias = filtrarInstanciasDoAcesso(obterAcessoDashboard(c), instancias)
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Instancias listadas com sucesso", gin.H{"instancias": instancias}))
+}
+
+// filtrarInstanciasDoAcesso: token de instancia ve so ela; usuario ve as da
+// propria conta; master e superadmin veem todas.
+func filtrarInstanciasDoAcesso(acesso models.AcessoDashboard, instancias []models.Instancia) []models.Instancia {
+	if acesso.TudoLiberado() {
+		return instancias
+	}
+	filtradas := make([]models.Instancia, 0, len(instancias))
+	for _, instancia := range instancias {
+		if (acesso.Tipo == "instancia" && instancia.ID == acesso.InstanciaID) ||
+			(acesso.Tipo == "usuario" && acesso.ContaID != "" && instancia.ContaID == acesso.ContaID) {
+			filtradas = append(filtradas, instancia)
+		}
+	}
+	return filtradas
 }
 
 func (h *APIHandler) BuscarInstancia(c *gin.Context) {
@@ -360,7 +462,7 @@ func (h *APIHandler) BuscarInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) ExcluirInstancia(c *gin.Context) {
-	if !h.garantirMaster(c) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	if err := h.instanciaService.Excluir(c.Request.Context(), c.Param("id")); err != nil {
@@ -371,7 +473,7 @@ func (h *APIHandler) ExcluirInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarTokenInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req atualizarTokenInstanciaRequest
@@ -392,7 +494,7 @@ func (h *APIHandler) AtualizarTokenInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarHistoricoInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req atualizarHistoricoInstanciaRequest
@@ -416,7 +518,7 @@ func (h *APIHandler) AtualizarHistoricoInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarProxyInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req atualizarProxyInstanciaRequest
@@ -432,7 +534,7 @@ func (h *APIHandler) AtualizarProxyInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarPresencaInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req atualizarPresencaInstanciaRequest
@@ -455,7 +557,7 @@ func (h *APIHandler) AtualizarPresencaInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarConfiguracaoAvancadaInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req atualizarConfiguracaoAvancadaRequest
@@ -488,7 +590,7 @@ func (h *APIHandler) AtualizarConfiguracaoAvancadaInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) ConectarInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	instancia, qrCode, err := h.instanciaService.Conectar(c.Request.Context(), c.Param("id"))
@@ -500,7 +602,7 @@ func (h *APIHandler) ConectarInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) SolicitarCodigoPareamentoInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req solicitarCodigoPareamentoRequest
@@ -517,7 +619,7 @@ func (h *APIHandler) SolicitarCodigoPareamentoInstancia(c *gin.Context) {
 }
 
 func (h *APIHandler) DesconectarInstancia(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	instancia, err := h.instanciaService.Desconectar(c.Request.Context(), c.Param("id"))
@@ -690,7 +792,7 @@ func (h *APIHandler) ListarWebhooks(c *gin.Context) {
 }
 
 func (h *APIHandler) CriarWebhook(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req webhookRequest
@@ -710,7 +812,7 @@ func (h *APIHandler) CriarWebhook(c *gin.Context) {
 }
 
 func (h *APIHandler) AtualizarWebhook(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	var req webhookRequest
@@ -730,7 +832,7 @@ func (h *APIHandler) AtualizarWebhook(c *gin.Context) {
 }
 
 func (h *APIHandler) ExcluirWebhook(c *gin.Context) {
-	if !h.garantirInstancia(c, c.Param("id")) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
 		return
 	}
 	if err := h.webhookService.Excluir(c.Request.Context(), c.Param("id"), c.Param("webhookId")); err != nil {
@@ -765,6 +867,24 @@ func (h *APIHandler) UsoGeral(c *gin.Context) {
 	if err != nil {
 		h.tratarErro(c, err)
 		return
+	}
+	if acesso.Tipo == "usuario" && !acesso.TudoLiberado() {
+		instancias, err := h.instanciaService.Listar(c.Request.Context())
+		if err != nil {
+			h.tratarErro(c, err)
+			return
+		}
+		daConta := map[string]bool{}
+		for _, instancia := range filtrarInstanciasDoAcesso(acesso, instancias) {
+			daConta[instancia.ID] = true
+		}
+		filtrada := lista[:0]
+		for _, uso := range lista {
+			if daConta[uso.InstanciaID] {
+				filtrada = append(filtrada, uso)
+			}
+		}
+		lista = filtrada
 	}
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Uso de hoje consultado com sucesso", gin.H{"instancias": lista, "limite_por_minuto": h.cfg.LimiteEnviosPorMinuto}))
 }
@@ -1228,7 +1348,7 @@ func (h *APIHandler) preencherInstanciaDaRequisicao(c *gin.Context, instanciaID 
 		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "Informe a instancia ou utilize um token de instancia")
 		return false
 	}
-	if err := h.authService.GarantirInstancia(acesso, *instanciaID); err == nil {
+	if err := h.authService.GarantirInstancia(c.Request.Context(), acesso, *instanciaID, false); err == nil {
 		return true
 	}
 	h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Esse token nao possui acesso a esta instancia")
@@ -1239,6 +1359,10 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrInstanciaNaoEncontrada):
 		h.responderErro(c, nethttp.StatusNotFound, "instancia_nao_encontrada", "Instancia nao encontrada")
+	case errors.Is(err, service.ErrLimiteInstancias):
+		h.responderErro(c, nethttp.StatusForbidden, "limite_plano", mensagemEntradaInvalida(err))
+	case errors.Is(err, service.ErrAcessoNegado):
+		h.responderErro(c, nethttp.StatusForbidden, "acesso_negado", "Seu acesso nao permite esta acao")
 	case errors.Is(err, service.ErrWebhookNaoEncontrado):
 		h.responderErro(c, nethttp.StatusNotFound, "webhook_nao_encontrado", "Webhook nao encontrado")
 	case errors.Is(err, service.ErrMidiaNaoEncontrada):

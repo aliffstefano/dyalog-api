@@ -49,7 +49,7 @@ func (h *APIHandler) ReceberWebhookMeta(c *gin.Context) {
 // ConfigCadastroMeta entrega ao painel o app_id e o config_id para abrir o
 // login da Meta (cadastro incorporado).
 func (h *APIHandler) ConfigCadastroMeta(c *gin.Context) {
-	if !h.garantirMaster(c) {
+	if !h.garantirCriarInstancia(c) {
 		return
 	}
 	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Configuracao do cadastro incorporado", h.instanciaService.ConfigCadastroMeta()))
@@ -57,16 +57,26 @@ func (h *APIHandler) ConfigCadastroMeta(c *gin.Context) {
 
 // CadastrarViaMeta conclui o cadastro incorporado e cria a instancia oficial.
 func (h *APIHandler) CadastrarViaMeta(c *gin.Context) {
-	if !h.garantirMaster(c) {
+	if !h.garantirCriarInstancia(c) {
 		return
 	}
-	var req service.CadastroMetaRequest
+	var req struct {
+		service.CadastroMetaRequest
+		ContaID string `json:"conta_id"`
+	}
 	if !h.lerJSON(c, &req, nil, "Informe nome, code, waba_id e phone_number_id") {
 		return
 	}
-	instancia, avisos, err := h.instanciaService.CadastrarViaMeta(c.Request.Context(), req)
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	if !ok {
+		return
+	}
+	instancia, avisos, err := h.instanciaService.CadastrarViaMeta(c.Request.Context(), req.CadastroMetaRequest)
 	if err != nil {
 		h.tratarErro(c, err)
+		return
+	}
+	if !h.atribuirConta(c, &instancia, contaID) {
 		return
 	}
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia oficial criada pelo cadastro da Meta", gin.H{

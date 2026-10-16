@@ -80,6 +80,10 @@ type Config struct {
 	MetaAppSecret          string
 	MetaConfigID           string
 	MetaWebhookVerifyToken string
+	// E-mails do painel (convites, redefinir senha) pela Resend.
+	ResendAPIKey   string
+	EmailRemetente string
+	ResendBaseURL  string
 	// MetaGraphBaseURL troca o endereco da Graph API (so para testes).
 	MetaGraphBaseURL              string
 	ReconexaoIntervaloSegundos    int
@@ -166,6 +170,9 @@ func Carregar() (*Config, error) {
 		MetaAppSecret:                 obter("META_APP_SECRET", ""),
 		MetaConfigID:                  obter("META_CONFIG_ID", ""),
 		MetaWebhookVerifyToken:        obter("META_WEBHOOK_VERIFY_TOKEN", ""),
+		ResendAPIKey:                  obter("RESEND_API_KEY", ""),
+		EmailRemetente:                obter("EMAIL_REMETENTE", ""),
+		ResendBaseURL:                 obter("RESEND_BASE_URL", ""),
 		LimiteFalhasAuthPorMinuto:     obterInt("RATE_LIMIT_FALHAS_AUTH_POR_MINUTO", 10),
 		ProxiesConfiaveis:             strings.FieldsFunc(obter("TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,::1/128,fc00::/7"), func(r rune) bool { return r == ',' || r == ' ' }),
 		ReconexaoIntervaloSegundos:    obterInt("INSTANCE_RECONNECT_INTERVAL_SECONDS", 30),

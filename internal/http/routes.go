@@ -25,6 +25,10 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 
 	engine.POST("/api/v1/auth/login", apiHandler.LoginDashboard)
 	engine.POST("/api/v1/auth/logout", apiHandler.LogoutDashboard)
+	engine.GET("/api/v1/auth/convite", apiHandler.InfoConvite)
+	engine.POST("/api/v1/auth/convite/aceitar", apiHandler.AceitarConvite)
+	engine.POST("/api/v1/auth/senha/esqueci", apiHandler.EsqueciSenha)
+	engine.POST("/api/v1/auth/senha/redefinir", apiHandler.RedefinirSenha)
 	engine.POST("/user/presence", auth, proxyReplica, apiHandler.EnviarPresenca)
 
 	api := engine.Group("/api/v1")
@@ -36,6 +40,23 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 	apiAuth := engine.Group("/api/v1", auth, proxyReplica)
 	{
 		apiAuth.GET("/auth/sessao", apiHandler.SessaoDashboard)
+		apiAuth.PUT("/auth/senha", apiHandler.TrocarSenha)
+
+		apiAuth.GET("/equipe", apiHandler.Equipe)
+		apiAuth.POST("/equipe/convites", apiHandler.ConvidarEquipe)
+		apiAuth.DELETE("/equipe/convites/:conviteId", apiHandler.CancelarConvite)
+		apiAuth.PUT("/equipe/usuarios/:usuarioId", apiHandler.AtualizarMembro)
+		apiAuth.DELETE("/equipe/usuarios/:usuarioId", apiHandler.RemoverMembro)
+
+		apiAuth.GET("/contas", apiHandler.ListarContas)
+		apiAuth.POST("/contas", apiHandler.CriarConta)
+		apiAuth.PUT("/contas/:contaId", apiHandler.AtualizarConta)
+		apiAuth.GET("/planos", apiHandler.ListarPlanos)
+		apiAuth.POST("/planos", apiHandler.SalvarPlano)
+		apiAuth.PUT("/planos/:planoId", apiHandler.SalvarPlano)
+		apiAuth.GET("/administradores", apiHandler.Administradores)
+		apiAuth.POST("/administradores/convites", apiHandler.ConvidarAdministrador)
+		apiAuth.PUT("/instancias/:id/conta", apiHandler.MoverInstanciaConta)
 
 		apiAuth.GET("/sistema/versao", apiHandler.VersaoSistema)
 		apiAuth.GET("/sistema/atualizacoes", apiHandler.AtualizacoesSistema)

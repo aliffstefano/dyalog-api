@@ -11,6 +11,7 @@ import (
 	"dyalog-api-go/internal/chamadas"
 	"dyalog-api-go/internal/config"
 	"dyalog-api-go/internal/dashboard"
+	"dyalog-api-go/internal/email"
 	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/service"
 	mediastorage "dyalog-api-go/internal/storage"
@@ -119,6 +120,9 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	webhookService := service.NovoWebhookService(storeSQL, storeSQL, storeSQL)
 	sistemaService := service.NovoSistemaService(cfg, storeSQL)
 	authService := service.NovoAuthService(cfg.DashboardMasterToken, storeSQL)
+	// Contas e login com e-mail e senha; e-mails pela Resend.
+	contaService := service.NovoContaService(storeSQL, email.NovoResend(cfg.ResendAPIKey, cfg.EmailRemetente, cfg.ResendBaseURL), cfg.BaseURL)
+	authService.UsarContas(contaService)
 	dispatcher.Iniciar(context.Background())
 	registrarRecuperacaoWebhook(context.Background(), cfg, storeSQL, gerenciador)
 	iniciarHeartbeatRuntime(context.Background(), storeSQL, time.Duration(cfg.HeartbeatIntervaloSegundos)*time.Second)
@@ -144,6 +148,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	engine.Static("/static", "./static")
 	apiHandler := NovoAPIHandler(cfg, instanciaService, mensagemService, chamadaService, midiaService, webhookService, sistemaService, authService)
 	apiHandler.UsarChat(chatService)
+	apiHandler.UsarContas(contaService)
 	metaWebhook := service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador)
 	metaWebhook.UsarApp(cfg.MetaAppSecret, cfg.MetaWebhookVerifyToken)
 	metaWebhook.Iniciar(context.Background())
