@@ -492,6 +492,25 @@ CREATE TABLE IF NOT EXISTS meta_webhooks (
 );
 CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
 
+CREATE TABLE IF NOT EXISTS auditoria (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL DEFAULT '',
+    conta_id TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    acao TEXT NOT NULL DEFAULT '',
+    descricao TEXT NOT NULL DEFAULT '',
+    severidade TEXT NOT NULL DEFAULT 'info',
+    ator_tipo TEXT NOT NULL DEFAULT '',
+    ator_id TEXT NOT NULL DEFAULT '',
+    ator_nome TEXT NOT NULL DEFAULT '',
+    ip TEXT NOT NULL DEFAULT '',
+    detalhes TEXT NOT NULL DEFAULT '',
+    criado_em DATETIME NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auditoria_instancia ON auditoria(instancia_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_auditoria_conta ON auditoria(conta_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_auditoria_criado ON auditoria(criado_em);
+
 CREATE TABLE IF NOT EXISTS planos (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
@@ -765,6 +784,25 @@ CREATE TABLE IF NOT EXISTS meta_webhooks (
     erro TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
+
+CREATE TABLE IF NOT EXISTS auditoria (
+    id TEXT PRIMARY KEY,
+    instancia_id TEXT NOT NULL DEFAULT '',
+    conta_id TEXT NOT NULL DEFAULT '',
+    tipo TEXT NOT NULL DEFAULT '',
+    acao TEXT NOT NULL DEFAULT '',
+    descricao TEXT NOT NULL DEFAULT '',
+    severidade TEXT NOT NULL DEFAULT 'info',
+    ator_tipo TEXT NOT NULL DEFAULT '',
+    ator_id TEXT NOT NULL DEFAULT '',
+    ator_nome TEXT NOT NULL DEFAULT '',
+    ip TEXT NOT NULL DEFAULT '',
+    detalhes TEXT NOT NULL DEFAULT '',
+    criado_em TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auditoria_instancia ON auditoria(instancia_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_auditoria_conta ON auditoria(conta_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_auditoria_criado ON auditoria(criado_em);
 
 CREATE TABLE IF NOT EXISTS planos (
     id TEXT PRIMARY KEY,

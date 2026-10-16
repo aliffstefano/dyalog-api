@@ -56,7 +56,9 @@ type Config struct {
 	UsoRetencaoDias               int
 	// ChatRetencaoDias e por quantos dias a tela de Chat guarda as mensagens
 	// (0 desliga o chat).
-	ChatRetencaoDias           int
+	ChatRetencaoDias int
+	// AuditoriaRetencaoDias e por quantos dias o historico de auditoria fica.
+	AuditoriaRetencaoDias      int
 	RuntimeNodeID              string
 	RuntimeNodeEndereco        string
 	RuntimeLockTTLSeconds      int
@@ -159,6 +161,7 @@ func Carregar() (*Config, error) {
 		WebhookEntregaRetencaoDias:    obterInt("WEBHOOK_ENTREGA_RETENTION_DAYS", 30),
 		UsoRetencaoDias:               obterInt("USO_RETENTION_DAYS", 30),
 		ChatRetencaoDias:              obterInt("CHAT_RETENTION_DAYS", 7),
+		AuditoriaRetencaoDias:         obterInt("AUDITORIA_RETENTION_DAYS", 90),
 		RuntimeNodeID:                 obterRuntimeNodeID(),
 		RuntimeNodeEndereco:           obterRuntimeNodeEndereco(obterInt("APP_PORT", 8080)),
 		RuntimeLockTTLSeconds:         obterInt("RUNTIME_LOCK_TTL_SECONDS", 90),

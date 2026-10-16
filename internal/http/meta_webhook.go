@@ -79,6 +79,7 @@ func (h *APIHandler) CadastrarViaMeta(c *gin.Context) {
 	if !h.atribuirConta(c, &instancia, contaID) {
 		return
 	}
+	marcarInstanciaAuditoria(c, instancia.ID)
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia oficial criada pelo cadastro da Meta", gin.H{
 		"id": instancia.ID, "instancia": instancia, "avisos": avisos,
 	}))

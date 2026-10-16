@@ -39,7 +39,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		api.GET("/docs", apiHandler.Documentacao)
 	}
 
-	apiAuth := engine.Group("/api/v1", auth, proxyReplica)
+	apiAuth := engine.Group("/api/v1", auth, proxyReplica, apiHandler.middlewareAuditoria())
 	{
 		apiAuth.GET("/auth/sessao", apiHandler.SessaoDashboard)
 		apiAuth.PUT("/auth/senha", apiHandler.TrocarSenha)
@@ -97,6 +97,18 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.GET("/instancias/:id/webhook-entregas", apiHandler.ListarEntregasWebhook)
 		apiAuth.GET("/instancias/:id/uso", apiHandler.UsoInstancia)
 		apiAuth.GET("/uso", apiHandler.UsoGeral)
+
+		apiAuth.GET("/instancias/:id/perfil", apiHandler.PerfilWhatsApp)
+		apiAuth.PUT("/instancias/:id/perfil", apiHandler.AtualizarPerfilWhatsApp)
+		apiAuth.PUT("/instancias/:id/perfil/foto", apiHandler.AtualizarFotoPerfilWhatsApp)
+		apiAuth.DELETE("/instancias/:id/perfil/foto", apiHandler.RemoverFotoPerfilWhatsApp)
+		apiAuth.PUT("/instancias/:id/privacidade", apiHandler.AtualizarPrivacidadeWhatsApp)
+		apiAuth.GET("/instancias/:id/contatos", apiHandler.ListarContatosWhatsApp)
+		apiAuth.GET("/instancias/:id/contatos/exportar", apiHandler.ExportarContatosWhatsApp)
+		apiAuth.POST("/instancias/:id/contatos/verificar", apiHandler.VerificarNumerosWhatsApp)
+		apiAuth.POST("/instancias/:id/contatos/bloqueio", apiHandler.BloquearContatoWhatsApp)
+		apiAuth.GET("/instancias/:id/auditoria", apiHandler.ListarAuditoriaInstancia)
+		apiAuth.GET("/auditoria", apiHandler.ListarAuditoria)
 
 		apiAuth.GET("/instancias/:id/chat/conversas", apiHandler.ListarConversasChat)
 		apiAuth.GET("/instancias/:id/chat/mensagens", apiHandler.ListarMensagensChat)

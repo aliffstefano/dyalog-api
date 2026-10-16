@@ -121,7 +121,13 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	sistemaService := service.NovoSistemaService(cfg, storeSQL)
 	authService := service.NovoAuthService(cfg.DashboardMasterToken, storeSQL)
 	// Contas e login com e-mail e senha; e-mails pela Resend.
-	contaService := service.NovoContaService(storeSQL, email.NovoResend(cfg.ResendAPIKey, cfg.EmailRemetente, cfg.ResendBaseURL), cfg.BaseURL)
+	enviadorEmail := email.NovoResend(cfg.ResendAPIKey, cfg.EmailRemetente, cfg.ResendBaseURL)
+	contaService := service.NovoContaService(storeSQL, enviadorEmail, cfg.BaseURL)
+	// Auditoria: acoes no painel/API e eventos de conexao (com alerta por
+	// e-mail quando a instancia cai e precisa de alguem).
+	auditoriaService := service.NovoAuditoriaService(storeSQL, storeSQL, storeSQL, enviadorEmail, cfg.BaseURL, cfg.AuditoriaRetencaoDias)
+	gerenciador.AoEventoConexao(auditoriaService.EventoConexao)
+	auditoriaService.Iniciar(context.Background())
 	authService.UsarContas(contaService)
 	dispatcher.Iniciar(context.Background())
 	registrarRecuperacaoWebhook(context.Background(), cfg, storeSQL, gerenciador)
@@ -149,6 +155,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	apiHandler := NovoAPIHandler(cfg, instanciaService, mensagemService, chamadaService, midiaService, webhookService, sistemaService, authService)
 	apiHandler.UsarChat(chatService)
 	apiHandler.UsarContas(contaService)
+	apiHandler.UsarAuditoria(auditoriaService)
 	metaWebhook := service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador)
 	metaWebhook.UsarApp(cfg.MetaAppSecret, cfg.MetaWebhookVerifyToken)
 	metaWebhook.Iniciar(context.Background())

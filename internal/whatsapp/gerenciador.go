@@ -77,6 +77,9 @@ type Cliente interface {
 
 var ErrMidiaInvalida = errors.New("midia invalida")
 var ErrAvatarNaoEncontrado = errors.New("avatar nao encontrado")
+
+// ErrInstanciaNaoConectada: a sessao existe mas nao esta conectada/logada.
+var ErrInstanciaNaoConectada = errors.New("instancia nao esta conectada ao WhatsApp")
 var ErrInstanciaPertenceOutroNode = errors.New("instancia pertence a outro container")
 
 // ErrChamadaNaoEncontrada cobre chamada que ja encerrou ou nunca existiu. Vira
@@ -135,32 +138,34 @@ func (r *runtimeInstancia) fecharStore() {
 }
 
 type GerenciadorInstancias struct {
-	mu              sync.RWMutex
-	storeMu         sync.Mutex
-	estados         map[string]estadoRuntime
-	runtimes        map[string]*runtimeInstancia
-	diretorioBase   string
-	diretorioMidias string
-	baseURL         string
-	nomeDispositivo string
-	tipoCliente     whatsmeow.PairClientType
-	nomePareamento  string
-	nivelLog        string
-	dispatcher      *webhookdispatch.Dispatcher
-	midiaStore      store.MidiaStore
-	midiaUploader   mediastorage.MidiaUploader
-	proxyStore      store.ProxyConfigStore
-	mensagemStore   store.MensagemProcessadaStore
-	deviceStore     store.WhatsAppDeviceStore
-	lockStore       store.InstanciaRuntimeLockStore
-	nodeID          string
-	nodeEndereco    string
-	lockTTL         time.Duration
-	aliasesNumero   map[string]string
-	enquetesOpcoes  map[string][]string
-	historicoDias   map[string]int
-	recuperacoes    map[string]*janelaRecuperacao
-	quedasConexao   map[string]time.Time
+	// observadorConexao recebe os eventos de conexao para a auditoria.
+	observadorConexao func(instanciaID, acao, descricao, severidade string)
+	mu                sync.RWMutex
+	storeMu           sync.Mutex
+	estados           map[string]estadoRuntime
+	runtimes          map[string]*runtimeInstancia
+	diretorioBase     string
+	diretorioMidias   string
+	baseURL           string
+	nomeDispositivo   string
+	tipoCliente       whatsmeow.PairClientType
+	nomePareamento    string
+	nivelLog          string
+	dispatcher        *webhookdispatch.Dispatcher
+	midiaStore        store.MidiaStore
+	midiaUploader     mediastorage.MidiaUploader
+	proxyStore        store.ProxyConfigStore
+	mensagemStore     store.MensagemProcessadaStore
+	deviceStore       store.WhatsAppDeviceStore
+	lockStore         store.InstanciaRuntimeLockStore
+	nodeID            string
+	nodeEndereco      string
+	lockTTL           time.Duration
+	aliasesNumero     map[string]string
+	enquetesOpcoes    map[string][]string
+	historicoDias     map[string]int
+	recuperacoes      map[string]*janelaRecuperacao
+	quedasConexao     map[string]time.Time
 	// reconexaoBloqueada guarda ate quando uma instancia nao deve ser
 	// reconectada automaticamente. Usado para banimento temporario e cliente
 	// desatualizado, onde insistir so piora a situacao.
@@ -2793,6 +2798,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		g.liberarBloqueioReconexao(instanciaID)
 		g.salvarDeviceJIDInstancia(context.Background(), instanciaID, runtime)
 		g.registrarFimIndisponibilidade(instanciaID, time.Now().UTC())
+		g.notificarConexao(instanciaID, "instancia.conectada", "Instancia conectada", "sucesso")
 		go func() {
 			_ = g.aplicarPresencaPersistente(context.Background(), instanciaID, runtime)
 		}()
@@ -2808,6 +2814,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		estado := g.obterEstado(instanciaID)
 		if runtime.client.IsLoggedIn() {
 			g.registrarInicioIndisponibilidade(instanciaID, time.Now().UTC())
+			g.notificarConexao(instanciaID, "instancia.desconectada", "Instancia desconectada", "aviso")
 			g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", "")
 		} else if estado.status == models.StatusInstanciaAguardandoCodigo && estado.pairingCode != "" {
 			g.definirEstadoCodigoPareamento(instanciaID, models.StatusInstanciaAguardandoCodigo, estado.pairingCode, estado.pairingPhone, "")
@@ -2820,6 +2827,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 	// voltava com um conectar manual.
 	case *events.StreamReplaced:
 		g.registrarInicioIndisponibilidade(instanciaID, time.Now().UTC())
+		g.notificarConexao(instanciaID, "instancia.sessao_substituida", "Sessao assumida por outra conexao", "aviso")
 		g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", "sessao assumida por outra conexao")
 	case *events.ConnectFailure:
 		g.registrarInicioIndisponibilidade(instanciaID, time.Now().UTC())
@@ -2827,6 +2835,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		if mensagem == "" {
 			mensagem = evento.Reason.String()
 		}
+		g.notificarConexao(instanciaID, "instancia.falha_conexao", "Falha de conexao: "+mensagem, "erro")
 		g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", "falha de conexao: "+mensagem)
 	case *events.StreamError:
 		g.registrarInicioIndisponibilidade(instanciaID, time.Now().UTC())
@@ -2840,6 +2849,7 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		}
 		g.bloquearReconexao(instanciaID, espera)
 		g.registrarInicioIndisponibilidade(instanciaID, time.Now().UTC())
+		g.notificarConexao(instanciaID, "instancia.banimento_temporario", "Banimento temporario do WhatsApp: "+evento.String(), "erro")
 		g.definirEstado(instanciaID, models.StatusInstanciaDesconectada, "", "banimento temporario do WhatsApp: "+evento.String())
 	case *events.ClientOutdated:
 		g.bloquearReconexao(instanciaID, time.Hour)
@@ -2859,8 +2869,10 @@ func (g *GerenciadorInstancias) tratarEvento(instanciaID string, runtime *runtim
 		_ = runtime.client.Store.Delete(context.Background())
 		g.excluirDeviceJIDInstancia(context.Background(), instanciaID)
 		g.liberarOwnership(context.Background(), instanciaID)
+		g.notificarConexao(instanciaID, "instancia.dispositivo_removido", "Aparelho desconectado pelo celular (sessao encerrada)", "erro")
 		g.definirEstado(instanciaID, models.StatusInstanciaNaoInicializada, "", "dispositivo desconectado externamente")
 	case *events.PairSuccess:
+		g.notificarConexao(instanciaID, "instancia.pareada", "Pareada com o celular "+evento.ID.User, "sucesso")
 		g.definirEstado(instanciaID, "pareada", "", "")
 	case *events.PairError:
 		runtime.cancelarFluxoQR()
@@ -5737,4 +5749,15 @@ func deduplicarStrings(valores []string) []string {
 		unicos = append(unicos, valor)
 	}
 	return unicos
+}
+
+// AoEventoConexao registra quem recebe os eventos de conexao (auditoria).
+func (g *GerenciadorInstancias) AoEventoConexao(fn func(instanciaID, acao, descricao, severidade string)) {
+	g.observadorConexao = fn
+}
+
+func (g *GerenciadorInstancias) notificarConexao(instanciaID, acao, descricao, severidade string) {
+	if g.observadorConexao != nil {
+		go g.observadorConexao(instanciaID, acao, descricao, severidade)
+	}
 }

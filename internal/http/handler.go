@@ -45,6 +45,8 @@ type APIHandler struct {
 	// contas: login com e-mail e senha, equipe, contas e planos.
 	contas        *service.ContaService
 	limiteEsqueci *limitador
+	// auditoria: historico de quem fez o que (nil = desligada).
+	auditoria *service.AuditoriaService
 }
 
 type criarInstanciaRequest struct {
@@ -143,6 +145,9 @@ func (h *APIHandler) LoginDashboard(c *gin.Context) {
 			return
 		}
 		h.definirCookieSessao(c, token)
+		if h.auditoria != nil {
+			h.auditoria.RegistrarAcao(c.Request.Context(), acesso, c.ClientIP(), "", models.AuditoriaAcesso, "acesso.login", "Entrou no painel", models.SeveridadeInfo, "")
+		}
 		c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Login realizado com sucesso", acesso))
 		return
 	}
@@ -345,6 +350,8 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 	if !h.atribuirConta(c, &instancia, contaID) {
 		return
 	}
+	marcarInstanciaAuditoria(c, instancia.ID)
+	h.descreverAuditoria(c, "Instancia criada: "+instancia.Nome)
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia criada com sucesso", instancia))
 }
 
@@ -1377,6 +1384,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusForbidden, "nao_autorizado", "Aplicacao de atualizacao exige token valido")
 	case errors.Is(err, service.ErrHistoricoBloqueado):
 		h.responderErro(c, nethttp.StatusConflict, "historico_bloqueado", "Defina a importacao de historico antes de conectar a instancia. Desconecte e gere nova conexao para mudar essa configuracao.")
+	case errors.Is(err, whatsapp.ErrInstanciaNaoConectada):
+		h.responderErro(c, nethttp.StatusConflict, "instancia_desconectada", "A instancia nao esta conectada ao WhatsApp. Conecte e tente de novo.")
 	case errors.Is(err, whatsapp.ErrChamadaNaoEncontrada):
 		h.responderErro(c, nethttp.StatusNotFound, "chamada_nao_encontrada", "Chamada nao encontrada: ja encerrou ou nunca existiu")
 	case errors.Is(err, whatsapp.ErrInstanciaPertenceOutroNode):
