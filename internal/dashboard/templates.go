@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261018">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261019">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -44,6 +44,12 @@ const paginaInicialHTML = `<!DOCTYPE html>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
     <symbol id="i-modelo" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
     <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></symbol>
+    <symbol id="i-historico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></symbol>
+    <symbol id="i-bloqueio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
   </svg>
   <div class="dc-layout">
@@ -61,10 +67,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <p class="dc-nav-secao">Geral</p>
         <button class="nav-link" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Visao geral</button>
         <button class="nav-link" data-aba-inst="chat" onclick="trocarAbaInstancia('chat')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Chat</button>
+        <button class="nav-link nav-so-qr" data-aba-inst="contatos" onclick="trocarAbaInstancia('contatos')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contatos</button>
         <p class="dc-nav-secao">Conexoes</p>
         <button class="nav-link" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')"><svg class="dc-ico"><use href="#i-link"/></svg>Webhooks</button>
         <p class="dc-nav-secao">Gerenciar</p>
+        <button class="nav-link nav-so-qr" data-aba-inst="perfil" onclick="trocarAbaInstancia('perfil')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Perfil</button>
         <button class="nav-link so-gerente" data-aba-inst="config" onclick="trocarAbaInstancia('config')"><svg class="dc-ico"><use href="#i-engrenagem"/></svg>Configuracoes</button>
+        <button class="nav-link" data-aba-inst="auditoria" onclick="trocarAbaInstancia('auditoria')"><svg class="dc-ico"><use href="#i-historico"/></svg>Auditoria</button>
         <button class="nav-link" data-aba-inst="ferramentas" onclick="trocarAbaInstancia('ferramentas')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Ferramentas</button>
         <a class="nav-link" href="/docs" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-livro"/></svg>Documentacao</a>
       </nav>
@@ -205,6 +214,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <input type="tel" id="chat-novo-numero" placeholder="Novo: numero com DDI" title="Numero com DDI e DDD, ex.: 5567999999999" autocomplete="off">
                   <button class="primary small dc-botao-icone" type="submit" title="Abrir conversa"><svg class="dc-ico"><use href="#i-mais"/></svg></button>
                 </form>
+                <label class="dc-busca dc-chat-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="chat-busca" placeholder="Buscar conversa..." autocomplete="off" oninput="chatUI.assinaturaLista=''; renderizarConversasChat()"></label>
                 <div id="chat-conversas" class="dc-chat-conversas"></div>
               </aside>
               <section class="dc-chat-janela">
@@ -219,6 +229,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
                   <button type="button" class="dc-chat-anexo so-meta" id="chat-modelo" onclick="abrirModeloChat()" title="Enviar modelo (template) da Meta"><svg class="dc-ico"><use href="#i-modelo"/></svg></button>
                   <label class="dc-chat-anexo" title="Anexar arquivo"><input type="file" id="chat-arquivo" onchange="anexoChatSelecionado()"><svg class="dc-ico"><use href="#i-clipe"/></svg></label>
                   <div class="dc-chat-campo">
+                    <div id="chat-resposta" class="dc-chat-resposta hidden"><div><strong id="chat-resposta-nome"></strong><span id="chat-resposta-texto"></span></div><button type="button" class="dc-chat-resposta-fechar" onclick="cancelarRespostaChat()" title="Cancelar resposta">&times;</button></div>
                     <span id="chat-anexo-nome" class="dc-chat-anexo-nome hidden"></span>
                     <textarea id="chat-texto" rows="1" placeholder="Digite uma mensagem" onkeydown="teclaChat(event)" oninput="ajustarAlturaChat()" disabled></textarea>
                   </div>
@@ -292,6 +303,104 @@ const paginaInicialHTML = `<!DOCTYPE html>
             </article>
             <article class="dc-card dc-perigo so-gerente">
               <div class="dc-config-linha"><div><strong>Excluir instancia</strong><span>Remove a instancia e a sessao do WhatsApp. Nao da para desfazer.</span></div><button class="dc-botao-perigo" id="botao-excluir" onclick="excluirSelecionada()">Excluir</button></div>
+            </article>
+          </section>
+
+          <!-- Contatos -->
+          <section class="dc-aba-painel hidden" data-painel-inst="contatos">
+            <div class="dc-pagina-topo dc-topo-aba">
+              <div><h2>Contatos</h2><p>Contatos e grupos sincronizados desta instancia.</p></div>
+              <div class="dc-acoes-topo">
+                <button class="ghost small" onclick="carregarContatos(true)"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizar</button>
+                <button class="ghost small" onclick="abrirModal('verificar-numero')"><svg class="dc-ico"><use href="#i-busca"/></svg>Verificar numero</button>
+                <button class="ghost small" onclick="exportarContatos()"><svg class="dc-ico"><use href="#i-baixar"/></svg>Exportar CSV</button>
+              </div>
+            </div>
+            <div class="dc-filtros">
+              <label class="dc-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="contatos-busca" placeholder="Buscar por nome ou numero..." oninput="buscarContatosDepois()"></label>
+              <div class="dc-chips" id="contatos-chips">
+                <button class="dc-chip ativo" data-tipo="" onclick="filtrarContatos('')">Todos <span></span></button>
+                <button class="dc-chip" data-tipo="salvo" onclick="filtrarContatos('salvo')">Salvos <span></span></button>
+                <button class="dc-chip" data-tipo="pessoal" onclick="filtrarContatos('pessoal')">Pessoal <span></span></button>
+                <button class="dc-chip" data-tipo="grupo" onclick="filtrarContatos('grupo')">Grupo <span></span></button>
+                <button class="dc-chip" data-tipo="bloqueado" onclick="filtrarContatos('bloqueado')">Bloqueados <span></span></button>
+              </div>
+            </div>
+            <div id="contatos-grade" class="dc-contatos"><div class="dc-lista-vazia">Carregando...</div></div>
+            <div class="dc-paginacao">
+              <span id="contatos-total" class="helper-text"></span>
+              <div>
+                <label class="helper-text">Por pagina <select id="contatos-por-pagina" onchange="carregarContatos(false, 1)"><option>12</option><option selected>24</option><option>48</option><option>96</option></select></label>
+                <button class="ghost small dc-botao-icone" onclick="paginaContatos(-1)" title="Anterior">&lsaquo;</button>
+                <span id="contatos-pagina" class="helper-text">1 / 1</span>
+                <button class="ghost small dc-botao-icone" onclick="paginaContatos(1)" title="Proxima">&rsaquo;</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Perfil -->
+          <section class="dc-aba-painel hidden" data-painel-inst="perfil">
+            <div class="dc-pagina-topo dc-topo-aba">
+              <div><h2>Perfil</h2><p>Identidade e privacidade da conta de WhatsApp conectada.</p></div>
+              <button class="ghost small" onclick="carregarPerfil()"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Recarregar</button>
+            </div>
+            <div class="dc-perfil-grade">
+              <article class="dc-card">
+                <div class="dc-card-topo"><h3>Identidade</h3><span class="helper-text">Foto, nome de exibicao e recado.</span></div>
+                <div class="dc-perfil-foto">
+                  <div class="dc-avatar dc-avatar-grande" id="perfil-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></div>
+                  <div>
+                    <strong>Foto do perfil</strong>
+                    <span class="helper-text">JPG, PNG ou GIF ate 10 MB. Recortamos no centro em quadrado.</span>
+                    <div class="dc-acoes-topo">
+                      <label class="ghost small dc-botao-arquivo so-gerente"><input type="file" accept="image/jpeg,image/png,image/gif" id="perfil-foto-arquivo" onchange="trocarFotoPerfil()"><svg class="dc-ico"><use href="#i-camera"/></svg>Trocar foto</label>
+                      <button class="ghost small dc-texto-perigo so-gerente" onclick="removerFotoPerfil()">Remover</button>
+                    </div>
+                  </div>
+                </div>
+                <form class="dc-form-config" onsubmit="salvarPerfil(event)">
+                  <label class="dc-campo"><span>Nome <small id="perfil-nome-cont" class="helper-text">0/25</small></span><input id="perfil-nome" maxlength="25" oninput="contarPerfil()"></label>
+                  <label class="dc-campo"><span>Recado <small id="perfil-recado-cont" class="helper-text">0/139</small></span><input id="perfil-recado" maxlength="139" oninput="contarPerfil()"></label>
+                  <div class="dc-lista">
+                    <div class="dc-config-linha"><div><strong>Telefone</strong><span id="perfil-telefone">-</span></div><button type="button" class="ghost small" onclick="copiarDoElemento('perfil-telefone')">Copiar</button></div>
+                    <div class="dc-config-linha"><div><strong>JID</strong><span class="dc-mono" id="perfil-jid">-</span></div><button type="button" class="ghost small" onclick="copiarDoElemento('perfil-jid')">Copiar</button></div>
+                    <div class="dc-config-linha"><div><strong>LID</strong><span class="dc-mono" id="perfil-lid">-</span></div><button type="button" class="ghost small" onclick="copiarDoElemento('perfil-lid')">Copiar</button></div>
+                  </div>
+                  <div class="dc-form-rodape"><span id="perfil-feedback" class="helper-text"></span><button class="primary small so-gerente" type="submit" id="perfil-salvar">Salvar</button></div>
+                </form>
+              </article>
+              <article class="dc-card">
+                <div class="dc-card-topo"><h3>Privacidade</h3><span class="helper-text">Quem pode ver suas informacoes e interagir com voce.</span></div>
+                <form class="dc-form-config" onsubmit="salvarPrivacidade(event)">
+                  <div class="dc-lista" id="privacidade-campos"></div>
+                  <div class="dc-form-rodape"><span id="privacidade-feedback" class="helper-text"></span><button class="primary small so-gerente" type="submit" id="privacidade-salvar">Salvar</button></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- Auditoria -->
+          <section class="dc-aba-painel hidden" data-painel-inst="auditoria">
+            <div class="dc-pagina-topo dc-topo-aba">
+              <div><h2>Auditoria</h2><p>Tudo que aconteceu nesta instancia: conexoes, acoes e quem fez.</p></div>
+              <button class="ghost small" onclick="carregarAuditoriaInstancia(true)"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizar</button>
+            </div>
+            <article class="dc-card">
+              <form class="dc-filtros-auditoria" onsubmit="event.preventDefault(); carregarAuditoriaInstancia(true)" onchange="carregarAuditoriaInstancia(true)">
+                <label class="dc-campo"><span>Tipo</span><select id="aud-tipo"><option value="">Todos</option><option value="conexao">Conexao</option><option value="acao">Acao</option><option value="configuracao">Configuracao</option><option value="webhook">Webhook</option><option value="perfil">Perfil</option><option value="contato">Contato</option></select></label>
+                <label class="dc-campo"><span>Severidade</span><select id="aud-severidade"><option value="">Todas</option><option value="sucesso">Sucesso</option><option value="info">Info</option><option value="aviso">Aviso</option><option value="erro">Erro</option></select></label>
+                <label class="dc-campo"><span>Ator</span><input id="aud-ator" placeholder="Filtrar por quem fez..." oninput="buscarAuditoriaDepois()"></label>
+                <label class="dc-campo"><span>De</span><input type="date" id="aud-de"></label>
+                <label class="dc-campo"><span>Ate</span><input type="date" id="aud-ate"></label>
+                <button type="button" class="ghost small" onclick="limparFiltrosAuditoria()">Limpar</button>
+              </form>
+            </article>
+            <article class="dc-card dc-card-tabela">
+              <table class="dc-tabela">
+                <thead><tr><th>Quando</th><th>Ator</th><th>Acao</th><th>Origem</th></tr></thead>
+                <tbody id="aud-linhas"><tr><td colspan="4" class="dc-lista-vazia">Carregando...</td></tr></tbody>
+              </table>
+              <div class="dc-paginacao"><span class="helper-text" id="aud-resumo"></span><button class="ghost small hidden" id="aud-mais" onclick="carregarAuditoriaInstancia(false)">Carregar mais</button></div>
             </article>
           </section>
 
@@ -1444,11 +1553,39 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (aba === 'webhooks') { carregarWebhooks(); carregarAuditoria(false); }
     if (aba === 'chat') iniciarChat(); else pararChat();
     if (aba === 'config') carregarContaDaInstancia();
+    if (typeof abrirAbaExtra === 'function') abrirAbaExtra(aba);
   }
   // ── Chat ──────────────────────────────────────────────────────────────────────
   // Mensagens guardadas pela API (recebidas pelos eventos de webhook e
   // enviadas pela API). Atualiza a cada 3s enquanto a aba esta aberta.
-  const chatUI = { instancia:'', chat:'', conversas:[], assinatura:'', timer:null, arquivo:null, enviando:false };
+  const chatUI = { instancia:'', chat:'', conversas:[], assinatura:'', assinaturaLista:'', timer:null, arquivo:null, enviando:false, mensagens:[], resposta:null, avatares:{}, buscandoAvatar:{} };
+  // Foto dos contatos: busca uma vez por conversa e guarda a URL (o polling
+  // nao refaz a consulta ao WhatsApp).
+  function avatarChatHTML(jid, rotulo) {
+    const url = chatUI.avatares[jid];
+    if (url === undefined) buscarAvatarChat(jid);
+    return url ? '<img src="' + textoSeguro(url) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' + '<span>' + textoSeguro(rotulo) + '</span>' : '<span>' + textoSeguro(rotulo) + '</span>';
+  }
+  async function buscarAvatarChat(jid) {
+    if (!jid || chatUI.buscandoAvatar[jid] || instanciaChatEhMeta()) { if (instanciaChatEhMeta()) chatUI.avatares[jid] = ''; return; }
+    chatUI.buscandoAvatar[jid] = true;
+    const grupo = jid.endsWith('@g.us');
+    const p = new URLSearchParams({ chat_jid: jid }); if (grupo) p.set('grupo', '1');
+    let url = '';
+    try {
+      const r = await fetch('/api/v1/instancias/' + encodeURIComponent(estadoUI.instanciaSelecionada) + '/contatos/avatar?' + p.toString());
+      if (r.ok) url = (await r.json())?.dados?.avatar_url || '';
+    } catch (e) {}
+    chatUI.avatares[jid] = url;
+    if (url) document.querySelectorAll('[data-avatar-jid="' + CSS.escape(jid) + '"]').forEach(el => { el.innerHTML = '<img src="' + textoSeguro(url) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' + el.innerHTML; });
+  }
+  // Nao lidas: o painel guarda, por navegador, ate quando cada conversa foi vista.
+  function chaveVistoChat() { return 'chatVisto:' + estadoUI.instanciaSelecionada; }
+  function vistosChat() { try { return JSON.parse(localStorage.getItem(chaveVistoChat()) || '{}'); } catch (e) { return {}; } }
+  function marcarVistoChat(jid, quando) {
+    if (!jid) return;
+    try { const v = vistosChat(); v[jid] = quando || new Date().toISOString(); localStorage.setItem(chaveVistoChat(), JSON.stringify(v)); } catch (e) {}
+  }
   function chatAberto() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'chat'; }
   async function buscarChat(url) {
     // Sem passar pelo chamar(): o polling nao deve sobrescrever o "Retorno da ultima chamada".
@@ -1459,7 +1596,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     return d?.dados || {};
   }
   function iniciarChat() {
-    if (chatUI.instancia !== estadoUI.instanciaSelecionada) { chatUI.instancia = estadoUI.instanciaSelecionada; chatUI.chat = ''; chatUI.assinatura = ''; }
+    if (chatUI.instancia !== estadoUI.instanciaSelecionada) { chatUI.instancia = estadoUI.instanciaSelecionada; chatUI.chat = ''; chatUI.assinatura = ''; chatUI.assinaturaLista = ''; chatUI.avatares = {}; chatUI.buscandoAvatar = {}; cancelarRespostaChat(); }
     renderizarJanelaChat();
     carregarChat();
     if (!chatUI.timer) chatUI.timer = setInterval(() => { if (chatAberto()) carregarChat(); else pararChat(); }, 3000);
@@ -1497,29 +1634,46 @@ const paginaInicialHTML = `<!DOCTYPE html>
   }
   function renderizarConversasChat() {
     const lista = document.getElementById('chat-conversas');
-    const conversas = chatUI.conversas.slice();
+    let conversas = chatUI.conversas.slice();
     // Conversa aberta pelo numero ainda sem mensagens aparece no topo.
     if (chatUI.chat && !conversas.some(c => c.chat_jid === chatUI.chat)) conversas.unshift({ chat_jid: chatUI.chat, nova: true });
+    const busca = (document.getElementById('chat-busca')?.value || '').trim().toLowerCase();
+    if (busca) {
+      const digitos = busca.replace(/\D/g, '');
+      conversas = conversas.filter(c => nomeConversa(c).toLowerCase().includes(busca) || (digitos && numeroDoJid(c.chat_jid).includes(digitos)) || resumoMensagemChat(c.ultima).toLowerCase().includes(busca));
+    }
+    const vistos = vistosChat();
+    const assinatura = busca + '#' + chatUI.chat + '#' + conversas.map(c => c.chat_jid + (c.ultima ? c.ultima.mensagem_id + c.ultima.status : '') + (vistos[c.chat_jid] || '')).join('|');
+    if (assinatura === chatUI.assinaturaLista) return;
+    chatUI.assinaturaLista = assinatura;
     if (!conversas.length) {
-      lista.innerHTML = '<div class="dc-lista-vazia">Nenhuma mensagem ainda. Mande uma mensagem para o numero desta instancia ou abra uma conversa pelo numero acima.</div>';
+      lista.innerHTML = '<div class="dc-lista-vazia">' + (busca ? 'Nenhuma conversa encontrada.' : 'Nenhuma mensagem ainda. Mande uma mensagem para o numero desta instancia ou abra uma conversa pelo numero acima.') + '</div>';
       return;
     }
-    lista.innerHTML = conversas.map(c => '<button type="button" class="dc-chat-conversa' + (c.chat_jid === chatUI.chat ? ' ativa' : '') + '" data-jid="' + textoSeguro(c.chat_jid) + '">' +
-      '<span class="dc-avatar dc-avatar-mini"><span>' + textoSeguro(c.grupo ? 'G' : iniciais(c.nome || numeroDoJid(c.chat_jid).slice(-2))) + '</span></span>' +
-      '<span class="dc-linha-texto"><strong>' + textoSeguro(nomeConversa(c)) + '</strong><span>' + textoSeguro(c.nova ? 'Nova conversa' : resumoMensagemChat(c.ultima)) + '</span></span>' +
-      '<small>' + textoSeguro(c.ultima ? horaChat(c.ultima.criado_em) : '') + '</small></button>').join('');
+    lista.innerHTML = conversas.map(c => {
+      const naoLida = c.ultima && c.ultima.direcao === 'entrada' && c.chat_jid !== chatUI.chat && (!vistos[c.chat_jid] || new Date(c.ultima.criado_em) > new Date(vistos[c.chat_jid]));
+      const rotulo = c.grupo ? 'G' : iniciais(c.nome || numeroDoJid(c.chat_jid).slice(-2));
+      return '<button type="button" class="dc-chat-conversa' + (c.chat_jid === chatUI.chat ? ' ativa' : '') + (naoLida ? ' nao-lida' : '') + '" data-jid="' + textoSeguro(c.chat_jid) + '">' +
+        '<span class="dc-avatar dc-avatar-mini" data-avatar-jid="' + textoSeguro(c.chat_jid) + '">' + avatarChatHTML(c.chat_jid, rotulo) + '</span>' +
+        '<span class="dc-linha-texto"><strong>' + textoSeguro(nomeConversa(c)) + '</strong><span>' + textoSeguro(c.nova ? 'Nova conversa' : resumoMensagemChat(c.ultima)) + '</span></span>' +
+        '<small>' + textoSeguro(c.ultima ? horaChat(c.ultima.criado_em) : '') + (naoLida ? '<i class="dc-chat-ponto" title="Nao lida"></i>' : '') + '</small></button>';
+    }).join('');
     lista.querySelectorAll('.dc-chat-conversa').forEach(b => b.addEventListener('click', () => abrirConversaChat(b.dataset.jid)));
   }
   function abrirConversaChat(jid) {
+    if (chatUI.chat !== jid) cancelarRespostaChat();
     chatUI.chat = jid;
     chatUI.assinatura = '';
+    chatUI.assinaturaLista = '';
+    chatUI.mensagens = [];
+    marcarVistoChat(jid);
     renderizarConversasChat();
     renderizarJanelaChat();
     document.getElementById('chat-mensagens').innerHTML = '<div class="dc-lista-vazia">Carregando...</div>';
     carregarMensagensChat();
     document.getElementById('chat-texto').focus();
   }
-  function fecharConversaChat() { chatUI.chat = ''; chatUI.assinatura = ''; renderizarConversasChat(); renderizarJanelaChat(); }
+  function fecharConversaChat() { cancelarRespostaChat(); chatUI.chat = ''; chatUI.assinatura = ''; chatUI.assinaturaLista = ''; renderizarConversasChat(); renderizarJanelaChat(); }
   function renderizarJanelaChat() {
     const aberta = !!chatUI.chat;
     document.getElementById('chat-card').classList.toggle('com-conversa', aberta);
@@ -1528,7 +1682,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const conversa = chatUI.conversas.find(c => c.chat_jid === chatUI.chat) || { chat_jid: chatUI.chat, grupo: String(chatUI.chat).endsWith('@g.us') };
     document.getElementById('chat-topo-nome').textContent = aberta ? nomeConversa(conversa) : 'Selecione uma conversa';
     document.getElementById('chat-topo-sub').textContent = aberta ? (conversa.grupo ? conversa.chat_jid : formatarTelefone(numeroDoJid(conversa.chat_jid))) : 'Mensagens recebidas e enviadas por esta instancia aparecem aqui.';
-    document.getElementById('chat-topo-avatar').innerHTML = aberta ? '<span>' + textoSeguro(conversa.grupo ? 'G' : iniciais(conversa.nome || numeroDoJid(conversa.chat_jid).slice(-2))) + '</span>' : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
+    const topoAvatar = document.getElementById('chat-topo-avatar');
+    topoAvatar.dataset.avatarJid = aberta ? conversa.chat_jid : '';
+    topoAvatar.innerHTML = aberta ? avatarChatHTML(conversa.chat_jid, conversa.grupo ? 'G' : iniciais(conversa.nome || numeroDoJid(conversa.chat_jid).slice(-2))) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
     if (!aberta) document.getElementById('chat-janela-aviso').classList.add('hidden');
     if (!aberta) document.getElementById('chat-mensagens').innerHTML = '<div class="dc-lista-vazia"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Escolha uma conversa ao lado.</div>';
   }
@@ -1539,6 +1695,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
       const d = await buscarChat('/api/v1/instancias/' + encodeURIComponent(id) + '/chat/mensagens?chat_jid=' + encodeURIComponent(jid));
       if (!d || jid !== chatUI.chat) return;
       const mensagens = d.mensagens || [];
+      chatUI.mensagens = mensagens;
+      marcarVistoChat(jid);
       // So redesenha quando algo mudou, para nao perder a rolagem.
       const assinatura = mensagens.map(m => m.mensagem_id + m.status + m.conteudo).join('|');
       if (assinatura === chatUI.assinatura) return;
@@ -1591,15 +1749,45 @@ const paginaInicialHTML = `<!DOCTYPE html>
       const st = STATUS_CHAT[m.status];
       const conteudo = m.conteudo && !(m.midia_id && m.conteudo === m.nome_arquivo) ? '<p>' + textoSeguro(m.conteudo) + '</p>' : '';
       const especial = !m.conteudo && !m.midia_id ? '<p class="dc-chat-tipo">[' + textoSeguro(m.tipo || 'mensagem') + ']</p>' : '';
-      return '<div class="dc-chat-bolha ' + (saida ? 'saida' : 'entrada') + (m.status === 'falhou' ? ' falhou' : '') + (m.tipo === 'apagada' ? ' apagada' : '') + '">' +
+      const podeResponder = m.tipo !== 'apagada' && m.status !== 'falhou';
+      return '<div class="dc-chat-bolha ' + (saida ? 'saida' : 'entrada') + (m.status === 'falhou' ? ' falhou' : '') + (m.tipo === 'apagada' ? ' apagada' : '') + '" data-msg-id="' + textoSeguro(m.mensagem_id) + '">' +
+        (podeResponder ? '<button type="button" class="dc-chat-responder" title="Responder" data-responder="' + textoSeguro(m.mensagem_id) + '">&#8617;</button>' : '') +
         (grupo && !saida && m.nome ? '<strong class="dc-chat-autor">' + textoSeguro(m.nome) + '</strong>' : '') +
-        midiaChatHTML(m) + conteudo + especial +
+        citacaoChatHTML(m) + midiaChatHTML(m) + conteudo + especial +
         '<span class="dc-chat-meta">' + textoSeguro(horaChat(m.criado_em)) +
         (saida && st ? ' <span class="dc-chat-status ' + textoSeguro(m.status) + '" title="' + textoSeguro(st[1]) + '">' + st[0] + '</span>' : '') + '</span>' +
         (m.erro ? '<span class="dc-chat-erro">' + textoSeguro(m.erro) + '</span>' : '') +
       '</div>';
     }).join('');
     if (noFim || !caixa.dataset.rolou) { caixa.scrollTop = caixa.scrollHeight; caixa.dataset.rolou = '1'; }
+    caixa.querySelectorAll('[data-responder]').forEach(b => b.addEventListener('click', () => responderChat(b.dataset.responder)));
+    caixa.querySelectorAll('[data-ir-para]').forEach(b => b.addEventListener('click', () => {
+      const alvo = caixa.querySelector('[data-msg-id="' + CSS.escape(b.dataset.irPara) + '"]');
+      if (alvo) { alvo.scrollIntoView({ behavior:'smooth', block:'center' }); alvo.classList.add('destaque'); setTimeout(() => alvo.classList.remove('destaque'), 1600); }
+    }));
+  }
+  // Citacao dentro da bolha: usa a mensagem original se ela esta na conversa.
+  function citacaoChatHTML(m) {
+    if (!m.citacao_id) return '';
+    const original = chatUI.mensagens.find(x => x.mensagem_id === m.citacao_id);
+    const autor = original ? (original.direcao === 'saida' ? 'Voce' : (original.nome || nomeConversa(chatUI.conversas.find(c => c.chat_jid === chatUI.chat)) || 'Contato')) : 'Mensagem citada';
+    const textoCitado = original ? (original.conteudo || (original.nome_arquivo ? '📎 ' + original.nome_arquivo : '[' + (original.tipo || 'mensagem') + ']')) : (m.citacao_texto || 'Mensagem anterior');
+    return '<button type="button" class="dc-chat-citacao" data-ir-para="' + textoSeguro(m.citacao_id) + '"><strong>' + textoSeguro(autor) + '</strong><span>' + textoSeguro(textoCitado) + '</span></button>';
+  }
+  function responderChat(id) {
+    const m = chatUI.mensagens.find(x => x.mensagem_id === id);
+    if (!m) return;
+    const conversa = chatUI.conversas.find(c => c.chat_jid === chatUI.chat);
+    chatUI.resposta = { id: m.mensagem_id, texto: m.conteudo || m.nome_arquivo || '[' + (m.tipo || 'mensagem') + ']', participante: m.direcao === 'entrada' && String(chatUI.chat).endsWith('@g.us') ? (m.remetente_jid || '') : '' };
+    document.getElementById('chat-resposta-nome').textContent = m.direcao === 'saida' ? 'Voce' : (m.nome || nomeConversa(conversa) || 'Contato');
+    document.getElementById('chat-resposta-texto').textContent = chatUI.resposta.texto;
+    document.getElementById('chat-resposta').classList.remove('hidden');
+    document.getElementById('chat-texto').focus();
+  }
+  function cancelarRespostaChat() {
+    chatUI.resposta = null;
+    const barra = document.getElementById('chat-resposta');
+    if (barra) barra.classList.add('hidden');
   }
   function novaConversaChat(e) {
     e.preventDefault();
@@ -1637,6 +1825,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!texto && !arquivo) return;
     const destino = { instancia: estadoUI.instanciaSelecionada };
     if (chatUI.chat.endsWith('@g.us')) destino.chat_jid = chatUI.chat; else destino.numero = numeroDoJid(chatUI.chat);
+    if (chatUI.resposta) {
+      destino.resposta_mensagem_id = chatUI.resposta.id;
+      destino.resposta_conteudo = chatUI.resposta.texto;
+      if (chatUI.resposta.participante) destino.resposta_participante = chatUI.resposta.participante;
+    }
     const botao = document.getElementById('chat-enviar');
     chatUI.enviando = true; botao.disabled = true;
     try {
@@ -1650,6 +1843,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         resposta = await chamar('/api/v1/batepapo/enviar/texto', { method:'POST', body: JSON.stringify(Object.assign({}, destino, { mensagem: texto })) });
       }
       campo.value = ''; ajustarAlturaChat();
+      cancelarRespostaChat();
       // O WhatsApp pode trocar o numero (ex.: 9o digito); segue a conversa real.
       const jid = resposta?.dados?.chat_jid;
       if (jid && jid.endsWith('@s.whatsapp.net') && jid !== chatUI.chat) { chatUI.chat = jid; renderizarJanelaChat(); }
@@ -2337,5 +2531,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (estadoUI.acesso?.tipo === 'instancia' && estadoUI.instanciaSelecionada) trocarAba('instancia');
   })();
   </script>
+  <script src="/static/js/painel-instancia.js?v=20261019"></script>
 </body>
 </html>`

@@ -28,7 +28,7 @@ var ordemStatusChat = map[string]int{"enviada": 1, "entregue": 2, "lida": 3, "ou
 // OrdemStatusChat diz se o status e acompanhado pelo chat (0 = ignorado).
 func OrdemStatusChat(status string) int { return ordemStatusChat[status] }
 
-const colunasChat = `instancia_id, chat_jid, mensagem_id, direcao, tipo, conteudo, nome, remetente_jid, status, erro, midia_id, mime_type, nome_arquivo, criado_em`
+const colunasChat = `instancia_id, chat_jid, mensagem_id, direcao, tipo, conteudo, nome, remetente_jid, status, erro, midia_id, mime_type, nome_arquivo, citacao_id, citacao_texto, criado_em`
 
 func (s *SQLStore) RegistrarChatMensagem(ctx context.Context, m models.ChatMensagem) error {
 	if m.CriadoEm.IsZero() {
@@ -36,10 +36,10 @@ func (s *SQLStore) RegistrarChatMensagem(ctx context.Context, m models.ChatMensa
 	}
 	_, err := s.db.ExecContext(ctx, s.q(`
 INSERT INTO chat_mensagens (`+colunasChat+`)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(instancia_id, mensagem_id) DO NOTHING`),
 		m.InstanciaID, m.ChatJID, m.MensagemID, m.Direcao, m.Tipo, m.Conteudo, m.Nome, m.RemetenteJID,
-		m.Status, m.Erro, m.MidiaID, m.MimeType, m.NomeArquivo, m.CriadoEm.UTC(),
+		m.Status, m.Erro, m.MidiaID, m.MimeType, m.NomeArquivo, m.CitacaoID, m.CitacaoTexto, m.CriadoEm.UTC(),
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao registrar mensagem do chat: %w", err)
@@ -140,7 +140,7 @@ ORDER BY criado_em DESC LIMIT ?`), instanciaID, chatJID, limite)
 	for linhas.Next() {
 		var m models.ChatMensagem
 		if err := linhas.Scan(&m.InstanciaID, &m.ChatJID, &m.MensagemID, &m.Direcao, &m.Tipo, &m.Conteudo, &m.Nome,
-			&m.RemetenteJID, &m.Status, &m.Erro, &m.MidiaID, &m.MimeType, &m.NomeArquivo, &m.CriadoEm); err != nil {
+			&m.RemetenteJID, &m.Status, &m.Erro, &m.MidiaID, &m.MimeType, &m.NomeArquivo, &m.CitacaoID, &m.CitacaoTexto, &m.CriadoEm); err != nil {
 			return nil, fmt.Errorf("erro ao ler mensagem do chat: %w", err)
 		}
 		mensagens = append(mensagens, m)

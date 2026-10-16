@@ -152,7 +152,14 @@ func (s *MensagemService) EnviarTexto(ctx context.Context, req models.EnvioTexto
 	if strings.TrimSpace(req.Mensagem) == "" {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: informe mensagem ou Body", ErrEntradaInvalida)
 	}
-	return s.registrarEnvio(req.Instancia, req.Mensagem)(s.enviadorPara(ctx, req.Instancia).EnviarTexto(ctx, req))
+	resultado, err := s.enviadorPara(ctx, req.Instancia).EnviarTexto(ctx, req)
+	if err == nil && strings.TrimSpace(req.RespostaMensagemID) != "" {
+		// Resposta citando outra mensagem: o chat do painel mostra a citacao.
+		s.anotarUso(models.EnvioRegistro{InstanciaID: req.Instancia, ChatJID: resultado.ChatJID, Tipo: resultado.Tipo, Resultado: models.EnvioResultadoEnviada})
+		s.chat.RegistrarResposta(req.Instancia, resultado, req.Mensagem, strings.TrimSpace(req.RespostaMensagemID), req.RespostaConteudo)
+		return resultado, nil
+	}
+	return s.registrarEnvio(req.Instancia, req.Mensagem)(resultado, err)
 }
 
 func (s *MensagemService) EditarTexto(ctx context.Context, req models.EditarTextoRequest) (models.ResultadoEnvio, error) {

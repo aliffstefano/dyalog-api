@@ -36,6 +36,11 @@ func (s *ChatService) ListarMensagens(ctx context.Context, instanciaID, chatJID 
 // RegistrarEnvio guarda a mensagem enviada pela API. Roda em segundo plano:
 // o chat nunca atrasa nem derruba o envio.
 func (s *ChatService) RegistrarEnvio(instanciaID string, resultado models.ResultadoEnvio, conteudo string) {
+	s.RegistrarResposta(instanciaID, resultado, conteudo, "", "")
+}
+
+// RegistrarResposta guarda o envio que citou outra mensagem (responder).
+func (s *ChatService) RegistrarResposta(instanciaID string, resultado models.ResultadoEnvio, conteudo, citacaoID, citacaoTexto string) {
 	if s == nil || resultado.MensagemID == "" {
 		return
 	}
@@ -44,14 +49,16 @@ func (s *ChatService) RegistrarEnvio(instanciaID string, resultado models.Result
 		return
 	}
 	mensagem := models.ChatMensagem{
-		InstanciaID: instanciaID,
-		ChatJID:     jid,
-		MensagemID:  resultado.MensagemID,
-		Direcao:     "saida",
-		Tipo:        resultado.Tipo,
-		Conteudo:    conteudo,
-		Status:      "enviada",
-		CriadoEm:    time.Now(),
+		InstanciaID:  instanciaID,
+		ChatJID:      jid,
+		MensagemID:   resultado.MensagemID,
+		Direcao:      "saida",
+		Tipo:         resultado.Tipo,
+		Conteudo:     conteudo,
+		Status:       "enviada",
+		CitacaoID:    citacaoID,
+		CitacaoTexto: citacaoTexto,
+		CriadoEm:     time.Now(),
 	}
 	go func() {
 		ctx, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
@@ -118,6 +125,10 @@ func (s *ChatService) registrarMensagem(ctx context.Context, instanciaID string,
 		status = "enviada"
 	}
 	criado, _ := d["recebida_em"].(time.Time)
+	citacaoID, citacaoTexto := texto(d["resposta_mensagem_id"]), texto(d["resposta_conteudo"])
+	if resposta, ok := d["resposta"].(map[string]any); ok && citacaoID == "" {
+		citacaoID, citacaoTexto = texto(resposta["mensagem_id"]), texto(resposta["conteudo"])
+	}
 	return s.store.RegistrarChatMensagem(ctx, models.ChatMensagem{
 		InstanciaID:  instanciaID,
 		ChatJID:      jid,
@@ -131,6 +142,8 @@ func (s *ChatService) registrarMensagem(ctx context.Context, instanciaID string,
 		MidiaID:      texto(d["midia_id"]),
 		MimeType:     texto(d["mime_type"]),
 		NomeArquivo:  texto(d["nome_arquivo"]),
+		CitacaoID:    citacaoID,
+		CitacaoTexto: citacaoTexto,
 		CriadoEm:     criado,
 	})
 }

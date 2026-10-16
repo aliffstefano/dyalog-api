@@ -5,19 +5,22 @@ import "time"
 // ChatMensagem e uma mensagem guardada para a tela de Chat do painel:
 // recebidas (pelos mesmos eventos dos webhooks) e enviadas pela API.
 type ChatMensagem struct {
-	InstanciaID  string    `json:"instancia_id"`
-	ChatJID      string    `json:"chat_jid"`
-	MensagemID   string    `json:"mensagem_id"`
-	Direcao      string    `json:"direcao"`
-	Tipo         string    `json:"tipo"`
-	Conteudo     string    `json:"conteudo"`
-	Nome         string    `json:"nome,omitempty"`
-	RemetenteJID string    `json:"remetente_jid,omitempty"`
-	Status       string    `json:"status,omitempty"`
-	Erro         string    `json:"erro,omitempty"`
-	MidiaID      string    `json:"midia_id,omitempty"`
-	MimeType     string    `json:"mime_type,omitempty"`
-	NomeArquivo  string    `json:"nome_arquivo,omitempty"`
+	InstanciaID  string `json:"instancia_id"`
+	ChatJID      string `json:"chat_jid"`
+	MensagemID   string `json:"mensagem_id"`
+	Direcao      string `json:"direcao"`
+	Tipo         string `json:"tipo"`
+	Conteudo     string `json:"conteudo"`
+	Nome         string `json:"nome,omitempty"`
+	RemetenteJID string `json:"remetente_jid,omitempty"`
+	Status       string `json:"status,omitempty"`
+	Erro         string `json:"erro,omitempty"`
+	MidiaID      string `json:"midia_id,omitempty"`
+	MimeType     string `json:"mime_type,omitempty"`
+	NomeArquivo  string `json:"nome_arquivo,omitempty"`
+	// CitacaoID/CitacaoTexto: a mensagem que esta respondeu (citou).
+	CitacaoID    string    `json:"citacao_id,omitempty"`
+	CitacaoTexto string    `json:"citacao_texto,omitempty"`
 	CriadoEm     time.Time `json:"criado_em"`
 }
 

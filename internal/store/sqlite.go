@@ -292,6 +292,12 @@ func (s *SQLStore) prepararSchema() error {
 	if _, err := s.db.Exec(`ALTER TABLE webhooks ADD COLUMN incluir_base64 BOOLEAN NOT NULL DEFAULT TRUE`); err != nil && !erroColunaDuplicada(err) {
 		return fmt.Errorf("erro ao garantir coluna incluir_base64 do webhook: %w", err)
 	}
+	// Mensagem citada (resposta) no chat do painel.
+	for _, coluna := range []string{"citacao_id", "citacao_texto"} {
+		if _, err := s.db.Exec(`ALTER TABLE chat_mensagens ADD COLUMN ` + coluna + ` TEXT NOT NULL DEFAULT ''`); err != nil && !erroColunaDuplicada(err) {
+			return fmt.Errorf("erro ao garantir coluna %s do chat: %w", coluna, err)
+		}
+	}
 	return nil
 }
 
