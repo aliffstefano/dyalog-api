@@ -574,10 +574,8 @@ func (s *MensagemService) EnviarLista(ctx context.Context, req models.EnvioLista
 	if totalLinhas == 0 || totalLinhas > maxLinhasListaTotal {
 		return models.ResultadoEnvio{}, fmt.Errorf("%w: a lista deve ter entre 1 e %d linhas no total", ErrEntradaInvalida, maxLinhasListaTotal)
 	}
-	switch strings.ToLower(strings.TrimSpace(req.Modo)) {
-	case "", "auto", "native_flow", "native_flow_view_once", "single_select", "nativeflow", "lista_biz", "list_biz", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto":
-	default:
-		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser native_flow, native_flow_view_once, lista_biz, lista, lista_view_once, texto ou auto", ErrEntradaInvalida)
+	if !modoListaValido(req.Modo) {
+		return models.ResultadoEnvio{}, fmt.Errorf("%w: modo deve ser auto, lista_documento, variacoes, native_flow, native_flow_view_once, lista_biz, lista, lista_view_once ou texto (ou o nome de uma das variacoes)", ErrEntradaInvalida)
 	}
 	return s.registrarEnvio(req.Instancia, cmp.Or(req.Mensagem, req.Descricao, req.Titulo, "[lista]"))(s.enviadorPara(ctx, req.Instancia).EnviarLista(ctx, req))
 }
@@ -934,4 +932,16 @@ func (s *MensagemService) enviarMidia(ctx context.Context, req models.EnvioMidia
 		return models.ResultadoEnvio{}, fmt.Errorf("erro ao preparar envio de midia: %w", err)
 	}
 	return s.registrarEnvio(req.Instancia, cmp.Or(req.Legenda, req.NomeArquivo, "[arquivo]"))(resultado, nil)
+}
+
+// modoListaValido lista os modos aceitos por EnviarLista; precisa acompanhar
+// montarTentativasLista e variacoesListaTeste (internal/whatsapp).
+func modoListaValido(modo string) bool {
+	switch strings.ToLower(strings.TrimSpace(modo)) {
+	case "", "auto", "native_flow", "native_flow_view_once", "single_select", "nativeflow", "lista_biz", "list_biz", "lista", "list", "lista_view_once", "list_view_once", "view_once", "viewonce", "texto", "text", "fallback_texto",
+		"lista_documento", "documento", "lista_pessoal", "variacoes", "variações", "testar",
+		"lista_documento_single", "lista_documento_sem_biz", "lista_documento_sem_bot", "lista_bot", "lista_bot_single", "native_flow_bot", "native_flow_documento":
+		return true
+	}
+	return false
 }
