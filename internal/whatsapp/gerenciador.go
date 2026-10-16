@@ -3914,6 +3914,9 @@ func extrairConteudoMensagemInterno(msg *waE2E.Message) (string, string, map[str
 	if interativo := msg.GetInteractiveMessage(); interativo != nil {
 		return extrairInterativoMensagem(interativo)
 	}
+	if modelo := msg.GetTemplateMessage(); modelo != nil {
+		return extrairTemplateMensagem(modelo)
+	}
 	if produto := msg.GetProductMessage(); produto != nil {
 		return extrairProdutoMensagem(produto)
 	}

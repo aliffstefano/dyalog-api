@@ -1549,6 +1549,13 @@ Campos de compatibilidade para midia recebida:
 - `mime_type`
 - `nome_arquivo`
 
+### Mensagem de modelo (template) recebida
+
+Modelos que empresas mandam pela API oficial chegam com `tipo: "template"`.
+`conteudo` traz titulo, texto, rodape e os botoes entre colchetes; o objeto
+`template` traz cada parte (`titulo`, `texto`, `rodape`, `cabecalho`,
+`botoes` com `tipo` resposta/url/ligar, `modelo_id`).
+
 ### `digitando` e `gravando_audio`
 
 Campos planos mantidos:
