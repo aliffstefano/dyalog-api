@@ -56,6 +56,7 @@ var acoesAuditadas = map[string]acaoAuditada{
 	"POST /api/v1/agendamentos":                               {models.AuditoriaAgenda, "agendamento.criado", "Mensagem agendada", models.SeveridadeInfo},
 	"PUT /api/v1/agendamentos/:agendamentoId":                 {models.AuditoriaAgenda, "agendamento.alterado", "Agendamento alterado", models.SeveridadeInfo},
 	"DELETE /api/v1/agendamentos/:agendamentoId":              {models.AuditoriaAgenda, "agendamento.cancelado", "Agendamento cancelado", models.SeveridadeAviso},
+	"PUT /api/v1/pagina-status":                               {models.AuditoriaConfig, "pagina_status.alterada", "Pagina de status alterada", models.SeveridadeInfo},
 	"PUT /api/v1/auth/senha":                                  {models.AuditoriaAcesso, "acesso.senha", "Senha trocada", models.SeveridadeInfo},
 	"PUT /api/v1/contas/:contaId":                             {models.AuditoriaConfig, "conta.alterada", "Conta alterada (plano, limite ou status)", models.SeveridadeInfo},
 }

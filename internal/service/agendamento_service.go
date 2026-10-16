@@ -261,7 +261,7 @@ func (s *AgendamentoService) enviar(ctx context.Context, a models.Agendamento) {
 	_ = s.store.ConcluirAgendamento(ctx, a.ID, models.AgendamentoFalhou, err.Error(), "", tentativas, agora)
 	s.auditoria.Registrar(ctx, models.RegistroAuditoria{
 		InstanciaID: a.InstanciaID, ContaID: a.ContaID, Tipo: models.AuditoriaAgenda, Acao: "agendamento.falhou",
-		Descricao: "Mensagem agendada nao foi enviada para " + cmpOr(a.Numero, a.ChatJID) + ": " + err.Error(),
+		Descricao:  "Mensagem agendada nao foi enviada para " + cmpOr(a.Numero, a.ChatJID) + ": " + err.Error(),
 		Severidade: models.SeveridadeErro, AtorTipo: "sistema", AtorNome: "Sistema",
 	})
 	s.repetir(ctx, a)

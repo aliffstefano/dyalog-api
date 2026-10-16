@@ -52,6 +52,8 @@ type APIHandler struct {
 	agendamentos *service.AgendamentoService
 	// respostas: respostas rapidas e etiquetas do chat.
 	respostas store.RespostasStore
+	// statusPublico: pagina publica de status das instancias da conta.
+	statusPublico *service.StatusPublicoService
 }
 
 type criarInstanciaRequest struct {

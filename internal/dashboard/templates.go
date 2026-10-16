@@ -92,6 +92,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <p class="dc-nav-secao so-equipe-ou-master">Administracao</p>
         <button class="nav-link so-equipe" data-tab="equipe" onclick="abrirEquipe('')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Equipe</button>
         <button class="nav-link so-equipe-ou-master" data-tab="auditoria-conta" onclick="trocarAba('auditoria-conta')"><svg class="dc-ico"><use href="#i-historico"/></svg>Auditoria</button>
+        <button class="nav-link so-equipe-ou-master" data-tab="pagina-status" onclick="trocarAba('pagina-status')"><svg class="dc-ico"><use href="#i-online"/></svg>Pagina de status</button>
         <button class="nav-link so-master" data-tab="contas" onclick="trocarAba('contas')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contas</button>
         <p class="dc-nav-secao so-master">Sistema</p>
         <button class="nav-link so-master" data-tab="atualizacao" onclick="trocarAba('atualizacao')"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizacao</button>
@@ -502,6 +503,27 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <div class="dc-card-topo"><h3>Etiquetas</h3><span class="helper-text">Marque as conversas do chat (ex.: Novo cliente, Aguardando pagamento).</span></div>
         <div id="et-lista" class="dc-etiquetas-lista"></div>
         <form class="dc-campo-acao" onsubmit="criarEtiqueta(event)"><input id="et-nome" maxlength="30" placeholder="Nova etiqueta"><input type="color" id="et-cor" value="#1995bd" title="Cor"><button class="primary small" type="submit">Adicionar</button></form>
+      </article>
+    </section>
+
+    <!-- ===== PAGINA DE STATUS ===== -->
+    <section class="tab-panel" data-panel="pagina-status">
+      <div class="dc-pagina-topo">
+        <div><h1>Pagina de status</h1><p>Um link publico para seus clientes verem se o atendimento esta no ar. Mostra so o nome e o estado de cada canal.</p></div>
+      </div>
+      <article class="dc-card">
+        <form class="dc-form-config" onsubmit="salvarPaginaStatus(event, false)">
+          <label class="dc-campo so-master" id="ps-conta-wrap"><span>Conta</span><select id="ps-conta" onchange="carregarPaginaStatus()"></select></label>
+          <label class="dc-opcao"><input type="checkbox" id="ps-ativa"><span class="dc-opcao-texto"><strong>Pagina publicada</strong><small>Desligada, o link mostra "pagina nao encontrada".</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+          <label class="dc-campo"><span>Titulo</span><input id="ps-titulo" maxlength="80" placeholder="Status do atendimento"></label>
+          <p class="dc-rotulo">Canais exibidos</p>
+          <div id="ps-instancias" class="dc-opcoes"></div>
+          <div class="dc-lista">
+            <div class="dc-config-linha"><div><strong>Link publico</strong><span class="dc-mono" id="ps-link">Salve para gerar o link.</span></div>
+              <div class="dc-acoes-topo"><button type="button" class="ghost small" onclick="copiarDoElemento('ps-link')">Copiar</button><a class="ghost small dc-botao-link" id="ps-abrir" target="_blank" rel="noopener">Abrir</a><button type="button" class="ghost small dc-texto-perigo" onclick="salvarPaginaStatus(event, true)">Gerar novo link</button></div></div>
+          </div>
+          <div class="dc-form-rodape"><span class="helper-text">Tambem em JSON: o mesmo link com <code>/json</code> no fim, para colocar no seu site.</span><button class="primary small" type="submit">Salvar</button></div>
+        </form>
       </article>
     </section>
 
@@ -1188,7 +1210,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!resp.ok) throw new Error(dados?.mensagem || 'Erro na requisicao');
     return dados;
   }
-  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao', equipe:'Equipe', contas:'Contas', 'auditoria-conta':'Auditoria', agendamentos:'Agendamentos', 'respostas-rapidas':'Respostas rapidas' };
+  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao', equipe:'Equipe', contas:'Contas', 'auditoria-conta':'Auditoria', agendamentos:'Agendamentos', 'respostas-rapidas':'Respostas rapidas', 'pagina-status':'Pagina de status' };
   function trocarAba(aba) {
     estadoUI.abaAtual = aba;
     // Dentro de uma instancia o menu lateral vira o menu dela.
@@ -2639,5 +2661,6 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <script src="/static/js/grupos.js?v=20261020"></script>
   <script src="/static/js/agendamentos.js?v=20261020"></script>
   <script src="/static/js/chat-extras.js?v=20261020"></script>
+  <script src="/static/js/pagina-status.js?v=20261020"></script>
 </body>
 </html>`

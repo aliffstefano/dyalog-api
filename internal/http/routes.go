@@ -14,6 +14,8 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 	engine.GET("/docs", dashboardHandler.Docs)
 	engine.GET("/convite", dashboardHandler.PaginaConvite)
 	engine.GET("/senha/redefinir", dashboardHandler.PaginaRedefinirSenha)
+	engine.GET("/status/:token", apiHandler.PaginaStatusPublica)
+	engine.GET("/status/:token/json", apiHandler.StatusPublicoJSON)
 
 	auth := middlewareAutenticacaoAPI(cfg, authService, apiHandler.limiteFalhasAuth)
 	proxyReplica := middlewareProxyReplica(gerenciador)
@@ -118,6 +120,8 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/instancias/:id/grupos/:grupo/sair", apiHandler.SairGrupoWhatsApp)
 		apiAuth.GET("/instancias/:id/auditoria", apiHandler.ListarAuditoriaInstancia)
 		apiAuth.GET("/auditoria", apiHandler.ListarAuditoria)
+		apiAuth.GET("/pagina-status", apiHandler.ConfigPaginaStatus)
+		apiAuth.PUT("/pagina-status", apiHandler.SalvarPaginaStatus)
 		apiAuth.GET("/respostas-rapidas", apiHandler.ListarRespostasRapidas)
 		apiAuth.POST("/respostas-rapidas", apiHandler.SalvarRespostaRapida)
 		apiAuth.PUT("/respostas-rapidas/:respostaId", apiHandler.SalvarRespostaRapida)

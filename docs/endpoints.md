@@ -1309,6 +1309,90 @@ Ate 50 numeros. Diz se cada um tem WhatsApp, o JID e se e Business.
 
 `bloquear: false` desbloqueia. Aceita `chat_jid` no lugar de `numero`.
 
+## Grupos (instancias por QR code)
+
+`:grupo` aceita o JID (`120363025246125486@g.us`) ou so o numero do grupo.
+Alterar exige dono/admin no painel e que a conta seja admin do grupo.
+
+| metodo e rota | o que faz |
+|---|---|
+| `GET /api/v1/instancias/:id/grupos` | lista os grupos (participantes, se e admin, permissoes) |
+| `GET /api/v1/instancias/:id/grupos/:grupo` | grupo com participantes (numero, nome, admin) |
+| `POST /api/v1/instancias/:id/grupos` | cria: `{"nome":"Equipe","participantes":["5567999999999"]}` |
+| `PUT /api/v1/instancias/:id/grupos/:grupo` | `{"nome","descricao","so_admins_enviam","so_admins_editam"}` (so o que muda) |
+| `PUT` / `DELETE /api/v1/instancias/:id/grupos/:grupo/foto` | troca (`{"imagem": base64}` ou `{"url"}`) ou remove a foto |
+| `GET /api/v1/instancias/:id/grupos/:grupo/convite` | link de convite; `?redefinir=1` invalida o anterior |
+| `POST /api/v1/instancias/:id/grupos/:grupo/participantes` | `{"acao":"adicionar","numeros":[...]}`; acao: `adicionar`, `remover`, `promover`, `rebaixar` |
+| `POST /api/v1/instancias/:id/grupos/:grupo/sair` | sai do grupo |
+
+`participantes` responde um item por numero com `ok` e, quando falha, o motivo
+(ex.: a privacidade do contato nao permite adicionar; mande o link de convite).
+
+## Agendamentos
+
+Mensagens para enviar mais tarde, com repeticao opcional. Cada replica so
+envia as instancias cuja sessao ela detem; se a instancia estiver
+desconectada, tenta de novo a cada 2 min (ate 5 vezes) e marca `falhou`.
+
+### `POST /api/v1/agendamentos`
+
+```json
+{
+  "instancia": "ID",
+  "numero": "5567999999999",
+  "mensagem": "Lembrete: sua aula e amanha as 8h",
+  "enviar_em": "2026-10-20T09:00:00-04:00",
+  "recorrencia": "semanal"
+}
+```
+
+- `chat_jid` no lugar de `numero` para grupo.
+- Arquivo: `arquivo_base64` (ate 12 MB) ou `arquivo_url`, com `nome_arquivo` e
+  `mime_type`; `tipo` (`imagem`, `documento`, `audio`) e deduzido do mime se
+  faltar. `mensagem` vira a legenda.
+- `recorrencia`: `diaria`, `semanal`, `mensal` ou vazio.
+
+### `GET /api/v1/agendamentos?instancia_id=&status=`
+
+`status`: `pendente`, `enviando`, `enviado`, `falhou`, `cancelado`.
+
+### `PUT /api/v1/agendamentos/:agendamentoId` e `DELETE /api/v1/agendamentos/:agendamentoId`
+
+`PUT` muda `mensagem`, `enviar_em` e `recorrencia` enquanto pendente; `DELETE`
+cancela.
+
+## Respostas rapidas e etiquetas
+
+Pertencem a conta (a equipe toda usa as mesmas). No chat do painel, digite `/`
+no campo de mensagem para escolher uma resposta. Variaveis: `{nome}`,
+`{saudacao}`, `{data}`, `{hora}`.
+
+| metodo e rota | corpo |
+|---|---|
+| `GET` / `POST /api/v1/respostas-rapidas` | `{"atalho":"oi","texto":"{saudacao}, {nome}!"}` |
+| `PUT` / `DELETE /api/v1/respostas-rapidas/:respostaId` | |
+| `GET` / `POST /api/v1/etiquetas` | `{"nome":"Novo cliente","cor":"#22c55e"}` |
+| `PUT` / `DELETE /api/v1/etiquetas/:etiquetaId` | |
+| `GET /api/v1/instancias/:id/chat/etiquetas` | etiquetas de cada conversa |
+| `PUT /api/v1/instancias/:id/chat/etiquetas` | `{"chat_jid":"5567...@s.whatsapp.net","etiquetas":["id1"]}` (substitui) |
+
+## Pagina publica de status
+
+Link secreto (`/status/st_...`) para o cliente final ver se cada canal esta no
+ar, com a disponibilidade dos ultimos 30 dias (calculada pelos eventos de
+conexao da auditoria). Mostra so o nome da instancia e o estado. O mesmo link
+com `/json` no fim devolve os dados.
+
+- `GET /api/v1/pagina-status` e `PUT /api/v1/pagina-status`
+  (`{"titulo","ativa","instancias_ocultas":[ids],"novo_link":true}`): dono ou
+  admin da conta; o superadmin passa `?conta_id=`.
+
+## Audio gravado no navegador
+
+`POST /api/v1/batepapo/enviar/audio` aceita audio WebM/Opus (o que o Chrome
+grava): a API converte para Ogg/Opus sem recodificar, e com `"ptt": true` ele
+chega como nota de voz.
+
 ## Auditoria
 
 Historico de quem fez o que: acoes no painel/API (criar/excluir instancia,

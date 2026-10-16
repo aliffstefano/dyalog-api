@@ -160,6 +160,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	agendamentoService.Iniciar(context.Background())
 	apiHandler.UsarAgendamentos(agendamentoService)
 	apiHandler.UsarRespostas(storeSQL)
+	apiHandler.UsarStatusPublico(service.NovoStatusPublicoService(storeSQL, storeSQL, storeSQL, cfg.BaseURL))
 	metaWebhook := service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador)
 	metaWebhook.UsarApp(cfg.MetaAppSecret, cfg.MetaWebhookVerifyToken)
 	metaWebhook.Iniciar(context.Background())

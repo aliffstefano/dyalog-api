@@ -546,6 +546,14 @@ CREATE TABLE IF NOT EXISTS agendamentos (
 CREATE INDEX IF NOT EXISTS idx_agendamentos_fila ON agendamentos(status, tentar_em);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_instancia ON agendamentos(instancia_id, enviar_em);
 
+CREATE TABLE IF NOT EXISTS paginas_status (
+    conta_id TEXT PRIMARY KEY,
+    token TEXT NOT NULL UNIQUE,
+    titulo TEXT NOT NULL DEFAULT '',
+    ativa INTEGER NOT NULL DEFAULT 1,
+    instancias_ocultas TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS respostas_rapidas (
     id TEXT PRIMARY KEY,
     conta_id TEXT NOT NULL DEFAULT '',
@@ -893,6 +901,14 @@ CREATE TABLE IF NOT EXISTS agendamentos (
 );
 CREATE INDEX IF NOT EXISTS idx_agendamentos_fila ON agendamentos(status, tentar_em);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_instancia ON agendamentos(instancia_id, enviar_em);
+
+CREATE TABLE IF NOT EXISTS paginas_status (
+    conta_id TEXT PRIMARY KEY,
+    token TEXT NOT NULL UNIQUE,
+    titulo TEXT NOT NULL DEFAULT '',
+    ativa BOOLEAN NOT NULL DEFAULT TRUE,
+    instancias_ocultas TEXT NOT NULL DEFAULT ''
+);
 
 CREATE TABLE IF NOT EXISTS respostas_rapidas (
     id TEXT PRIMARY KEY,

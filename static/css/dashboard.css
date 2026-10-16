@@ -4454,3 +4454,15 @@ select option:disabled {
 @media (prefers-reduced-motion: reduce) {
   .dc-rec { animation: none; }
 }
+
+.dc-botao-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
