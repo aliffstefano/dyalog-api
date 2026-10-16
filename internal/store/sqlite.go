@@ -119,7 +119,7 @@ func (s *SQLStore) Close() error {
 	return s.db.Close()
 }
 
-const colunasInstancia = `id, nome, tipo, token, status, historico_dias, proxy_modo, proxy_url, presenca,
+const colunasInstancia = `id, nome, tipo, conta_id, token, status, historico_dias, proxy_modo, proxy_url, presenca,
        rejeitar_chamadas, mensagem_rejeitar_chamadas, marcar_lida_automatico, ignorar_grupos, ignorar_status,
        criado_em, atualizado_em`
 
@@ -492,6 +492,69 @@ CREATE TABLE IF NOT EXISTS meta_webhooks (
 );
 CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
 
+CREATE TABLE IF NOT EXISTS planos (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    preco_centavos INTEGER NOT NULL DEFAULT 0,
+    limite_instancias INTEGER NOT NULL DEFAULT 0,
+    ativo INTEGER NOT NULL DEFAULT 1,
+    criado_em DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS contas (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    plano_id TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'ativa',
+    limite_instancias INTEGER NOT NULL DEFAULT 0,
+    criado_em DATETIME NOT NULL,
+    atualizado_em DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL,
+    papel TEXT NOT NULL DEFAULT '',
+    superadmin INTEGER NOT NULL DEFAULT 0,
+    ativo INTEGER NOT NULL DEFAULT 1,
+    senha_hash TEXT NOT NULL,
+    criado_em DATETIME NOT NULL,
+    ultimo_login_em DATETIME
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+CREATE INDEX IF NOT EXISTS idx_usuarios_conta ON usuarios(conta_id);
+
+CREATE TABLE IF NOT EXISTS convites (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL,
+    papel TEXT NOT NULL DEFAULT '',
+    superadmin INTEGER NOT NULL DEFAULT 0,
+    token_hash TEXT NOT NULL,
+    criado_por TEXT NOT NULL DEFAULT '',
+    expira_em DATETIME NOT NULL,
+    criado_em DATETIME NOT NULL,
+    aceito_em DATETIME
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_convites_token ON convites(token_hash);
+
+CREATE TABLE IF NOT EXISTS sessoes (
+    token_hash TEXT PRIMARY KEY,
+    usuario_id TEXT NOT NULL,
+    criado_em DATETIME NOT NULL,
+    expira_em DATETIME NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessoes_usuario ON sessoes(usuario_id);
+
+CREATE TABLE IF NOT EXISTS redefinicoes_senha (
+    token_hash TEXT PRIMARY KEY,
+    usuario_id TEXT NOT NULL,
+    expira_em DATETIME NOT NULL,
+    usado_em DATETIME
+);
+
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL DEFAULT '',
@@ -703,6 +766,69 @@ CREATE TABLE IF NOT EXISTS meta_webhooks (
 );
 CREATE INDEX IF NOT EXISTS idx_meta_webhooks_pendentes ON meta_webhooks(processado_em, recebido_em);
 
+CREATE TABLE IF NOT EXISTS planos (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    preco_centavos INTEGER NOT NULL DEFAULT 0,
+    limite_instancias INTEGER NOT NULL DEFAULT 0,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS contas (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    plano_id TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'ativa',
+    limite_instancias INTEGER NOT NULL DEFAULT 0,
+    criado_em TIMESTAMPTZ NOT NULL,
+    atualizado_em TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL,
+    papel TEXT NOT NULL DEFAULT '',
+    superadmin BOOLEAN NOT NULL DEFAULT FALSE,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    senha_hash TEXT NOT NULL,
+    criado_em TIMESTAMPTZ NOT NULL,
+    ultimo_login_em TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+CREATE INDEX IF NOT EXISTS idx_usuarios_conta ON usuarios(conta_id);
+
+CREATE TABLE IF NOT EXISTS convites (
+    id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL,
+    papel TEXT NOT NULL DEFAULT '',
+    superadmin BOOLEAN NOT NULL DEFAULT FALSE,
+    token_hash TEXT NOT NULL,
+    criado_por TEXT NOT NULL DEFAULT '',
+    expira_em TIMESTAMPTZ NOT NULL,
+    criado_em TIMESTAMPTZ NOT NULL,
+    aceito_em TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_convites_token ON convites(token_hash);
+
+CREATE TABLE IF NOT EXISTS sessoes (
+    token_hash TEXT PRIMARY KEY,
+    usuario_id TEXT NOT NULL,
+    criado_em TIMESTAMPTZ NOT NULL,
+    expira_em TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessoes_usuario ON sessoes(usuario_id);
+
+CREATE TABLE IF NOT EXISTS redefinicoes_senha (
+    token_hash TEXT PRIMARY KEY,
+    usuario_id TEXT NOT NULL,
+    expira_em TIMESTAMPTZ NOT NULL,
+    usado_em TIMESTAMPTZ
+);
+
 CREATE TABLE IF NOT EXISTS envios_registro (
     instancia_id TEXT NOT NULL,
     chat_jid TEXT NOT NULL DEFAULT '',
@@ -734,13 +860,14 @@ func (s *SQLStore) Criar(ctx context.Context, instancia models.Instancia) (model
 		instancia.Tipo = models.TipoInstanciaWhatsApp
 	}
 	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO instancias (
-    id, nome, tipo, token, status, historico_dias, proxy_modo, proxy_url, presenca,
+    id, nome, tipo, conta_id, token, status, historico_dias, proxy_modo, proxy_url, presenca,
     rejeitar_chamadas, mensagem_rejeitar_chamadas, marcar_lida_automatico, ignorar_grupos, ignorar_status,
     criado_em, atualizado_em
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
 		instancia.ID,
 		instancia.Nome,
 		instancia.Tipo,
+		instancia.ContaID,
 		instancia.Token,
 		instancia.Status,
 		instancia.HistoricoDias,
@@ -813,6 +940,7 @@ func (s *SQLStore) scanInstancia(scanner scannerInstancia) (models.Instancia, er
 		&instancia.ID,
 		&instancia.Nome,
 		&instancia.Tipo,
+		&instancia.ContaID,
 		&instancia.Token,
 		&instancia.Status,
 		&instancia.HistoricoDias,
@@ -1749,6 +1877,7 @@ func (s *SQLStore) garantirColunasInstancias() error {
 		{nome: "ignorar_grupos", query: `ALTER TABLE instancias ADD COLUMN ignorar_grupos BOOLEAN NOT NULL DEFAULT FALSE`},
 		{nome: "ignorar_status", query: `ALTER TABLE instancias ADD COLUMN ignorar_status BOOLEAN NOT NULL DEFAULT FALSE`},
 		{nome: "tipo", query: `ALTER TABLE instancias ADD COLUMN tipo TEXT NOT NULL DEFAULT 'whatsapp'`},
+		{nome: "conta_id", query: `ALTER TABLE instancias ADD COLUMN conta_id TEXT NOT NULL DEFAULT ''`},
 	}
 	for _, coluna := range colunas {
 		if _, err := s.db.Exec(coluna.query); err != nil && !erroColunaDuplicada(err) {

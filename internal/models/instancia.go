@@ -20,9 +20,11 @@ const (
 )
 
 type Instancia struct {
-	ID                       string    `json:"id" db:"id"`
-	Nome                     string    `json:"nome" db:"nome"`
-	Tipo                     string    `json:"tipo" db:"tipo"`
+	ID   string `json:"id" db:"id"`
+	Nome string `json:"nome" db:"nome"`
+	Tipo string `json:"tipo" db:"tipo"`
+	// ContaID e a empresa dona da instancia (vazio: so o superadmin ve).
+	ContaID                  string    `json:"conta_id,omitempty" db:"conta_id"`
 	Token                    string    `json:"token,omitempty" db:"token"`
 	Status                   string    `json:"status" db:"status"`
 	HistoricoDias            int       `json:"historico_dias" db:"historico_dias"`
@@ -60,10 +62,23 @@ type ProxyGlobal struct {
 	AtualizadoEm time.Time `json:"atualizado_em"`
 }
 
+// AcessoDashboard e quem fez a requisicao: token master, token de uma
+// instancia ou usuario logado com e-mail e senha (tipo "usuario").
 type AcessoDashboard struct {
 	Tipo        string `json:"tipo"`
 	InstanciaID string `json:"instancia_id,omitempty"`
 	Nome        string `json:"nome,omitempty"`
+	UsuarioID   string `json:"usuario_id,omitempty"`
+	Email       string `json:"email,omitempty"`
+	ContaID     string `json:"conta_id,omitempty"`
+	ContaNome   string `json:"conta_nome,omitempty"`
+	Papel       string `json:"papel,omitempty"`
+	Superadmin  bool   `json:"superadmin,omitempty"`
+}
+
+// TudoLiberado: token master ou superadmin (o provedor).
+func (a AcessoDashboard) TudoLiberado() bool {
+	return a.Tipo == "master" || (a.Tipo == "usuario" && a.Superadmin)
 }
 
 // PerfilInstancia e o proprio numero conectado na instancia, para o painel.
