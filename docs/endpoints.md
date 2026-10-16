@@ -2,6 +2,41 @@
 
 ## Acesso e autenticacao
 
+### Contas, usuarios e papeis
+
+O painel tem contas (empresas clientes) com equipe propria. Acesso so por
+convite:
+
+- **Superadmin** (token master ou usuario convidado como administrador): ve
+  todas as contas e instancias, cria contas, planos e move instancias entre
+  contas (`PUT /api/v1/instancias/:id/conta`).
+- **Dono** e **admin** de uma conta: criam e configuram as instancias da conta
+  (ate o limite do plano), webhooks e equipe. Admin nao altera donos.
+- **Atendente**: ve as instancias da conta e usa chat e envios; nao configura.
+- **Token de instancia**: continua valendo para integracoes, so na instancia.
+
+Login: `POST /api/v1/auth/login` com `{"email","senha"}` (abre sessao em
+cookie) ou `{"token"}`. Rotas sem login: `GET /api/v1/auth/convite?token=`,
+`POST /api/v1/auth/convite/aceitar` (`token`, `nome`, `senha`),
+`POST /api/v1/auth/senha/esqueci` (`email`) e
+`POST /api/v1/auth/senha/redefinir` (`token`, `senha`). Logado:
+`PUT /api/v1/auth/senha` (`senha_atual`, `senha_nova`).
+
+Equipe (dono/admin; superadmin informa `conta_id`): `GET /api/v1/equipe`,
+`POST /api/v1/equipe/convites` (`email`, `papel`),
+`DELETE /api/v1/equipe/convites/:id`, `PUT /api/v1/equipe/usuarios/:id`
+(`papel`, `ativo`), `DELETE /api/v1/equipe/usuarios/:id`.
+
+Superadmin: `GET|POST /api/v1/contas` (`nome`, `plano_id`, `email_dono`),
+`PUT /api/v1/contas/:id` (`nome`, `plano_id`, `status` ativa/bloqueada,
+`limite_instancias`), `GET|POST /api/v1/planos`, `PUT /api/v1/planos/:id`
+(`nome`, `preco_centavos`, `limite_instancias`, `ativo`),
+`GET /api/v1/administradores`, `POST /api/v1/administradores/convites`.
+
+Convites valem 7 dias e o link de redefinir senha, 1 hora. Os e-mails saem
+pela Resend (`RESEND_API_KEY`, `EMAIL_REMETENTE`); sem configurar, a
+resposta do convite traz o `link` para mandar manualmente.
+
 Todas as rotas da API versionada usam o prefixo `/api/v1`.
 
 Nos exemplos, `SEU_DOMINIO` representa o dominio onde a sua API esta publicada.

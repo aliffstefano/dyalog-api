@@ -12,6 +12,8 @@ import (
 func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandler, dashboardHandler *dashboard.Handler, authService *service.AuthService, gerenciador *whatsapp.GerenciadorInstancias) {
 	engine.GET("/", dashboardHandler.PaginaInicial)
 	engine.GET("/docs", dashboardHandler.Docs)
+	engine.GET("/convite", dashboardHandler.PaginaConvite)
+	engine.GET("/senha/redefinir", dashboardHandler.PaginaRedefinirSenha)
 
 	auth := middlewareAutenticacaoAPI(cfg, authService, apiHandler.limiteFalhasAuth)
 	proxyReplica := middlewareProxyReplica(gerenciador)

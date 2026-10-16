@@ -3416,3 +3416,79 @@ select option:disabled {
   font-size: 13px;
   text-decoration: underline;
 }
+
+/* Login com e-mail, convite e redefinir senha */
+.login-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.login-card .login-titulo {
+  margin: 12px 0 8px;
+  font-size: 22px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.login-ok {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  color: var(--success);
+  background: var(--success-soft);
+  font-size: 14px;
+}
+
+/* Usuario logado, equipe e contas */
+.dc-usuario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.dc-usuario div {
+  display: grid;
+  min-width: 0;
+}
+
+.dc-usuario strong,
+.dc-usuario span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-usuario span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dc-acoes-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dc-acoes-linha select {
+  width: auto;
+  padding: 7px 10px;
+}
+
+.dc-botao-perigo.small {
+  min-height: 0;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.dc-selo-perigo {
+  color: var(--danger);
+  border-color: var(--danger);
+}

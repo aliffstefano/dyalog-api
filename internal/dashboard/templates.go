@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261017">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261018">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -57,14 +57,14 @@ const paginaInicialHTML = `<!DOCTYPE html>
           <div class="dc-avatar dc-avatar-mini" id="nav-inst-avatar"><svg class="dc-ico"><use href="#i-pessoa"/></svg></div>
           <div class="dc-nav-inst-texto"><strong id="nav-inst-nome">-</strong><span id="nav-inst-sub">-</span></div>
         </div>
-        <button class="nav-link so-master" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Voltar</button>
+        <button class="nav-link nao-token-instancia" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-voltar"/></svg>Voltar</button>
         <p class="dc-nav-secao">Geral</p>
         <button class="nav-link" data-aba-inst="geral" onclick="trocarAbaInstancia('geral')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Visao geral</button>
         <button class="nav-link" data-aba-inst="chat" onclick="trocarAbaInstancia('chat')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Chat</button>
         <p class="dc-nav-secao">Conexoes</p>
         <button class="nav-link" data-aba-inst="webhooks" onclick="trocarAbaInstancia('webhooks')"><svg class="dc-ico"><use href="#i-link"/></svg>Webhooks</button>
         <p class="dc-nav-secao">Gerenciar</p>
-        <button class="nav-link" data-aba-inst="config" onclick="trocarAbaInstancia('config')"><svg class="dc-ico"><use href="#i-engrenagem"/></svg>Configuracoes</button>
+        <button class="nav-link so-gerente" data-aba-inst="config" onclick="trocarAbaInstancia('config')"><svg class="dc-ico"><use href="#i-engrenagem"/></svg>Configuracoes</button>
         <button class="nav-link" data-aba-inst="ferramentas" onclick="trocarAbaInstancia('ferramentas')"><svg class="dc-ico"><use href="#i-mensagem"/></svg>Ferramentas</button>
         <a class="nav-link" href="/docs" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-livro"/></svg>Documentacao</a>
       </nav>
@@ -72,6 +72,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
         <p class="dc-nav-secao">Visao geral</p>
         <button class="nav-link" data-tab="dashboard" onclick="trocarAba('dashboard')"><svg class="dc-ico"><use href="#i-dashboard"/></svg>Dashboard</button>
         <button class="nav-link" data-tab="instancias" onclick="trocarAba('instancias')"><svg class="dc-ico"><use href="#i-celular"/></svg>Instancias<span class="dc-nav-contador" id="nav-contador-instancias">0</span></button>
+        <p class="dc-nav-secao so-equipe-ou-master">Administracao</p>
+        <button class="nav-link so-equipe" data-tab="equipe" onclick="abrirEquipe('')"><svg class="dc-ico"><use href="#i-pessoa-mais"/></svg>Equipe</button>
+        <button class="nav-link so-master" data-tab="contas" onclick="trocarAba('contas')"><svg class="dc-ico"><use href="#i-pessoa"/></svg>Contas</button>
         <p class="dc-nav-secao so-master">Sistema</p>
         <button class="nav-link so-master" data-tab="atualizacao" onclick="trocarAba('atualizacao')"><svg class="dc-ico"><use href="#i-atualizar"/></svg>Atualizacao</button>
         <a class="nav-link" href="/docs" target="_blank" rel="noopener"><svg class="dc-ico"><use href="#i-livro"/></svg>Documentacao</a>
@@ -81,6 +84,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
           <button class="theme-btn" data-tema=""      onclick="setTema('')"      title="Azul"><svg class="dc-ico"><use href="#i-lua"/></svg></button>
           <button class="theme-btn" data-tema="clean" onclick="setTema('clean')" title="Claro"><svg class="dc-ico"><use href="#i-sol"/></svg></button>
           <button class="theme-btn" data-tema="dark"  onclick="setTema('dark')"  title="Escuro"><svg class="dc-ico"><use href="#i-contraste"/></svg></button>
+        </div>
+        <div class="dc-usuario hidden" id="dc-usuario">
+          <div><strong id="dc-usuario-nome">-</strong><span id="dc-usuario-detalhe">-</span></div>
+          <button class="ghost small" onclick="abrirModal('senha')" title="Trocar senha"><svg class="dc-ico"><use href="#i-chave"/></svg></button>
         </div>
         <button class="nav-link" onclick="sairDashboard()"><svg class="dc-ico"><use href="#i-sair"/></svg>Sair</button>
       </div>
@@ -99,7 +106,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       <section class="tab-panel active" data-panel="dashboard">
         <div class="dc-pagina-topo">
           <div><h1 id="dash-saudacao">Ola</h1><p>Resumo das instancias e dos envios de hoje.</p></div>
-          <button class="primary so-master" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
+          <button class="primary so-criar" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
         </div>
         <section class="dc-kpis">
           <article class="dc-kpi"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-celular"/></svg></span><div><span>Instancias</span><strong id="contador-instancias">0</strong></div></article>
@@ -130,7 +137,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       <section class="tab-panel" data-panel="instancias">
         <div class="dc-pagina-topo">
           <div><h1>Instancias</h1><p>Gerencie as conexoes de WhatsApp.</p></div>
-          <button class="primary so-master" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
+          <button class="primary so-criar" onclick="abrirModal('nova-instancia')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova instancia</button>
         </div>
         <div class="dc-filtros">
           <label class="dc-busca"><svg class="dc-ico"><use href="#i-busca"/></svg><input type="search" id="busca-instancias" placeholder="Buscar por nome ou ID" oninput="renderizarListaInstancias()"></label>
@@ -279,7 +286,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
                 <div class="dc-config-linha so-qr"><div><strong>Historico ao conectar</strong><span id="config-historico">-</span></div><button class="ghost small" id="botao-config-historico" onclick="abrirModal('historico')">Alterar</button></div>
               </div>
             </article>
-            <article class="dc-card dc-perigo so-master">
+            <article class="dc-card so-master" id="card-conta-instancia">
+              <div class="dc-card-topo"><h3>Conta da instancia</h3><span class="helper-text">Empresa que ve e usa esta instancia.</span></div>
+              <div class="dc-campo-acao"><select id="inst-conta"></select><button class="primary small" onclick="moverInstanciaConta()">Salvar</button></div>
+            </article>
+            <article class="dc-card dc-perigo so-gerente">
               <div class="dc-config-linha"><div><strong>Excluir instancia</strong><span>Remove a instancia e a sessao do WhatsApp. Nao da para desfazer.</span></div><button class="dc-botao-perigo" id="botao-excluir" onclick="excluirSelecionada()">Excluir</button></div>
             </article>
           </section>
@@ -294,6 +305,44 @@ const paginaInicialHTML = `<!DOCTYPE html>
           </section>
         </article>
       </section>
+
+    <!-- ===== EQUIPE ===== -->
+    <section class="tab-panel" data-panel="equipe">
+      <div class="dc-pagina-topo">
+        <div><h1>Equipe</h1><p id="equipe-subtitulo">Quem acessa o painel da sua empresa.</p></div>
+        <button class="primary" onclick="abrirModal('convidar')"><svg class="dc-ico"><use href="#i-mais"/></svg>Convidar</button>
+      </div>
+      <article class="dc-card">
+        <div class="dc-card-topo"><h3>Usuarios</h3><span class="helper-text">Dono e admin configuram tudo; atendente usa o chat e os envios.</span></div>
+        <div id="equipe-usuarios" class="dc-lista"><div class="dc-lista-vazia">Carregando...</div></div>
+      </article>
+      <article class="dc-card">
+        <div class="dc-card-topo"><h3>Convites pendentes</h3><span class="helper-text">Valem por 7 dias.</span></div>
+        <div id="equipe-convites" class="dc-lista"></div>
+      </article>
+    </section>
+
+    <!-- ===== CONTAS (superadmin) ===== -->
+    <section class="tab-panel" data-panel="contas">
+      <div class="dc-pagina-topo">
+        <div><h1>Contas</h1><p>Empresas clientes, planos e administradores do sistema.</p></div>
+        <button class="primary" onclick="abrirModal('conta-nova')"><svg class="dc-ico"><use href="#i-mais"/></svg>Nova conta</button>
+      </div>
+      <article class="dc-card">
+        <div class="dc-card-topo"><h3>Empresas</h3><span class="helper-text">Cada conta tem a propria equipe e as proprias instancias.</span></div>
+        <div id="contas-lista" class="dc-lista"><div class="dc-lista-vazia">Carregando...</div></div>
+      </article>
+      <section class="dc-dash-grade">
+        <article class="dc-card">
+          <div class="dc-card-topo"><h3>Planos</h3><button class="ghost small" onclick="editarPlano('')"><svg class="dc-ico"><use href="#i-mais"/></svg>Novo plano</button></div>
+          <div id="planos-lista" class="dc-lista"></div>
+        </article>
+        <article class="dc-card">
+          <div class="dc-card-topo"><h3>Administradores</h3><button class="ghost small" onclick="abrirModal('admin-convite')"><svg class="dc-ico"><use href="#i-mais"/></svg>Convidar</button></div>
+          <div id="admins-lista" class="dc-lista"></div>
+        </article>
+      </section>
+    </section>
 
     <!-- ===== TAB ATUALIZACAO ===== -->
     <section class="tab-panel" data-panel="atualizacao">
@@ -553,6 +602,131 @@ const paginaInicialHTML = `<!DOCTYPE html>
         finally { btn.disabled = false; btn.textContent = 'Salvar'; }
       }
     },
+    convidar: {
+      kicker: 'Equipe', titulo: 'Convidar para a equipe', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>E-mail</span><input type="email" id="mf-email" required autocomplete="off"></label><label><span>Papel</span><select id="mf-papel"><option value="atendente">Atendente: usa o chat e os envios</option><option value="admin">Admin: configura instancias, webhooks e equipe</option><option value="dono">Dono: tudo, inclusive outros donos</option></select></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Enviar convite</button></div></form>',
+      init: function() {
+        if (!acessoTudo() && (estadoUI.acesso || {}).papel !== 'dono') document.querySelector('#mf-papel option[value="dono"]').remove();
+        document.getElementById('mf-email').focus();
+      },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; fb.className = 'modal-feedback hidden';
+        try {
+          const r = await chamar('/api/v1/equipe/convites', { method:'POST', body: JSON.stringify({ email: document.getElementById('mf-email').value, papel: document.getElementById('mf-papel').value, conta_id: contasUI.equipeConta }) });
+          carregarEquipe();
+          mostrarLinkConvite(r.dados);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+        finally { btn.disabled = false; }
+      }
+    },
+    'link-convite': {
+      kicker: 'Convite', titulo: 'Convite criado', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><p class="status-copy" id="mf-convite-texto"></p><div class="dc-config-linha"><div><strong>Link do convite</strong><span class="dc-mono" id="mf-convite-link"></span></div><button type="button" class="ghost small" onclick="copiarTexto(\'mf-convite-link\')">Copiar</button></div><div class="modal-footer"><button type="button" class="primary" onclick="fecharModal()">Pronto</button></div></form>',
+      init: function() {
+        const r = contasUI.linkConvite || {};
+        document.getElementById('mf-convite-link').textContent = r.link || '';
+        document.getElementById('mf-convite-texto').textContent = r.email_enviado ?
+          'Enviamos o convite por e-mail para ' + ((r.convite || {}).email || '') + '. Se nao chegar, mande o link abaixo. Ele vale por 7 dias.' :
+          'O e-mail nao foi enviado (' + (r.email_erro || 'e-mail nao configurado') + '). Copie o link abaixo e mande para a pessoa. Ele vale por 7 dias.';
+      },
+      submit: function(e) { e.preventDefault(); fecharModal(); }
+    },
+    'conta-nova': {
+      kicker: 'Contas', titulo: 'Nova conta', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>Empresa</span><input type="text" id="mf-nome" required autocomplete="off"></label><label><span>Plano</span><select id="mf-plano"></select></label><label><span>E-mail do dono</span><input type="email" id="mf-email" required autocomplete="off"></label><p class="status-copy" style="margin:0">O dono recebe um convite para criar a senha e depois convida a equipe.</p><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar e convidar</button></div></form>',
+      init: function() { document.getElementById('mf-plano').innerHTML = opcoesPlanos(''); document.getElementById('mf-nome').focus(); },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; fb.className = 'modal-feedback hidden';
+        try {
+          const r = await chamar('/api/v1/contas', { method:'POST', body: JSON.stringify({ nome: document.getElementById('mf-nome').value, plano_id: document.getElementById('mf-plano').value, email_dono: document.getElementById('mf-email').value }) });
+          carregarContas();
+          mostrarLinkConvite(r.dados.convite);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+        finally { btn.disabled = false; }
+      }
+    },
+    'conta-editar': {
+      kicker: 'Contas', titulo: 'Editar conta', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>Empresa</span><input type="text" id="mf-nome" required autocomplete="off"></label><label><span>Plano</span><select id="mf-plano"></select></label><label><span>Limite proprio de instancias (0 = o do plano)</span><input type="number" id="mf-limite" min="0"></label><label><span>Situacao</span><select id="mf-status"><option value="ativa">Ativa</option><option value="bloqueada">Bloqueada (ninguem da conta entra)</option></select></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar</button></div></form>',
+      init: function() {
+        const c = contasUI.contaEditando || {};
+        document.getElementById('mf-nome').value = c.nome || '';
+        document.getElementById('mf-plano').innerHTML = opcoesPlanos(c.plano_id || '');
+        document.getElementById('mf-limite').value = c.limite_instancias || 0;
+        document.getElementById('mf-status').value = c.status || 'ativa';
+      },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; fb.className = 'modal-feedback hidden';
+        try {
+          await chamar('/api/v1/contas/' + contasUI.contaEditando.id, { method:'PUT', body: JSON.stringify({ nome: document.getElementById('mf-nome').value, plano_id: document.getElementById('mf-plano').value, limite_instancias: parseInt(document.getElementById('mf-limite').value, 10) || 0, status: document.getElementById('mf-status').value }) });
+          mostrarToast('Conta atualizada.', 'success'); fecharModal(); carregarContas();
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+        finally { btn.disabled = false; }
+      }
+    },
+    plano: {
+      kicker: 'Planos', titulo: 'Plano', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>Nome</span><input type="text" id="mf-nome" required autocomplete="off"></label><div class="form-grid"><label><span>Preco mensal (R$)</span><input type="number" id="mf-preco" min="0" step="0.01" required></label><label><span>Instancias (0 = sem limite)</span><input type="number" id="mf-limite" min="0" required></label></div><label class="check-item"><input type="checkbox" id="mf-ativo" checked> Disponivel para novas contas</label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar plano</button></div></form>',
+      init: function() {
+        const p = contasUI.planoEditando;
+        document.getElementById('mf-nome').value = p ? p.nome : '';
+        document.getElementById('mf-preco').value = p ? (p.preco_centavos / 100).toFixed(2) : '';
+        document.getElementById('mf-limite').value = p ? p.limite_instancias : 1;
+        document.getElementById('mf-ativo').checked = p ? p.ativo : true;
+        document.getElementById('mf-nome').focus();
+      },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; fb.className = 'modal-feedback hidden';
+        const p = contasUI.planoEditando;
+        try {
+          await chamar('/api/v1/planos' + (p ? '/' + p.id : ''), { method: p ? 'PUT' : 'POST', body: JSON.stringify({
+            nome: document.getElementById('mf-nome').value, preco_centavos: Math.round(parseFloat(document.getElementById('mf-preco').value || '0') * 100),
+            limite_instancias: parseInt(document.getElementById('mf-limite').value, 10) || 0, ativo: document.getElementById('mf-ativo').checked }) });
+          mostrarToast('Plano salvo.', 'success'); fecharModal(); carregarContas();
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+        finally { btn.disabled = false; }
+      }
+    },
+    'admin-convite': {
+      kicker: 'Administradores', titulo: 'Convidar administrador', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>E-mail</span><input type="email" id="mf-email" required autocomplete="off"></label><p class="status-copy" style="margin:0">Administrador ve e gerencia todas as contas e instancias, como o token master.</p><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Enviar convite</button></div></form>',
+      init: function() { document.getElementById('mf-email').focus(); },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; fb.className = 'modal-feedback hidden';
+        try {
+          const r = await chamar('/api/v1/administradores/convites', { method:'POST', body: JSON.stringify({ email: document.getElementById('mf-email').value }) });
+          carregarContas();
+          mostrarLinkConvite(r.dados);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+        finally { btn.disabled = false; }
+      }
+    },
+    senha: {
+      kicker: 'Minha conta', titulo: 'Trocar senha', semInstancia: true,
+      html: '<form id="modal-form" class="stack-form"><label><span>Senha atual</span><input type="password" id="mf-atual" autocomplete="current-password" required></label><label><span>Nova senha (minimo 8 caracteres)</span><input type="password" id="mf-nova" autocomplete="new-password" required></label><label><span>Repita a nova senha</span><input type="password" id="mf-nova2" autocomplete="new-password" required></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Trocar senha</button></div></form>',
+      init: function() { document.getElementById('mf-atual').focus(); },
+      submit: async function(e) {
+        e.preventDefault();
+        const fb = document.getElementById('mf-feedback');
+        const nova = document.getElementById('mf-nova').value;
+        if (nova !== document.getElementById('mf-nova2').value) { fb.className = 'modal-feedback error'; fb.textContent = 'As senhas nao conferem.'; return; }
+        try {
+          await chamar('/api/v1/auth/senha', { method:'PUT', body: JSON.stringify({ senha_atual: document.getElementById('mf-atual').value, senha_nova: nova }) });
+          fb.className = 'modal-feedback success'; fb.textContent = 'Senha trocada. Entre de novo com a nova senha.';
+          setTimeout(() => { window.location.href = '/'; }, 1500);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
+      }
+    },
     'modelo-meta': {
       kicker: 'API oficial', titulo: 'Enviar modelo', largo: false,
       html: '<form id="modal-form" class="stack-form"><p class="helper-text">Modelos aprovados na sua conta do WhatsApp Business. Sao a unica mensagem que chega fora da janela de 24h.</p><label><span>Modelo</span><span class="dc-campo-acao"><select id="mf-modelo" onchange="renderizarCamposModelo()"></select><button type="button" class="ghost small" onclick="carregarModelosMeta(true)" title="Buscar de novo na Meta">Atualizar</button></span></label><div id="mf-modelo-campos" class="stack-form"></div><div class="dc-modelo-previa" id="mf-modelo-previa"></div><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit" disabled>Enviar modelo</button></div></form>',
@@ -769,9 +943,9 @@ const paginaInicialHTML = `<!DOCTYPE html>
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────────
+  // Sessao expirou: volta para a pagina de login (e-mail, senha ou token).
   function mostrarLogin() {
-    document.getElementById('login-overlay').classList.remove('hidden');
-    setTimeout(() => { const el = document.getElementById('login-token'); if(el) el.focus(); }, 80);
+    if (!mostrarLogin.indo) { mostrarLogin.indo = true; window.location.href = '/'; }
   }
   function ocultarLogin() {
     document.getElementById('login-overlay').classList.add('hidden');
@@ -805,7 +979,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!resp.ok) throw new Error(dados?.mensagem || 'Erro na requisicao');
     return dados;
   }
-  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao' };
+  const TITULOS_ABA = { dashboard:'Dashboard', instancias:'Instancias', instancia:'Instancias', atualizacao:'Atualizacao', equipe:'Equipe', contas:'Contas' };
   function trocarAba(aba) {
     estadoUI.abaAtual = aba;
     // Dentro de uma instancia o menu lateral vira o menu dela.
@@ -818,6 +992,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (aba === 'instancia') trilha += ' / ' + (document.getElementById('instancia-titulo').textContent || '');
     document.getElementById('trilha-pagina').textContent = trilha;
     window.scrollTo(0, 0);
+    if (aba === 'equipe') carregarEquipe();
+    if (aba === 'contas') carregarContas();
   }
   function formatarData(v) { const d = v ? new Date(v) : null; return d && d.getFullYear() > 2000 ? d.toLocaleString('pt-BR') : '-'; }
   function rotuloStatus(s) { return ({nao_inicializada:'Nao inicializada',desconectada:'Desconectada',conectando:'Conectando',aguardando_qrcode:'Aguardando QR',pareada:'Pareada',autenticando:'Autenticando',sincronizando_historico:'Sincronizando',conectada:'Conectada'})[s]||s||'-'; }
@@ -828,21 +1004,34 @@ const paginaInicialHTML = `<!DOCTYPE html>
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
     });
   }
+  // Quem esta usando: master (token), superadmin, usuario de uma conta (dono,
+  // admin ou atendente) ou token de uma instancia.
+  function acessoTudo() { const a = estadoUI.acesso; return !!a && (a.tipo === 'master' || (a.tipo === 'usuario' && a.superadmin)); }
+  function acessoUsuarioGerente() { const a = estadoUI.acesso; return !!a && a.tipo === 'usuario' && !!a.conta_id && ['dono','admin'].includes(a.papel); }
+  function podeCriarInstancia() { return acessoTudo() || acessoUsuarioGerente(); }
+  function acessoGerente() { const a = estadoUI.acesso; return acessoTudo() || acessoUsuarioGerente() || (!!a && a.tipo === 'instancia'); }
   function atualizarEscopoAcesso(acesso) {
-    if (acesso) {
-      acesso = {
-        tipo: acesso.tipo || acesso.Tipo || '',
-        instancia_id: acesso.instancia_id || acesso.InstanciaID || '',
-        nome: acesso.nome || acesso.Nome || ''
-      };
-    }
-    estadoUI.acesso = acesso || null;
+    estadoUI.acesso = acesso ? Object.assign({}, acesso, { tipo: acesso.tipo || acesso.Tipo || '' }) : null;
     const instancia = estadoUI.acesso && estadoUI.acesso.tipo === 'instancia';
     if (instancia && estadoUI.acesso.instancia_id && !estadoUI.instanciaSelecionada) {
       estadoUI.instanciaSelecionada = estadoUI.acesso.instancia_id;
     }
-    document.getElementById('botao-excluir').classList.toggle('hidden', instancia);
-    document.querySelectorAll('.so-master').forEach(el => el.classList.toggle('hidden', instancia));
+    const mostrar = (seletor, visivel) => document.querySelectorAll(seletor).forEach(el => el.classList.toggle('hidden', !visivel));
+    mostrar('.so-master', acessoTudo());
+    mostrar('.so-criar', podeCriarInstancia());
+    mostrar('.so-gerente', acessoGerente());
+    mostrar('.so-equipe', acessoUsuarioGerente());
+    mostrar('.so-equipe-ou-master', acessoTudo() || acessoUsuarioGerente());
+    mostrar('.nao-token-instancia', !instancia);
+    document.getElementById('botao-excluir').classList.toggle('hidden', !acessoGerente() || instancia);
+    const a = estadoUI.acesso || {};
+    const usuario = a.tipo === 'usuario';
+    document.getElementById('dc-usuario').classList.toggle('hidden', !usuario);
+    if (usuario) {
+      const papeis = { dono:'Dono', admin:'Admin', atendente:'Atendente' };
+      document.getElementById('dc-usuario-nome').textContent = a.nome || a.email;
+      document.getElementById('dc-usuario-detalhe').textContent = a.superadmin ? 'Administrador do sistema' : (a.conta_nome || '') + ' · ' + (papeis[a.papel] || a.papel);
+    }
   }
   function gerarResumoStatus(s,e) { if(e) return 'Ultimo erro: '+e; return ({aguardando_qrcode:'QR code gerado. Escaneie com o WhatsApp para iniciar o pareamento.',pareada:'QR lido. Finalizando vinculo.',autenticando:'Autenticando sessao no WhatsApp.',sincronizando_historico:'Sincronizando historico inicial.',conectada:'Instancia conectada e pronta.',desconectada:'Desconectada. Conecte para usar.',conectando:'Abrindo conexao.'})[s]||'Estado atual da instancia.'; }
   function pairingDisponivel(status) { return ['nao_inicializada','desconectada','aguardando_qrcode'].includes(status); }
@@ -944,7 +1133,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     }
   }
   async function carregarSistema() {
-    if (!estadoUI.acesso || estadoUI.acesso.tipo !== 'master') {
+    if (!acessoTudo()) {
       document.getElementById('alerta-atualizacao').className = 'banner hidden';
       return;
     }
@@ -1032,7 +1221,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (!todas.length) {
       box.className = 'dc-instancias dc-vazio';
       box.innerHTML = '<svg class="dc-ico dc-vazio-icone"><use href="#i-celular"/></svg><h3>Nenhuma instancia ainda</h3><p>Crie a primeira instancia para conectar um WhatsApp e comecar a enviar mensagens.</p>' +
-        (estadoUI.acesso?.tipo === 'instancia' ? '' : '<button class="primary" onclick="abrirModal(\'nova-instancia\')"><svg class="dc-ico"><use href="#i-mais"/></svg>Criar primeira instancia</button>');
+        (!podeCriarInstancia() ? '' : '<button class="primary" onclick="abrirModal(\'nova-instancia\')"><svg class="dc-ico"><use href="#i-mais"/></svg>Criar primeira instancia</button>');
       return;
     }
     const busca = (document.getElementById('busca-instancias').value || '').trim().toLowerCase();
@@ -1057,7 +1246,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         '<span class="dc-instancia-id">'+linha+'</span>' +
         '<span class="dc-instancia-rodape"><span>'+numeroUso(uso.envios)+' envios hoje</span><svg class="dc-ico"><use href="#i-seta"/></svg></span>' +
       '</button>';
-    }).join('') + (estadoUI.acesso?.tipo === 'instancia' || filtro !== 'todas' || busca ? '' :
+    }).join('') + (!podeCriarInstancia() || filtro !== 'todas' || busca ? '' :
       '<button class="dc-instancia dc-instancia-nova" onclick="abrirModal(\'nova-instancia\')"><span class="dc-kpi-icone"><svg class="dc-ico"><use href="#i-mais"/></svg></span><strong>Nova instancia</strong></button>');
   }
 
@@ -1254,6 +1443,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (aba === 'geral') carregarUso(false);
     if (aba === 'webhooks') { carregarWebhooks(); carregarAuditoria(false); }
     if (aba === 'chat') iniciarChat(); else pararChat();
+    if (aba === 'config') carregarContaDaInstancia();
   }
   // ── Chat ──────────────────────────────────────────────────────────────────────
   // Mensagens guardadas pela API (recebidas pelos eventos de webhook e
@@ -1549,6 +1739,107 @@ const paginaInicialHTML = `<!DOCTYPE html>
       componentes.push({ type:'body', parameters: m.variaveis_corpo.map(n => parametro(n, v[n])) });
     }
     return componentes;
+  }
+
+  // ── Equipe e contas ───────────────────────────────────────────────────────────
+  const PAPEIS = { dono:'Dono', admin:'Admin', atendente:'Atendente' };
+  const contasUI = { contas: [], planos: [], equipeConta: '', equipeNome: '', linkConvite: null, planoEditando: null, contaEditando: null };
+  function abrirEquipe(contaID, contaNome) {
+    contasUI.equipeConta = contaID || '';
+    contasUI.equipeNome = contaNome || '';
+    trocarAba('equipe');
+  }
+  function paramConta() { return contasUI.equipeConta ? '?conta_id=' + encodeURIComponent(contasUI.equipeConta) : ''; }
+  async function carregarEquipe() {
+    document.getElementById('equipe-subtitulo').textContent = contasUI.equipeNome ? 'Equipe de ' + contasUI.equipeNome + '.' : 'Quem acessa o painel da sua empresa.';
+    let d;
+    try { d = await buscarChat('/api/v1/equipe' + paramConta()); }
+    catch (err) { document.getElementById('equipe-usuarios').innerHTML = '<div class="dc-lista-vazia">' + textoSeguro(err.message) + '</div>'; return; }
+    if (!d) return;
+    const eu = (estadoUI.acesso || {}).usuario_id;
+    const podeDono = acessoTudo() || (estadoUI.acesso || {}).papel === 'dono';
+    document.getElementById('equipe-usuarios').innerHTML = (d.usuarios || []).map(u => {
+      const proprio = u.id === eu;
+      const opcoes = ['dono','admin','atendente'].filter(p => podeDono || p !== 'dono' || u.papel === 'dono')
+        .map(p => '<option value="' + p + '"' + (u.papel === p ? ' selected' : '') + '>' + PAPEIS[p] + '</option>').join('');
+      return '<div class="dc-config-linha"><div><strong>' + textoSeguro(u.nome || u.email) + (u.ativo ? '' : ' <span class="dc-selo">desativado</span>') + '</strong>' +
+        '<span>' + textoSeguro(u.email) + ' · ultimo acesso ' + textoSeguro(formatarData(u.ultimo_login_em)) + '</span></div>' +
+        (proprio ? '<span class="helper-text">Voce</span>' :
+        '<div class="dc-acoes-linha"><select onchange="atualizarMembro(\'' + u.id + '\', {papel: this.value})">' + opcoes + '</select>' +
+        '<button class="ghost small" onclick="atualizarMembro(\'' + u.id + '\', {ativo: ' + !u.ativo + '})">' + (u.ativo ? 'Desativar' : 'Ativar') + '</button>' +
+        '<button class="dc-botao-perigo small" onclick="removerMembro(\'' + u.id + '\')">Remover</button></div>') + '</div>';
+    }).join('') || '<div class="dc-lista-vazia">Ninguem na equipe ainda.</div>';
+    document.getElementById('equipe-convites').innerHTML = (d.convites || []).map(c =>
+      '<div class="dc-config-linha"><div><strong>' + textoSeguro(c.email) + '</strong><span>' + textoSeguro(PAPEIS[c.papel] || c.papel) + ' · expira ' + textoSeguro(formatarData(c.expira_em)) + '</span></div>' +
+      '<button class="ghost small" onclick="cancelarConvite(\'' + c.id + '\')">Cancelar</button></div>').join('') || '<div class="dc-lista-vazia">Nenhum convite pendente.</div>';
+  }
+  async function atualizarMembro(id, corpo) {
+    try { await chamar('/api/v1/equipe/usuarios/' + id, { method:'PUT', body: JSON.stringify(corpo) }); mostrarToast('Usuario atualizado.', 'success'); }
+    catch (err) { mostrarToast(err.message, 'error'); }
+    carregarEquipe();
+  }
+  async function removerMembro(id) {
+    if (!window.confirm('Remover este usuario da equipe?')) return;
+    try { await chamar('/api/v1/equipe/usuarios/' + id, { method:'DELETE' }); mostrarToast('Usuario removido.', 'success'); }
+    catch (err) { mostrarToast(err.message, 'error'); }
+    carregarEquipe();
+  }
+  async function cancelarConvite(id) {
+    try { await chamar('/api/v1/equipe/convites/' + id + paramConta(), { method:'DELETE' }); mostrarToast('Convite cancelado.', 'success'); }
+    catch (err) { mostrarToast(err.message, 'error'); }
+    carregarEquipe();
+  }
+  // Depois de convidar: mostra o link (para mandar por outro meio se o e-mail nao chegar).
+  function mostrarLinkConvite(resultado) {
+    contasUI.linkConvite = resultado;
+    abrirModal('link-convite');
+  }
+  function reais(centavos) { return (Number(centavos || 0) / 100).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+  async function carregarContas() {
+    try {
+      const [c, p, a] = await Promise.all([buscarChat('/api/v1/contas'), buscarChat('/api/v1/planos'), buscarChat('/api/v1/administradores')]);
+      contasUI.contas = (c && c.contas) || [];
+      contasUI.planos = (p && p.planos) || [];
+      document.getElementById('contas-lista').innerHTML = contasUI.contas.map(conta =>
+        '<div class="dc-config-linha"><div><strong>' + textoSeguro(conta.nome) + (conta.status === 'bloqueada' ? ' <span class="dc-selo dc-selo-perigo">bloqueada</span>' : '') + '</strong>' +
+        '<span>' + textoSeguro(conta.plano_nome || 'Sem plano') + ' · ' + conta.instancias + (conta.limite_efetivo ? '/' + conta.limite_efetivo : '') + ' instancia(s) · ' + conta.usuarios + ' usuario(s)' + (conta.convites_pendentes ? ' · ' + conta.convites_pendentes + ' convite(s)' : '') + '</span></div>' +
+        '<div class="dc-acoes-linha"><button class="ghost small" onclick="abrirEquipe(\'' + conta.id + '\', ' + textoSeguro(JSON.stringify(conta.nome)) + ')">Equipe</button>' +
+        '<button class="ghost small" onclick="editarConta(\'' + conta.id + '\')">Editar</button></div></div>').join('') ||
+        '<div class="dc-lista-vazia">Nenhuma conta ainda. Crie a primeira e convide o dono.</div>';
+      document.getElementById('planos-lista').innerHTML = contasUI.planos.map(plano =>
+        '<div class="dc-config-linha"><div><strong>' + textoSeguro(plano.nome) + (plano.ativo ? '' : ' <span class="dc-selo">inativo</span>') + '</strong><span>' + reais(plano.preco_centavos) + '/mes · ' + (plano.limite_instancias || 'sem limite de') + ' instancia(s)</span></div>' +
+        '<button class="ghost small" onclick="editarPlano(\'' + plano.id + '\')">Editar</button></div>').join('') || '<div class="dc-lista-vazia">Nenhum plano. Crie para limitar as instancias por conta.</div>';
+      const admins = (a && a.usuarios) || [], convitesAdmin = (a && a.convites) || [];
+      document.getElementById('admins-lista').innerHTML = admins.map(u =>
+        '<div class="dc-config-linha"><div><strong>' + textoSeguro(u.nome || u.email) + '</strong><span>' + textoSeguro(u.email) + '</span></div></div>').join('') +
+        convitesAdmin.map(c => '<div class="dc-config-linha"><div><strong>' + textoSeguro(c.email) + '</strong><span>Convite pendente</span></div></div>').join('') ||
+        '<div class="dc-lista-vazia">So o token master. Convide um administrador para entrar com e-mail e senha.</div>';
+    } catch (err) {
+      document.getElementById('contas-lista').innerHTML = '<div class="dc-lista-vazia">' + textoSeguro(err.message) + '</div>';
+    }
+  }
+  function opcoesPlanos(selecionado) {
+    return '<option value="">Sem plano</option>' + contasUI.planos.filter(p => p.ativo || p.id === selecionado)
+      .map(p => '<option value="' + textoSeguro(p.id) + '"' + (p.id === selecionado ? ' selected' : '') + '>' + textoSeguro(p.nome + ' · ' + reais(p.preco_centavos)) + '</option>').join('');
+  }
+  function editarConta(id) { contasUI.contaEditando = contasUI.contas.find(c => c.id === id) || null; if (contasUI.contaEditando) abrirModal('conta-editar'); }
+  function editarPlano(id) { contasUI.planoEditando = contasUI.planos.find(p => p.id === id) || null; abrirModal('plano'); }
+  async function carregarContaDaInstancia() {
+    if (!acessoTudo() || !estadoUI.instanciaSelecionada) return;
+    try {
+      const c = await buscarChat('/api/v1/contas');
+      contasUI.contas = (c && c.contas) || [];
+    } catch (err) { return; }
+    const atual = ((estadoUI.instancias || []).find(i => i.id === estadoUI.instanciaSelecionada) || {}).conta_id || '';
+    document.getElementById('inst-conta').innerHTML = '<option value="">Sem conta (so administradores)</option>' +
+      contasUI.contas.map(c => '<option value="' + textoSeguro(c.id) + '"' + (c.id === atual ? ' selected' : '') + '>' + textoSeguro(c.nome) + '</option>').join('');
+  }
+  async function moverInstanciaConta() {
+    try {
+      await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/conta', { method:'PUT', body: JSON.stringify({ conta_id: document.getElementById('inst-conta').value }) });
+      mostrarToast('Conta da instancia atualizada.', 'success');
+      await carregarInstancias(false);
+    } catch (err) { mostrarToast(err.message, 'error'); }
   }
 
   function usoAberto() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'geral'; }
@@ -2021,7 +2312,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
   // ── Carregamento geral ────────────────────────────────────────────────────────
   async function carregarTudo(manual) {
-    if (estadoUI.acesso?.tipo === 'master') await carregarSistema();
+    if (acessoTudo()) await carregarSistema();
     await carregarInstancias(Boolean(manual));
     await carregarUsoGeral();
     if (estadoUI.instanciaSelecionada && usoAberto()) await carregarUso(false);
