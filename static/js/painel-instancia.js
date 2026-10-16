@@ -367,3 +367,148 @@
     '</tr>';
   }
 })();
+
+// ── Chamadas recebidas no painel ──────────────────────────────────────────────
+// Enquanto a pagina da instancia esta aberta, consulta as chamadas a cada 3s e
+// toca quando chega uma. Liga/desliga por instancia, so neste navegador.
+(function () {
+  'use strict';
+  const toqueUI = { timer: null, atual: null, recusadas: {}, audio: null, intervaloToque: null, tituloOriginal: document.title };
+
+  function chave() { return 'tocarChamadas:' + estadoUI.instanciaSelecionada; }
+  function tocarLigado() {
+    try { return localStorage.getItem(chave()) !== '0'; } catch (e) { return true; }
+  }
+  window.alternarToqueChamadas = function (ligado) {
+    try { localStorage.setItem(chave(), ligado ? '1' : '0'); } catch (e) {}
+    if (!ligado) esconderChamada();
+    mostrarToast(ligado ? 'O painel vai tocar as chamadas recebidas.' : 'O painel nao vai mais tocar as chamadas.', 'success');
+  };
+
+  function instanciaAtual() { return (estadoUI.instancias || []).find(i => i.id === estadoUI.instanciaSelecionada); }
+
+  async function verificarChamadas() {
+    const cfg = document.getElementById('cfg-tocar-chamadas');
+    if (cfg && estadoUI.instanciaSelecionada) cfg.checked = tocarLigado();
+    const inst = instanciaAtual();
+    const ativo = estadoUI.abaAtual === 'instancia' && inst && inst.tipo !== 'meta' && estadoUI.statusSelecionada === 'conectada' && tocarLigado() && !document.hidden;
+    if (!ativo) { if (toqueUI.atual && !toqueUI.atual.atendida) esconderChamada(); return; }
+    try {
+      const r = await fetch('/api/v1/instancias/' + encodeURIComponent(inst.id) + '/chamadas', { headers: { 'Content-Type': 'application/json' } });
+      if (!r.ok) return;
+      const chamadas = (await r.json())?.dados?.chamadas || [];
+      const tocando = chamadas.find(c => c.direcao === 'incoming' && c.estado === 'incoming_ringing' && !toqueUI.recusadas[c.chamada_id]);
+      if (toqueUI.atual && toqueUI.atual.atendida) {
+        if (!chamadas.some(c => c.chamada_id === toqueUI.atual.id && c.estado !== 'ended')) esconderChamada();
+        return;
+      }
+      if (tocando) mostrarChamada(tocando); else if (toqueUI.atual) esconderChamada();
+    } catch (e) {}
+  }
+
+  function caixa() {
+    let el = document.getElementById('dc-chamada-entrando');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'dc-chamada-entrando';
+      el.className = 'dc-chamada-entrando hidden';
+      el.setAttribute('role', 'alertdialog');
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function mostrarChamada(c) {
+    if (toqueUI.atual && toqueUI.atual.id === c.chamada_id) return;
+    toqueUI.atual = { id: c.chamada_id, numero: c.numero, atendida: false };
+    const el = caixa();
+    const numero = formatarTelefone(c.numero) || c.peer_jid || 'Numero desconhecido';
+    el.innerHTML = '<div class="dc-chamada-anel"><svg class="dc-ico"><use href="#i-telefone"/></svg></div>' +
+      '<div class="dc-chamada-texto"><span>Chamada de ' + (c.tipo === 'video' ? 'video' : 'voz') + ' recebida</span><strong>' + textoSeguro(numero) + '</strong><small id="dc-chamada-estado">' + textoSeguro((instanciaAtual() || {}).nome || '') + '</small></div>' +
+      '<div class="dc-chamada-botoes"><button type="button" class="dc-chamada-recusar" onclick="recusarChamadaPainel()">Recusar</button><button type="button" class="dc-chamada-atender" onclick="atenderChamadaPainel()">Atender</button></div>';
+    el.classList.remove('hidden');
+    iniciarToque();
+  }
+
+  function esconderChamada() {
+    pararToque();
+    toqueUI.atual = null;
+    caixa().classList.add('hidden');
+  }
+
+  // Toque gerado no navegador (sem arquivo de audio): dois bipes a cada 2s.
+  function iniciarToque() {
+    pararToque();
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      toqueUI.audio = new Ctx();
+      const bip = () => {
+        const ctx = toqueUI.audio; if (!ctx) return;
+        [0, 0.35].forEach(atraso => {
+          const osc = ctx.createOscillator(), ganho = ctx.createGain();
+          osc.frequency.value = 880; osc.type = 'sine';
+          ganho.gain.setValueAtTime(0.0001, ctx.currentTime + atraso);
+          ganho.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + atraso + 0.03);
+          ganho.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + atraso + 0.3);
+          osc.connect(ganho).connect(ctx.destination);
+          osc.start(ctx.currentTime + atraso); osc.stop(ctx.currentTime + atraso + 0.32);
+        });
+      };
+      bip();
+      toqueUI.intervaloToque = setInterval(() => { bip(); document.title = document.title.startsWith('📞') ? toqueUI.tituloOriginal : '📞 Chamada recebida'; }, 2000);
+    } catch (e) {}
+  }
+  function pararToque() {
+    clearInterval(toqueUI.intervaloToque); toqueUI.intervaloToque = null;
+    if (toqueUI.audio) { try { toqueUI.audio.close(); } catch (e) {} toqueUI.audio = null; }
+    document.title = toqueUI.tituloOriginal;
+  }
+
+  window.recusarChamadaPainel = async function () {
+    const atual = toqueUI.atual; if (!atual) return;
+    toqueUI.recusadas[atual.id] = true;
+    if (atual.atendida) { await encerrarChamadaPainel(true); esconderChamada(); return; }
+    esconderChamada();
+    try {
+      await fetch('/api/v1/instancias/' + encodeURIComponent(estadoUI.instanciaSelecionada) + '/chamadas/' + encodeURIComponent(atual.id) + '/rejeitar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    } catch (e) {}
+  };
+
+  // Atender: microfone + WebRTC com a API (mesmo caminho do teste de chamada).
+  window.atenderChamadaPainel = async function () {
+    const atual = toqueUI.atual; if (!atual || atual.atendida) return;
+    pararToque();
+    const estado = document.getElementById('dc-chamada-estado');
+    estado.textContent = 'Conectando o audio...';
+    const instancia = estadoUI.instanciaSelecionada;
+    const base = '/api/v1/instancias/' + encodeURIComponent(instancia) + '/chamadas/' + encodeURIComponent(atual.id);
+    try {
+      await encerrarChamadaPainel(false);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Navegador sem microfone/WebRTC.');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
+      const pc = new RTCPeerConnection();
+      const remoto = new MediaStream();
+      const audioEl = new Audio(); audioEl.autoplay = true; audioEl.playsInline = true; audioEl.srcObject = remoto;
+      estadoUI.chamadaPainel = { chamadaID: atual.id, pc, stream, remoteStream: remoto, audioEl, nodes: [] };
+      stream.getAudioTracks().forEach(t => pc.addTrack(t, stream));
+      pc.ontrack = evt => { (evt.streams?.[0]?.getTracks() || [evt.track]).forEach(t => remoto.addTrack(t)); audioEl.play().catch(() => {}); };
+      pc.oniceconnectionstatechange = () => { if (['failed', 'closed', 'disconnected'].includes(pc.iceConnectionState)) { encerrarChamadaPainel(false); esconderChamada(); } };
+      const oferta = await pc.createOffer();
+      await pc.setLocalDescription(oferta);
+      await aguardarICECompleto(pc);
+      const sinal = await chamar(base + '/webrtc', { method: 'POST', body: JSON.stringify({ instancia, sdp_offer: pc.localDescription.sdp }) });
+      await pc.setRemoteDescription({ type: 'answer', sdp: sinal.dados.sdp_answer });
+      await chamar(base + '/aceitar', { method: 'POST', body: JSON.stringify({ instancia }) });
+      atual.atendida = true;
+      estado.textContent = 'Em chamada';
+      const botoes = caixa().querySelector('.dc-chamada-botoes');
+      botoes.innerHTML = '<button type="button" class="dc-chamada-recusar" onclick="recusarChamadaPainel()">Encerrar</button>';
+      caixa().classList.add('em-chamada');
+    } catch (err) {
+      estado.textContent = 'Nao foi possivel atender: ' + err.message;
+      await encerrarChamadaPainel(false);
+    }
+  };
+
+  toqueUI.timer = setInterval(verificarChamadas, 3000);
+})();

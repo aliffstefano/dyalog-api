@@ -272,6 +272,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
               </div>
               <p class="helper-text" id="meta-aviso-secret"></p>
             </article>
+            <article class="dc-card so-qr">
+              <div class="dc-card-topo"><h3>Notificacoes do painel</h3><span class="helper-text">Vale so para este navegador; nao muda a API nem os webhooks.</span></div>
+              <label class="dc-opcao"><input type="checkbox" id="cfg-tocar-chamadas" onchange="alternarToqueChamadas(this.checked)"><span class="dc-opcao-texto"><strong>Tocar chamadas recebidas no painel</strong><small>Mostra a chamada com toque enquanto a instancia estiver aberta, para atender ou recusar pelo navegador. Desligue em instancias com muitas ligacoes.</small></span><span class="dc-chave" aria-hidden="true"></span></label>
+            </article>
             <article class="dc-card">
               <div class="dc-card-topo"><h3>Comportamento</h3><span class="helper-text">Presenca, leitura, chamadas e filtros de webhook.</span></div>
               <form id="form-avancado" class="dc-form-config">

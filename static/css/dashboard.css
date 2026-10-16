@@ -4009,3 +4009,89 @@ select option:disabled {
   background: transparent;
   font-size: 18px;
 }
+
+/* Chamada recebida no painel */
+.dc-chamada-entrando {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(460px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.dc-chamada-entrando.hidden {
+  display: none;
+}
+
+.dc-chamada-anel {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--success);
+  animation: dc-anel 1.2s ease-in-out infinite;
+}
+
+.dc-chamada-entrando.em-chamada .dc-chamada-anel {
+  animation: none;
+}
+
+@keyframes dc-anel {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-chamada-anel { animation: none; }
+}
+
+.dc-chamada-texto {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.dc-chamada-texto span,
+.dc-chamada-texto small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dc-chamada-texto strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dc-chamada-botoes {
+  display: flex;
+  gap: 8px;
+}
+
+.dc-chamada-botoes button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dc-chamada-recusar { background: var(--danger); }
+.dc-chamada-atender { background: var(--success); }
+
+@media (max-width: 480px) {
+  .dc-chamada-entrando { flex-wrap: wrap; }
+  .dc-chamada-botoes { width: 100%; }
+  .dc-chamada-botoes button { flex: 1; }
+}

@@ -1218,6 +1218,10 @@ com o status de cada envio (enviada, entregue, lida ou falhou, com o motivo
 que o WhatsApp ou a Meta devolveu). As mensagens ficam por
 `CHAT_RETENTION_DAYS` dias (padrao 7; `0` desliga o chat).
 
+Mensagens que responderam (citaram) outra trazem `citacao_id` e
+`citacao_texto`; o painel mostra a citacao e permite responder citando
+(`resposta_mensagem_id` no envio de texto).
+
 ### `GET /api/v1/instancias/:id/chat/conversas`
 
 Ultimas 100 conversas, da mais recente para a mais antiga, com o nome do
@@ -1231,6 +1235,102 @@ mensagem traz `direcao` (`entrada`/`saida`), `tipo`, `conteudo`, `status`,
 `GET /api/v1/instancias/:id/midias/:midiaId`).
 
 Para responder, use as rotas de envio normais (`/batepapo/enviar/...`).
+
+## Perfil e privacidade da conta (instancias por QR code)
+
+Respondem `409 instancia_desconectada` se a instancia nao estiver conectada e
+`422 nao_suportado_api_oficial` nas instancias da Meta. Alterar exige dono ou
+admin (ou token master/da instancia).
+
+### `GET /api/v1/instancias/:id/perfil`
+
+Nome, recado, foto, telefone, JID, LID e privacidade. `opcoes_validas` lista os
+valores aceitos em cada campo de privacidade.
+
+### `PUT /api/v1/instancias/:id/perfil`
+
+```json
+{ "nome": "Loja Exemplo", "recado": "Atendimento das 8h as 18h" }
+```
+
+Os dois campos sao opcionais (nome ate 25 caracteres, recado ate 139).
+
+### `PUT /api/v1/instancias/:id/perfil/foto` e `DELETE /api/v1/instancias/:id/perfil/foto`
+
+```json
+{ "imagem": "data:image/png;base64,iVBOR..." }
+```
+
+Aceita `imagem` (base64, com ou sem o prefixo `data:`) ou `url`. JPG, PNG ou GIF
+ate 10 MB; a API recorta o centro em quadrado e reduz para 640x640. `DELETE`
+remove a foto.
+
+### `PUT /api/v1/instancias/:id/privacidade`
+
+Envie so o que muda:
+
+```json
+{ "visto_por_ultimo": "contacts", "online": "match_last_seen", "confirmacao_leitura": "none" }
+```
+
+| campo | valores |
+|---|---|
+| `visto_por_ultimo`, `foto_perfil`, `recado`, `grupos` | `all`, `contacts`, `contact_blacklist`, `none` |
+| `online` | `all`, `match_last_seen` |
+| `chamadas` | `all`, `known` |
+| `confirmacao_leitura` | `all`, `none` |
+
+## Contatos
+
+### `GET /api/v1/instancias/:id/contatos`
+
+Contatos conhecidos e grupos. Query: `busca` (nome ou numero), `tipo`
+(`pessoal`, `grupo`, `salvo`, `bloqueado`), `pagina`, `por_pagina` (ate 500),
+`atualizar=1` (refaz grupos e bloqueios, que ficam 3 min em cache). A resposta
+traz `contagem` por tipo.
+
+### `GET /api/v1/instancias/:id/contatos/exportar`
+
+Mesmos filtros, em CSV (`;`, UTF-8 com BOM para abrir no Excel).
+
+### `POST /api/v1/instancias/:id/contatos/verificar`
+
+```json
+{ "numeros": ["5567999999999", "5511988887777"] }
+```
+
+Ate 50 numeros. Diz se cada um tem WhatsApp, o JID e se e Business.
+
+### `POST /api/v1/instancias/:id/contatos/bloqueio`
+
+```json
+{ "numero": "5567999999999", "bloquear": true }
+```
+
+`bloquear: false` desbloqueia. Aceita `chat_jid` no lugar de `numero`.
+
+## Auditoria
+
+Historico de quem fez o que: acoes no painel/API (criar/excluir instancia,
+trocar token, configuracoes, webhooks, perfil, bloqueios, equipe), entradas no
+painel e eventos de conexao (conectou, caiu, sessao encerrada pelo celular,
+banimento). Fica `AUDITORIA_RETENTION_DAYS` dias (padrao 90). Envio de mensagem
+nao entra (o chat e o uso ja mostram).
+
+Quando a instancia cai de um jeito que exige alguem (aparelho desconectado pelo
+celular, banimento, falha de conexao), os donos e admins da conta recebem um
+e-mail (no maximo um por hora por instancia; precisa da Resend configurada).
+
+### `GET /api/v1/instancias/:id/auditoria`
+
+### `GET /api/v1/auditoria`
+
+A segunda lista a conta inteira (ou tudo, para o superadmin); aceita
+`instancia_id`. Query das duas: `tipo` (`conexao`, `acao`, `configuracao`,
+`webhook`, `perfil`, `contato`, `acesso`, `equipe`), `severidade` (`sucesso`,
+`info`, `aviso`, `erro`), `ator` (parte do nome), `de` e `ate` (`AAAA-MM-DD`,
+inclusivo), `limite` (padrao 50) e `deslocamento`. `tem_mais` indica que ha
+mais paginas.
 
 ## Webhooks por instancia
 
