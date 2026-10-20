@@ -12,7 +12,13 @@ COPY . .
 # Ver tools/whatsmeow-overlay. Falha o build se o whatsmeow mudar o trecho.
 RUN go run ./tools/whatsmeow-overlay /tmp/whatsmeow \
     && go mod edit -replace go.mau.fi/whatsmeow=/tmp/whatsmeow
-RUN CGO_ENABLED=1 GOOS=linux go build -o /bin/dyalog-api-go ./cmd/api
+# Versao vem do arquivo VERSION; commit e data podem vir do build:
+#   docker build --build-arg COMMIT=$(git rev-parse --short HEAD) --build-arg BUILD_DATE=... .
+ARG COMMIT=local
+ARG BUILD_DATE=unknown
+RUN CGO_ENABLED=1 GOOS=linux go build \
+    -ldflags "-X dyalog-api-go/internal/buildinfo.Version=$(cat VERSION | tr -d '[:space:]') -X dyalog-api-go/internal/buildinfo.Commit=${COMMIT} -X dyalog-api-go/internal/buildinfo.BuildDate=${BUILD_DATE}" \
+    -o /bin/dyalog-api-go ./cmd/api
 
 FROM alpine:3.21
 
