@@ -16,7 +16,10 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o /bin/dyalog-api-go ./cmd/api
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates libstdc++ sqlite-libs tzdata
+# ffmpeg: converte audio para o formato de nota de voz (Ogg/Opus) que o
+# iPhone toca; sem ele, MP3/Vorbis rotulados como ogg aparecem como "audio
+# nao disponivel".
+RUN apk add --no-cache ca-certificates libstdc++ sqlite-libs tzdata ffmpeg
 
 WORKDIR /app
 

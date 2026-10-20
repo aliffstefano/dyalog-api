@@ -1387,6 +1387,17 @@ com `/json` no fim devolve os dados.
   (`{"titulo","ativa","instancias_ocultas":[ids],"novo_link":true}`): dono ou
   admin da conta; o superadmin passa `?conta_id=`.
 
+## Formato do audio (nota de voz)
+
+A API identifica o formato pelo **conteudo** do arquivo, nao pelo
+`mime_type`, nome ou Content-Type da URL. Com `"ptt": true` (ou quando o
+arquivo diz ser ogg/opus sem ser), MP3, M4A, WAV, Ogg Vorbis e outros sao
+convertidos para Ogg/Opus mono 48 kHz, o formato das notas de voz do app, com
+a forma de onda e a duracao reais. Sem isso, um MP3 rotulado como ogg chegava
+no iPhone como "Este audio nao esta mais disponivel". Sem `ptt`, MP3/M4A vao
+como arquivo de audio com o mime correto. A conversao usa o ffmpeg que ja vem
+na imagem Docker.
+
 ## Audio gravado no navegador
 
 `POST /api/v1/batepapo/enviar/audio` aceita audio WebM/Opus (o que o Chrome

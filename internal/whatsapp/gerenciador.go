@@ -1976,6 +1976,22 @@ func (g *GerenciadorInstancias) EnviarAudio(ctx context.Context, req models.Envi
 		return models.ResultadoEnvio{}, err
 	}
 	reqEnvio := req
+	voz := mimeType == "audio/ogg; codecs=opus"
+	if !voz && reqEnvio.PTT != nil && *reqEnvio.PTT {
+		// Nota de voz so com Ogg/Opus; sem conversao possivel vai como arquivo
+		// de audio (que o iPhone toca) em vez de uma nota que ninguem abre.
+		falso := false
+		reqEnvio.PTT = &falso
+	}
+	onda := gerarWaveformAudio(dados)
+	if voz {
+		if real, segundos := waveformReal(ctx, dados); real != nil {
+			onda = real
+			if reqEnvio.DuracaoSegundos == 0 {
+				reqEnvio.DuracaoSegundos = segundos
+			}
+		}
+	}
 	if reqEnvio.DuracaoSegundos == 0 {
 		reqEnvio.DuracaoSegundos = resolverDuracaoAudio(reqEnvio, mimeType, dados)
 	}
@@ -1989,7 +2005,7 @@ func (g *GerenciadorInstancias) EnviarAudio(ctx context.Context, req models.Envi
 	}
 
 	resp, jidUsado, err := enviarPrimeiroDestino(jids, func(jid types.JID) (whatsmeow.SendResponse, error) {
-		msg := montarMensagemAudio(reqEnvio, mimeType, upload, gerarWaveformAudio(dados))
+		msg := montarMensagemAudio(reqEnvio, mimeType, upload, onda)
 		return runtime.client.SendMessage(ctx, jid, msg)
 	})
 	if err != nil {
@@ -2102,22 +2118,49 @@ func carregarAudioEnvio(ctx context.Context, req models.EnvioMidiaRequest) ([]by
 		return nil, "", err
 	}
 	mimeBase := detectarMimeType(nomeArquivo, primeiroValorNaoVazio(req.MimeType, mimeCabecalho), dados)
-	// Gravado no navegador (WebM/Opus): vira Ogg/Opus para tocar como nota de voz.
-	if ehWebM(dados) {
+	// O formato vem do conteudo, nao do que foi declarado (ver audio_voz.go).
+	real := identificarAudio(dados)
+	// Gravado no navegador (WebM/Opus): vira Ogg/Opus sem recodificar.
+	// Com ffmpeg sai no padrao do app (quadros de 20 ms); sem ele, os pacotes
+	// Opus sao copiados para um Ogg.
+	if real == audioWebM {
+		if ogg, err := converterParaNotaDeVoz(ctx, dados); err == nil {
+			return ogg, "audio/ogg; codecs=opus", nil
+		}
 		convertido, err := WebMParaOgg(dados)
 		if err != nil {
 			return nil, "", fmt.Errorf("%w: audio webm: %v", ErrMidiaInvalida, err)
 		}
 		return convertido, "audio/ogg; codecs=opus", nil
 	}
-	mimeType, err := normalizarMimeAudio(mimeBase, nomeArquivo)
-	if err != nil {
-		return nil, "", err
+	if real == audioOggOpus {
+		return dados, "audio/ogg; codecs=opus", nil
 	}
-	if req.PTT != nil && *req.PTT && mimeType != "audio/ogg; codecs=opus" {
-		return nil, "", fmt.Errorf("%w: ptt exige audio ogg/opus", ErrMidiaInvalida)
+	declarado, errDeclarado := normalizarMimeAudio(mimeBase, nomeArquivo)
+	querVoz := req.PTT != nil && *req.PTT
+	// Nota de voz pedida, Ogg Vorbis (o iPhone nao toca) ou arquivo rotulado
+	// como ogg/opus sem ser: converte para Opus de verdade.
+	if querVoz || real == audioOggVorbis || declarado == "audio/ogg; codecs=opus" {
+		ogg, err := converterParaNotaDeVoz(ctx, dados)
+		if err == nil {
+			return ogg, "audio/ogg; codecs=opus", nil
+		}
+		if !errors.Is(err, errSemFFmpeg) {
+			fmt.Printf("audio: conversao para nota de voz falhou (%s): %v\n", cmp.Or(real, mimeBase), err)
+		}
 	}
-	return dados, mimeType, nil
+	// Sem conversao: manda como arquivo de audio com o mime verdadeiro.
+	if mimeReal, ok := mimeAudioReal[real]; ok && real != audioOggVorbis {
+		return dados, mimeReal, nil
+	}
+	if errDeclarado != nil {
+		return nil, "", errDeclarado
+	}
+	if declarado == "audio/ogg; codecs=opus" {
+		// Diz ser opus mas o conteudo nao confirma: nao arrisca nota de voz.
+		declarado = "audio/ogg"
+	}
+	return dados, declarado, nil
 }
 
 func normalizarMimeAudio(mimeType, nomeArquivo string) (string, error) {
