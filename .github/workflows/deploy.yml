@@ -71,6 +71,15 @@ jobs:
             aliffstefano/dyalog-api:${{ steps.tag.outputs.versao }}
             aliffstefano/dyalog-api:${{ steps.tag.outputs.datada }}
 
+      # O SSH do manager so aceita a rede do Tailscale: o runner entra no
+      # tailnet como no efemero (tag:ci) e some ao fim do job.
+      - name: Conectar ao Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: Atualizar servico no Swarm
         uses: appleboy/ssh-action@v1
         with:
