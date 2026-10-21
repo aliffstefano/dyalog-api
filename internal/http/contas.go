@@ -237,6 +237,7 @@ func (h *APIHandler) AtualizarConta(c *gin.Context) {
 		PlanoID          *string `json:"plano_id"`
 		Status           string  `json:"status"`
 		LimiteInstancias *int    `json:"limite_instancias"`
+		TiposInstancia   *string `json:"tipos_instancia"`
 	}
 	if !h.lerJSON(c, &req, nil, "Informe os campos da conta") {
 		return
@@ -248,10 +249,22 @@ func (h *APIHandler) AtualizarConta(c *gin.Context) {
 	}
 	if req.PlanoID != nil {
 		conta.PlanoID = *req.PlanoID
-	} else if atual, err := h.contas.ListarContas(c.Request.Context(), acesso); err == nil {
-		for _, a := range atual {
-			if a.ID == conta.ID {
-				conta.PlanoID = a.PlanoID
+	}
+	if req.TiposInstancia != nil {
+		conta.TiposInstancia = *req.TiposInstancia
+	}
+	if req.PlanoID == nil || req.TiposInstancia == nil {
+		if atual, err := h.contas.ListarContas(c.Request.Context(), acesso); err == nil {
+			for _, a := range atual {
+				if a.ID != conta.ID {
+					continue
+				}
+				if req.PlanoID == nil {
+					conta.PlanoID = a.PlanoID
+				}
+				if req.TiposInstancia == nil {
+					conta.TiposInstancia = a.TiposInstancia
+				}
 			}
 		}
 	}

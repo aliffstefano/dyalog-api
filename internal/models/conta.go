@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"slices"
+	"strings"
+	"time"
+)
 
 // Papeis de usuario dentro de uma conta (empresa).
 const (
@@ -27,9 +31,17 @@ type Conta struct {
 	PlanoID string `json:"plano_id,omitempty"`
 	Status  string `json:"status"`
 	// LimiteInstancias acima de 0 substitui o limite do plano.
-	LimiteInstancias int       `json:"limite_instancias"`
-	CriadoEm         time.Time `json:"criado_em"`
-	AtualizadoEm     time.Time `json:"atualizado_em"`
+	LimiteInstancias int `json:"limite_instancias"`
+	// TiposInstancia limita os tipos que a conta cria ("meta,instagram");
+	// vazio libera todos.
+	TiposInstancia string    `json:"tipos_instancia"`
+	CriadoEm       time.Time `json:"criado_em"`
+	AtualizadoEm   time.Time `json:"atualizado_em"`
+}
+
+// PermiteTipo diz se a conta pode criar instancia do tipo.
+func (c Conta) PermiteTipo(tipo string) bool {
+	return c.TiposInstancia == "" || slices.Contains(strings.Split(c.TiposInstancia, ","), tipo)
 }
 
 // Plano define limites (e, depois, o preco) de uma conta.

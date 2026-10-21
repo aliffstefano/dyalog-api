@@ -152,6 +152,23 @@ func TestContasConviteLoginPapeisELimite(t *testing.T) {
 		t.Fatalf("limite proprio da conta ignorado: %v", err)
 	}
 
+	// Tipos liberados: so a API oficial; todos marcados volta a "todos".
+	if _, err := contas.AtualizarConta(ctx, master, models.Conta{ID: conta.ID, PlanoID: plano.ID, LimiteInstancias: -1, TiposInstancia: " meta,meta "}); err != nil {
+		t.Fatal(err)
+	}
+	if err := contas.GarantirTipo(ctx, conta.ID, ""); !errors.Is(err, ErrAcessoNegado) {
+		t.Fatalf("QR code liberado numa conta so da Meta: %v", err)
+	}
+	if err := contas.GarantirTipo(ctx, conta.ID, "meta"); err != nil {
+		t.Fatalf("Meta recusada: %v", err)
+	}
+	if _, err := contas.AtualizarConta(ctx, master, models.Conta{ID: conta.ID, PlanoID: plano.ID, LimiteInstancias: -1, TiposInstancia: "telegram"}); !errors.Is(err, ErrEntradaInvalida) {
+		t.Fatalf("tipo invalido aceito: %v", err)
+	}
+	if c, err := contas.AtualizarConta(ctx, master, models.Conta{ID: conta.ID, PlanoID: plano.ID, LimiteInstancias: -1, TiposInstancia: "instagram,whatsapp,meta"}); err != nil || c.TiposInstancia != "" {
+		t.Fatalf("todos os tipos deveriam virar vazio: %q %v", c.TiposInstancia, err)
+	}
+
 	// Ultimo dono nao pode ser rebaixado; atendente desativado perde a sessao.
 	if _, err := contas.AtualizarMembro(ctx, master, dono.UsuarioID, models.PapelAdmin, nil); !errors.Is(err, ErrEntradaInvalida) {
 		t.Fatalf("rebaixou o ultimo dono: %v", err)

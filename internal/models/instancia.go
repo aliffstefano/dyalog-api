@@ -79,6 +79,8 @@ type AcessoDashboard struct {
 	Email       string `json:"email,omitempty"`
 	ContaID     string `json:"conta_id,omitempty"`
 	ContaNome   string `json:"conta_nome,omitempty"`
+	// TiposInstancia: os que a conta pode criar (vazio = todos).
+	TiposInstancia string `json:"tipos_instancia,omitempty"`
 	Papel       string `json:"papel,omitempty"`
 	Superadmin  bool   `json:"superadmin,omitempty"`
 }

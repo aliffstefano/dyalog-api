@@ -346,7 +346,7 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Nome da instancia e obrigatorio") {
 		return
 	}
-	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID, req.Tipo)
 	if !ok {
 		return
 	}
@@ -380,7 +380,7 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 
 // contaDaNovaInstancia: usuario cria na propria conta; o superadmin escolhe
 // (ou deixa sem conta). Confere o limite do plano antes de criar.
-func (h *APIHandler) contaDaNovaInstancia(c *gin.Context, pedida string) (string, bool) {
+func (h *APIHandler) contaDaNovaInstancia(c *gin.Context, pedida, tipo string) (string, bool) {
 	acesso := obterAcessoDashboard(c)
 	contaID := strings.TrimSpace(pedida)
 	if !acesso.TudoLiberado() {
@@ -388,6 +388,10 @@ func (h *APIHandler) contaDaNovaInstancia(c *gin.Context, pedida string) (string
 	}
 	if h.contas != nil && contaID != "" {
 		if err := h.contas.GarantirLimite(c.Request.Context(), contaID); err != nil {
+			h.tratarErro(c, err)
+			return "", false
+		}
+		if err := h.contas.GarantirTipo(c.Request.Context(), contaID, tipo); err != nil {
 			h.tratarErro(c, err)
 			return "", false
 		}

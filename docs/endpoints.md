@@ -29,7 +29,7 @@ Equipe (dono/admin; superadmin informa `conta_id`): `GET /api/v1/equipe`,
 
 Superadmin: `GET|POST /api/v1/contas` (`nome`, `plano_id`, `email_dono`),
 `PUT /api/v1/contas/:id` (`nome`, `plano_id`, `status` ativa/bloqueada,
-`limite_instancias`), `GET|POST /api/v1/planos`, `PUT /api/v1/planos/:id`
+`limite_instancias`, `tipos_instancia` "whatsapp,meta,instagram" ou vazio = todos), `GET|POST /api/v1/planos`, `PUT /api/v1/planos/:id`
 (`nome`, `preco_centavos`, `limite_instancias`, `ativo`),
 `GET /api/v1/administradores`, `POST /api/v1/administradores/convites`.
 

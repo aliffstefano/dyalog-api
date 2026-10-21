@@ -288,6 +288,10 @@ func (s *SQLStore) prepararSchema() error {
 	if _, err := s.db.Exec(`ALTER TABLE instancias_meta ADD COLUMN pin_registro TEXT NOT NULL DEFAULT ''`); err != nil && !erroColunaDuplicada(err) {
 		return fmt.Errorf("erro ao garantir coluna pin_registro: %w", err)
 	}
+	// Tipos de instancia que a conta pode criar (vazio = todos).
+	if _, err := s.db.Exec(`ALTER TABLE contas ADD COLUMN tipos_instancia TEXT NOT NULL DEFAULT ''`); err != nil && !erroColunaDuplicada(err) {
+		return fmt.Errorf("erro ao garantir coluna tipos_instancia da conta: %w", err)
+	}
 	// Webhooks antigos continuam recebendo o base64, como antes.
 	if _, err := s.db.Exec(`ALTER TABLE webhooks ADD COLUMN incluir_base64 BOOLEAN NOT NULL DEFAULT TRUE`); err != nil && !erroColunaDuplicada(err) {
 		return fmt.Errorf("erro ao garantir coluna incluir_base64 do webhook: %w", err)

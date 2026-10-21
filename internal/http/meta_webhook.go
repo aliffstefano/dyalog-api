@@ -67,7 +67,7 @@ func (h *APIHandler) CadastrarViaMeta(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Informe nome, code, waba_id e phone_number_id") {
 		return
 	}
-	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID, models.TipoInstanciaMeta)
 	if !ok {
 		return
 	}
@@ -200,7 +200,7 @@ func (h *APIHandler) CadastrarViaInstagram(c *gin.Context) {
 	if !h.lerJSON(c, &req, nil, "Informe nome e code") {
 		return
 	}
-	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID, models.TipoInstanciaInstagram)
 	if !ok {
 		return
 	}

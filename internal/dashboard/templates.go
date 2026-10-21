@@ -672,6 +672,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
       init: function() {
         ['ni-webhook-ativo','ni-proxy-ativo','ni-rejeitar-chamadas'].forEach(id => document.getElementById(id).addEventListener('change', atualizarNovaInstancia));
         document.querySelectorAll('input[name="ni-tipo"]').forEach(el => el.addEventListener('change', atualizarNovaInstancia));
+        const tiposConta = String((estadoUI.acesso || {}).tipos_instancia || '');
+        if (tiposConta) {
+          const radios = [...document.querySelectorAll('input[name="ni-tipo"]')];
+          radios.forEach(el => { el.parentNode.classList.toggle('hidden', !tiposConta.split(',').includes(el.value)); });
+          const primeiro = radios.find(el => !el.parentNode.classList.contains('hidden'));
+          if (primeiro) primeiro.checked = true;
+        }
         passoNovaInstancia('geral');
         document.getElementById('modal-form').addEventListener('input', () => { document.getElementById('mf-feedback').className = 'modal-feedback hidden'; });
         cadastroMetaUI.resultado = null; cadastroMetaUI.manual = false;
@@ -920,20 +927,24 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'conta-editar': {
       kicker: 'Contas', titulo: 'Editar conta', semInstancia: true,
-      html: '<form id="modal-form" class="stack-form"><label><span>Empresa</span><input type="text" id="mf-nome" required autocomplete="off"></label><label><span>Plano</span><select id="mf-plano"></select></label><label><span>Limite proprio de instancias (0 = o do plano)</span><input type="number" id="mf-limite" min="0"></label><label><span>Situacao</span><select id="mf-status"><option value="ativa">Ativa</option><option value="bloqueada">Bloqueada (ninguem da conta entra)</option></select></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar</button></div></form>',
+      html: '<form id="modal-form" class="stack-form"><label><span>Empresa</span><input type="text" id="mf-nome" required autocomplete="off"></label><label><span>Plano</span><select id="mf-plano"></select></label><label><span>Limite proprio de instancias (0 = o do plano)</span><input type="number" id="mf-limite" min="0"></label><p class="dc-rotulo">Tipos de instancia liberados</p><div class="dc-opcoes"><label class="check-item"><input type="checkbox" class="mf-tipo" value="whatsapp"> QR code (WhatsApp Web)</label><label class="check-item"><input type="checkbox" class="mf-tipo" value="meta"> API oficial (Meta)</label><label class="check-item"><input type="checkbox" class="mf-tipo" value="instagram"> Instagram</label></div><label><span>Situacao</span><select id="mf-status"><option value="ativa">Ativa</option><option value="bloqueada">Bloqueada (ninguem da conta entra)</option></select></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Salvar</button></div></form>',
       init: function() {
         const c = contasUI.contaEditando || {};
         document.getElementById('mf-nome').value = c.nome || '';
         document.getElementById('mf-plano').innerHTML = opcoesPlanos(c.plano_id || '');
         document.getElementById('mf-limite').value = c.limite_instancias || 0;
+        const tipos = String(c.tipos_instancia || '').split(',');
+        document.querySelectorAll('.mf-tipo').forEach(el => { el.checked = !c.tipos_instancia || tipos.includes(el.value); });
         document.getElementById('mf-status').value = c.status || 'ativa';
       },
       submit: async function(e) {
         e.preventDefault();
         const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        const tipos = [...document.querySelectorAll('.mf-tipo:checked')].map(el => el.value);
+        if (!tipos.length) { fb.className = 'modal-feedback error'; fb.textContent = 'Libere pelo menos um tipo de instancia.'; return; }
         btn.disabled = true; fb.className = 'modal-feedback hidden';
         try {
-          await chamar('/api/v1/contas/' + contasUI.contaEditando.id, { method:'PUT', body: JSON.stringify({ nome: document.getElementById('mf-nome').value, plano_id: document.getElementById('mf-plano').value, limite_instancias: parseInt(document.getElementById('mf-limite').value, 10) || 0, status: document.getElementById('mf-status').value }) });
+          await chamar('/api/v1/contas/' + contasUI.contaEditando.id, { method:'PUT', body: JSON.stringify({ nome: document.getElementById('mf-nome').value, plano_id: document.getElementById('mf-plano').value, limite_instancias: parseInt(document.getElementById('mf-limite').value, 10) || 0, tipos_instancia: tipos.join(','), status: document.getElementById('mf-status').value }) });
           mostrarToast('Conta atualizada.', 'success'); fecharModal(); carregarContas();
         } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = err.message; }
         finally { btn.disabled = false; }

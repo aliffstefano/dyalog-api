@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -143,7 +144,7 @@ func (s *ContaService) acessoDoUsuario(ctx context.Context, usuario models.Usuar
 	if conta.Status != models.ContaAtiva {
 		return models.AcessoDashboard{}, fmt.Errorf("%w: conta bloqueada, fale com o suporte", ErrAcessoNegado)
 	}
-	acesso.ContaNome = conta.Nome
+	acesso.ContaNome, acesso.TiposInstancia = conta.Nome, conta.TiposInstancia
 	return acesso, nil
 }
 
@@ -561,6 +562,11 @@ func (s *ContaService) AtualizarConta(ctx context.Context, quem models.AcessoDas
 	if conta.LimiteInstancias >= 0 {
 		atual.LimiteInstancias = conta.LimiteInstancias
 	}
+	tipos, err := normalizarTiposInstancia(conta.TiposInstancia)
+	if err != nil {
+		return models.Conta{}, err
+	}
+	atual.TiposInstancia = tipos
 	if err := s.store.AtualizarConta(ctx, atual); err != nil {
 		return models.Conta{}, err
 	}
@@ -621,6 +627,45 @@ func (s *ContaService) GarantirLimite(ctx context.Context, contaID string) error
 	}
 	if usadas >= limite {
 		return fmt.Errorf("%w: o plano permite %d instancia(s); fale com o suporte para aumentar", ErrLimiteInstancias, limite)
+	}
+	return nil
+}
+
+// normalizarTiposInstancia confere a lista ("meta, instagram") e a devolve
+// sem repetidos; todos marcados vira vazio (= todos, inclusive tipos novos).
+func normalizarTiposInstancia(lista string) (string, error) {
+	validos := []string{models.TipoInstanciaWhatsApp, models.TipoInstanciaMeta, models.TipoInstanciaInstagram}
+	var tipos []string
+	for _, t := range strings.Split(lista, ",") {
+		t = strings.ToLower(strings.TrimSpace(t))
+		if t == "" || slices.Contains(tipos, t) {
+			continue
+		}
+		if !slices.Contains(validos, t) {
+			return "", fmt.Errorf("%w: tipo de instancia invalido: %s", ErrEntradaInvalida, t)
+		}
+		tipos = append(tipos, t)
+	}
+	if len(tipos) == len(validos) {
+		return "", nil
+	}
+	return strings.Join(tipos, ","), nil
+}
+
+// GarantirTipo recusa criar instancia de tipo que a conta nao usa.
+func (s *ContaService) GarantirTipo(ctx context.Context, contaID, tipo string) error {
+	if contaID == "" {
+		return nil
+	}
+	conta, err := s.store.BuscarConta(ctx, contaID)
+	if err != nil {
+		return err
+	}
+	if tipo = strings.ToLower(strings.TrimSpace(tipo)); tipo == "" {
+		tipo = models.TipoInstanciaWhatsApp
+	}
+	if !conta.PermiteTipo(tipo) {
+		return fmt.Errorf("%w: esta conta nao pode criar instancias do tipo %s; fale com o suporte", ErrAcessoNegado, tipo)
 	}
 	return nil
 }

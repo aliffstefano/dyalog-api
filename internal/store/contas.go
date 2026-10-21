@@ -114,8 +114,8 @@ ON CONFLICT(id) DO UPDATE SET nome = excluded.nome, preco_centavos = excluded.pr
 // ── Contas ───────────────────────────────────────────────────────────────────
 
 func (s *SQLStore) CriarConta(ctx context.Context, c models.Conta) error {
-	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO contas (id, nome, plano_id, status, limite_instancias, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)`),
-		c.ID, c.Nome, c.PlanoID, c.Status, c.LimiteInstancias, c.CriadoEm.UTC(), c.AtualizadoEm.UTC())
+	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO contas (id, nome, plano_id, status, limite_instancias, tipos_instancia, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
+		c.ID, c.Nome, c.PlanoID, c.Status, c.LimiteInstancias, c.TiposInstancia, c.CriadoEm.UTC(), c.AtualizadoEm.UTC())
 	if err != nil {
 		return fmt.Errorf("erro ao criar conta: %w", err)
 	}
@@ -123,8 +123,8 @@ func (s *SQLStore) CriarConta(ctx context.Context, c models.Conta) error {
 }
 
 func (s *SQLStore) AtualizarConta(ctx context.Context, c models.Conta) error {
-	resultado, err := s.db.ExecContext(ctx, s.q(`UPDATE contas SET nome = ?, plano_id = ?, status = ?, limite_instancias = ?, atualizado_em = ? WHERE id = ?`),
-		c.Nome, c.PlanoID, c.Status, c.LimiteInstancias, time.Now().UTC(), c.ID)
+	resultado, err := s.db.ExecContext(ctx, s.q(`UPDATE contas SET nome = ?, plano_id = ?, status = ?, limite_instancias = ?, tipos_instancia = ?, atualizado_em = ? WHERE id = ?`),
+		c.Nome, c.PlanoID, c.Status, c.LimiteInstancias, c.TiposInstancia, time.Now().UTC(), c.ID)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar conta: %w", err)
 	}
@@ -133,8 +133,8 @@ func (s *SQLStore) AtualizarConta(ctx context.Context, c models.Conta) error {
 
 func (s *SQLStore) BuscarConta(ctx context.Context, id string) (models.Conta, error) {
 	var c models.Conta
-	err := s.db.QueryRowContext(ctx, s.q(`SELECT id, nome, plano_id, status, limite_instancias, criado_em, atualizado_em FROM contas WHERE id = ?`), id).
-		Scan(&c.ID, &c.Nome, &c.PlanoID, &c.Status, &c.LimiteInstancias, &c.CriadoEm, &c.AtualizadoEm)
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT id, nome, plano_id, status, limite_instancias, tipos_instancia, criado_em, atualizado_em FROM contas WHERE id = ?`), id).
+		Scan(&c.ID, &c.Nome, &c.PlanoID, &c.Status, &c.LimiteInstancias, &c.TiposInstancia, &c.CriadoEm, &c.AtualizadoEm)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Conta{}, ErrContaNaoEncontrada
 	}
@@ -146,7 +146,7 @@ func (s *SQLStore) BuscarConta(ctx context.Context, id string) (models.Conta, er
 
 func (s *SQLStore) ListarContasResumo(ctx context.Context) ([]models.ContaResumo, error) {
 	linhas, err := s.db.QueryContext(ctx, `
-SELECT c.id, c.nome, c.plano_id, c.status, c.limite_instancias, c.criado_em, c.atualizado_em,
+SELECT c.id, c.nome, c.plano_id, c.status, c.limite_instancias, c.tipos_instancia, c.criado_em, c.atualizado_em,
        COALESCE(p.nome, ''), COALESCE(p.limite_instancias, 0),
        (SELECT COUNT(*) FROM instancias i WHERE i.conta_id = c.id),
        (SELECT COUNT(*) FROM usuarios u WHERE u.conta_id = c.id),
@@ -161,7 +161,7 @@ ORDER BY c.nome`)
 	for linhas.Next() {
 		var r models.ContaResumo
 		var limitePlano int
-		if err := linhas.Scan(&r.ID, &r.Nome, &r.PlanoID, &r.Status, &r.LimiteInstancias, &r.CriadoEm, &r.AtualizadoEm,
+		if err := linhas.Scan(&r.ID, &r.Nome, &r.PlanoID, &r.Status, &r.LimiteInstancias, &r.TiposInstancia, &r.CriadoEm, &r.AtualizadoEm,
 			&r.PlanoNome, &limitePlano, &r.Instancias, &r.Usuarios, &r.ConvitesPendentes); err != nil {
 			return nil, err
 		}
