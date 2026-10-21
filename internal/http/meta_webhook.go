@@ -167,11 +167,15 @@ func (h *APIHandler) RetornoLoginInstagram(c *gin.Context) {
 	c.Header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'")
 	c.Data(nethttp.StatusOK, "text/html; charset=utf-8", []byte(`<!doctype html><meta charset="utf-8"><title>Instagram</title>
 <p id="t">Conectando o Instagram...</p>
-<script>
+<script data-cfasync="false">
 var q = new URLSearchParams(location.search);
 var dados = { tipo: 'instagram_login', code: q.get('code') || '', state: q.get('state') || '', erro: q.get('error_description') || q.get('error') || '' };
-if (window.opener) { window.opener.postMessage(dados, location.origin); window.close(); }
-else document.getElementById('t').textContent = 'Volte para o painel e tente de novo (a janela de login precisa ser aberta pelo painel).';
+// O Instagram pode cortar o window.opener (COOP): o BroadcastChannel chega ao
+// painel aberto na mesma origem mesmo assim.
+try { new BroadcastChannel('instagram_login').postMessage(dados); } catch (e) {}
+if (window.opener) window.opener.postMessage(dados, location.origin);
+document.getElementById('t').textContent = 'Pronto. Pode fechar esta janela e voltar ao painel.';
+setTimeout(function () { window.close(); }, 300);
 </script>`))
 }
 

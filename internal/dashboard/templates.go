@@ -2631,6 +2631,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     if (ev.origin !== location.origin || !ev.data || ev.data.tipo !== 'instagram_login' || !cadastroInstagramUI.espera) return;
     cadastroInstagramUI.espera(ev.data);
   });
+  try {
+    new BroadcastChannel('instagram_login').onmessage = ev => {
+      if (ev.data && ev.data.tipo === 'instagram_login' && cadastroInstagramUI.espera) cadastroInstagramUI.espera(ev.data);
+    };
+  } catch (e) {}
   async function conectarComInstagram() {
     const fb = document.getElementById('mf-feedback'), botao = document.getElementById('ni-ig-botao'), texto = document.getElementById('ni-ig-texto');
     const nome = document.getElementById('ni-nome').value.trim();
@@ -2644,7 +2649,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
     try {
       const retorno = await new Promise(ok => {
         cadastroInstagramUI.espera = ok;
-        const vigia = setInterval(() => { if (janela.closed) { clearInterval(vigia); setTimeout(() => ok(null), 500); } }, 500);
+        // Com o opener cortado pelo Instagram, janela.closed fica true logo no
+        // redirect: espera o retorno pelo BroadcastChannel antes de desistir.
+        // ponytail: 2 min fixos; botao "cancelar" se alguem fechar e reclamar.
+        const vigia = setInterval(() => { if (janela.closed) { clearInterval(vigia); setTimeout(() => ok(null), 120000); } }, 500);
       });
       cadastroInstagramUI.espera = null;
       if (!retorno || retorno.erro || !retorno.code) { fb.className = 'modal-feedback error'; fb.textContent = 'Login do Instagram cancelado' + (retorno && retorno.erro ? ': ' + retorno.erro : '.'); return; }
