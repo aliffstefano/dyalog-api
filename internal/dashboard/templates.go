@@ -1783,7 +1783,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   function nomeConversa(c) {
     if (!c) return '';
     if (c.grupo) return 'Grupo ' + numeroDoJid(c.chat_jid);
-    return c.nome || formatarTelefone(numeroDoJid(c.chat_jid)) || c.chat_jid;
+    return c.nome || rotuloJid(c.chat_jid) || c.chat_jid;
   }
   function horaChat(iso) {
     const d = new Date(iso);
@@ -1847,7 +1847,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('chat-enviar').disabled = !aberta;
     const conversa = chatUI.conversas.find(c => c.chat_jid === chatUI.chat) || { chat_jid: chatUI.chat, grupo: String(chatUI.chat).endsWith('@g.us') };
     document.getElementById('chat-topo-nome').textContent = aberta ? nomeConversa(conversa) : 'Selecione uma conversa';
-    document.getElementById('chat-topo-sub').textContent = aberta ? (conversa.grupo ? conversa.chat_jid : formatarTelefone(numeroDoJid(conversa.chat_jid))) : 'Mensagens recebidas e enviadas por esta instancia aparecem aqui.';
+    document.getElementById('chat-topo-sub').textContent = aberta ? (conversa.grupo ? conversa.chat_jid : rotuloJid(conversa.chat_jid)) : 'Mensagens recebidas e enviadas por esta instancia aparecem aqui.';
     const topoAvatar = document.getElementById('chat-topo-avatar');
     topoAvatar.dataset.avatarJid = aberta ? conversa.chat_jid : '';
     topoAvatar.innerHTML = aberta ? avatarChatHTML(conversa.chat_jid, conversa.grupo ? 'G' : iniciais(conversa.nome || numeroDoJid(conversa.chat_jid).slice(-2))) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
@@ -2210,6 +2210,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
   function usoAberto() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'geral'; }
   function auditoriaAberta() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'webhooks'; }
 
+  // rotuloJid: telefone formatado; conversa do Instagram nao tem numero.
+  function rotuloJid(jid) {
+    return String(jid || '').endsWith('@instagram') ? 'Instagram Direct' : formatarTelefone(numeroDoJid(jid));
+  }
   function formatarTelefone(numero) {
     if (String(numero || '').startsWith('@')) return String(numero);
     const n = String(numero || '').replace(/\D/g, '');
