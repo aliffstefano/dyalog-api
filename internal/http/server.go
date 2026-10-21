@@ -106,6 +106,11 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	instanciaService.UsarMeta(enviadorMeta, storeSQL, cfg.BaseURL)
 	instanciaService.UsarAppMeta(service.AppMeta{AppID: cfg.MetaAppID, AppSecret: cfg.MetaAppSecret, ConfigID: cfg.MetaConfigID, Versao: cfg.MetaGraphVersao})
 	mensagemService.UsarMeta(enviadorMeta)
+	// Instagram (Direct): mesmas rotas de envio, pela Graph API do Instagram.
+	enviadorInstagram := meta.NovoEnviadorInstagram(meta.NovoClienteInstagram(cfg.MetaGraphVersao, ""), storeSQL)
+	instanciaService.UsarInstagram(enviadorInstagram, storeSQL, service.AppInstagram{AppID: cfg.InstagramAppID, AppSecret: cfg.InstagramAppSecret})
+	instanciaService.IniciarRenovacaoInstagram(context.Background())
+	mensagemService.UsarInstagram(enviadorInstagram)
 	// Tela de Chat do painel: guarda recebidas (pelos eventos de webhook) e
 	// enviadas pela API.
 	var chatService *service.ChatService
@@ -163,6 +168,7 @@ func NovoServidor(cfg *config.Config) (*Servidor, error) {
 	apiHandler.UsarStatusPublico(service.NovoStatusPublicoService(storeSQL, storeSQL, storeSQL, cfg.BaseURL))
 	metaWebhook := service.NovoMetaWebhookService(storeSQL, storeSQL, storeSQL, storeSQL, enviadorMeta.Cliente(), dispatcher, gerenciador)
 	metaWebhook.UsarApp(cfg.MetaAppSecret, cfg.MetaWebhookVerifyToken)
+	metaWebhook.UsarInstagram(storeSQL, enviadorInstagram.Cliente(), cfg.InstagramAppSecret, cfg.InstagramWebhookVerifyToken)
 	metaWebhook.Iniciar(context.Background())
 	apiHandler.UsarMetaWebhook(metaWebhook)
 	dashboardHandler := dashboard.NovoHandler(cfg, authService)

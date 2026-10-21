@@ -32,7 +32,7 @@ func (s *InstanciaService) CriarComTipo(ctx context.Context, nome, tipo string, 
 		return s.Criar(ctx, nome)
 	case models.TipoInstanciaMeta, "oficial", "cloud":
 	default:
-		return models.Instancia{}, fmt.Errorf("%w: tipo deve ser whatsapp ou meta", ErrEntradaInvalida)
+		return models.Instancia{}, fmt.Errorf("%w: tipo deve ser whatsapp, meta ou instagram", ErrEntradaInvalida)
 	}
 	if s.meta == nil {
 		return models.Instancia{}, fmt.Errorf("%w: API oficial da Meta nao habilitada neste servidor", ErrEntradaInvalida)

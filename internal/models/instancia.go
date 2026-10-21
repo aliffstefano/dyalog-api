@@ -47,6 +47,13 @@ type Instancia struct {
 // whatsapp.
 func (i Instancia) EhMeta() bool { return i.Tipo == TipoInstanciaMeta }
 
+// EhInstagram indica instancia do Direct do Instagram.
+func (i Instancia) EhInstagram() bool { return i.Tipo == TipoInstanciaInstagram }
+
+// SemSessao indica instancia que nao usa sessao do whatsmeow (API oficial ou
+// Instagram): nada de QR code, restaurar sessao ou derrubar conexao.
+func (i Instancia) SemSessao() bool { return i.EhMeta() || i.EhInstagram() }
+
 type ConfiguracaoAvancadaInstancia struct {
 	ManterOnline             bool   `json:"manter_online"`
 	RejeitarChamadas         bool   `json:"rejeitar_chamadas"`

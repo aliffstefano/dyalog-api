@@ -13,7 +13,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261020">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20261021">
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -181,7 +181,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
                 <h1 id="instancia-titulo">-</h1>
                 <span id="status-badge" class="status-badge neutro">-</span>
                 <span id="inst-business" class="dc-selo hidden">Business</span>
-                <span id="inst-oficial" class="dc-selo dc-selo-oficial hidden">API oficial</span>
+                <span id="inst-oficial" class="dc-selo dc-selo-oficial hidden">API oficial</span><span id="inst-instagram" class="dc-selo dc-selo-instagram hidden">Instagram</span>
               </div>
               <p id="inst-perfil" class="dc-inst-perfil">Conecte para ver o perfil</p>
               <div class="dc-token">
@@ -271,6 +271,19 @@ const paginaInicialHTML = `<!DOCTYPE html>
 
           <!-- Configuracoes -->
           <section class="dc-aba-painel hidden" data-painel-inst="config">
+            <article class="dc-card so-instagram" id="card-instagram">
+              <div class="dc-card-topo"><h3>Instagram</h3><button class="ghost small" onclick="abrirModal('instagram')">Trocar token</button></div>
+              <dl class="dc-dados dc-dados-meta">
+                <div><dt>Conta</dt><dd id="ig-usuario">-</dd></div>
+                <div><dt>Nome</dt><dd id="ig-nome">-</dd></div>
+                <div><dt>ID da conta</dt><dd id="ig-conta-id">-</dd></div>
+              </dl>
+              <p class="dc-rotulo">Webhook do app (Instagram &gt; Configuracao da API com login do Instagram &gt; Configure webhooks, assinando <code>messages</code>, <code>messaging_seen</code>, <code>messaging_postbacks</code> e <code>message_reactions</code>). Vale para todas as contas.</p>
+              <div class="dc-lista">
+                <div class="dc-config-linha"><div><strong>URL de callback</strong><span class="dc-mono" id="ig-webhook-url">-</span></div><button class="ghost small" onclick="copiarDoElemento('ig-webhook-url')">Copiar</button></div>
+              </div>
+              <p class="helper-text">O token vale 60 dias e e renovado sozinho. Texto livre so chega ate 24h depois da ultima mensagem do contato.</p>
+            </article>
             <article class="dc-card so-meta" id="card-meta">
               <div class="dc-card-topo"><h3>API oficial (Meta)</h3><button class="ghost small" onclick="abrirModal('meta')">Atualizar credenciais</button></div>
               <dl class="dc-dados dc-dados-meta">
@@ -655,7 +668,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     },
     'nova-instancia': {
       kicker: 'Configure tudo antes de criar', titulo: 'Nova instancia', semInstancia: true, largo: true,
-      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" class="so-qr" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label><p class="dc-rotulo">Tipo de conexao</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-tipo" value="whatsapp" checked><span>QR code</span></label><label><input type="radio" name="ni-tipo" value="meta"><span>API oficial (Meta)</span></label></div><div id="ni-meta-campos" class="hidden"><div id="ni-meta-es" class="dc-meta-es hidden"><button type="button" class="dc-botao-meta" id="ni-meta-es-botao" onclick="conectarComMeta()"><svg class="dc-ico" viewBox="0 0 24 24"><path d="M2.5 15.5c0-4.5 2.3-9 5.2-9 3.6 0 5.6 9.5 9.1 9.5 1.7 0 2.7-1.6 2.7-3.8 0-3-1.6-5.7-3.6-5.7-2.6 0-4.4 4.4-6.5 7.7-1.4 2.2-2.6 3.3-4 3.3-1.8 0-2.9-1.2-2.9-2Z"/></svg>Conectar com a Meta</button><p class="helper-text" id="ni-meta-es-texto">Quem for usar entra com o Facebook da empresa, escolhe a conta do WhatsApp Business e o numero. A instancia ja nasce conectada, sem copiar token.</p><button type="button" class="dc-link" onclick="mostrarMetaManual(true)">Prefiro informar os dados manualmente</button></div><div id="ni-meta-manual"><p class="helper-text">Dados do app no Meta for Developers (WhatsApp &gt; Configuracao da API). Use um token permanente de Usuario do Sistema: o temporario expira em 24h.</p><div class="form-grid"><label><span>Phone number ID <em>*</em></span><input type="text" id="ni-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="ni-meta-waba" autocomplete="off"></label></div><label><span>Access token <em>*</em></span><input type="password" id="ni-meta-token" autocomplete="new-password"></label><label><span>App secret (recomendado)</span><input type="password" id="ni-meta-secret" autocomplete="new-password" placeholder="Confere a assinatura dos webhooks da Meta"></label><button type="button" class="dc-link hidden" id="ni-meta-voltar-es" onclick="mostrarMetaManual(false)">Voltar para Conectar com a Meta</button></div></div></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao so-qr"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label class="so-qr"><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
+      html: '<form id="modal-form" class="dc-wizard"><nav class="dc-wizard-nav" aria-label="Secoes"><p>Basico</p><button type="button" data-passo="geral" onclick="passoNovaInstancia(\'geral\')">Geral</button><button type="button" data-passo="comportamento" onclick="passoNovaInstancia(\'comportamento\')">Comportamento</button><p>Integracoes</p><button type="button" data-passo="webhook" onclick="passoNovaInstancia(\'webhook\')">Webhook<span class="dc-tag-ativo hidden" id="ni-tag-webhook">Ativo</span></button><button type="button" class="so-qr" data-passo="proxy" onclick="passoNovaInstancia(\'proxy\')">Proxy<span class="dc-tag-ativo hidden" id="ni-tag-proxy">Ativo</span></button></nav><div class="dc-wizard-corpo"><section data-passo="geral"><h4>Geral</h4><p class="helper-text">Nome e identificacao da instancia.</p><label><span>Nome <em>*</em></span><input type="text" id="ni-nome" placeholder="Ex.: Atendimento" autocomplete="off"></label><label><span>Token personalizado (opcional)</span><span class="dc-campo-acao"><input type="text" id="ni-token" placeholder="Gerado automaticamente se ficar vazio" autocomplete="off"><button type="button" class="ghost small" onclick="gerarTokenNovaInstancia()">Gerar</button></span></label><p class="dc-rotulo">Tipo de conexao</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-tipo" value="whatsapp" checked><span>QR code</span></label><label><input type="radio" name="ni-tipo" value="meta"><span>API oficial (Meta)</span></label><label><input type="radio" name="ni-tipo" value="instagram"><span>Instagram</span></label></div><div id="ni-ig-campos" class="hidden"><div id="ni-ig-login" class="dc-meta-es hidden"><button type="button" class="dc-botao-meta dc-botao-instagram" id="ni-ig-botao" onclick="conectarComInstagram()"><svg class="dc-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.6"/></svg>Conectar com o Instagram</button><p class="helper-text" id="ni-ig-texto">Quem for usar entra com a conta profissional do Instagram e autoriza as mensagens do Direct. A instancia ja nasce conectada.</p></div><p class="helper-text">Ou cole o token gerado no Meta for Developers (Instagram &gt; Configuracao da API com login do Instagram &gt; Gere tokens de acesso). A conta precisa ser profissional (empresa ou criador).</p><label><span>Access token do Instagram</span><input type="password" id="ni-ig-token" autocomplete="new-password"></label></div><div id="ni-meta-campos" class="hidden"><div id="ni-meta-es" class="dc-meta-es hidden"><button type="button" class="dc-botao-meta" id="ni-meta-es-botao" onclick="conectarComMeta()"><svg class="dc-ico" viewBox="0 0 24 24"><path d="M2.5 15.5c0-4.5 2.3-9 5.2-9 3.6 0 5.6 9.5 9.1 9.5 1.7 0 2.7-1.6 2.7-3.8 0-3-1.6-5.7-3.6-5.7-2.6 0-4.4 4.4-6.5 7.7-1.4 2.2-2.6 3.3-4 3.3-1.8 0-2.9-1.2-2.9-2Z"/></svg>Conectar com a Meta</button><p class="helper-text" id="ni-meta-es-texto">Quem for usar entra com o Facebook da empresa, escolhe a conta do WhatsApp Business e o numero. A instancia ja nasce conectada, sem copiar token.</p><button type="button" class="dc-link" onclick="mostrarMetaManual(true)">Prefiro informar os dados manualmente</button></div><div id="ni-meta-manual"><p class="helper-text">Dados do app no Meta for Developers (WhatsApp &gt; Configuracao da API). Use um token permanente de Usuario do Sistema: o temporario expira em 24h.</p><div class="form-grid"><label><span>Phone number ID <em>*</em></span><input type="text" id="ni-meta-phone" autocomplete="off"></label><label><span>WABA ID</span><input type="text" id="ni-meta-waba" autocomplete="off"></label></div><label><span>Access token <em>*</em></span><input type="password" id="ni-meta-token" autocomplete="new-password"></label><label><span>App secret (recomendado)</span><input type="password" id="ni-meta-secret" autocomplete="new-password" placeholder="Confere a assinatura dos webhooks da Meta"></label><button type="button" class="dc-link hidden" id="ni-meta-voltar-es" onclick="mostrarMetaManual(false)">Voltar para Conectar com a Meta</button></div></div></section><section data-passo="comportamento" class="hidden"><h4>Comportamento</h4><p class="helper-text">Como a instancia lida com presenca, leitura, chamadas e historico.</p><div class="dc-opcoes"><label class="dc-opcao so-qr"><input type="checkbox" id="ni-manter-online"><span class="dc-opcao-texto"><strong>Manter online</strong><small>Mostra a instancia como disponivel no WhatsApp.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" id="ni-marcar-lida"><span class="dc-opcao-texto"><strong>Marcar como lida</strong><small>Marca as mensagens recebidas como lidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-grupos"><span class="dc-opcao-texto"><strong>Ignorar grupos</strong><small>Mensagens de grupos nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-ignorar-status" checked><span class="dc-opcao-texto"><strong>Ignorar status</strong><small>Status (stories) nao vao para os webhooks.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao so-qr"><input type="checkbox" id="ni-rejeitar-chamadas"><span class="dc-opcao-texto"><strong>Rejeitar chamadas</strong><small>Recusa automaticamente as chamadas recebidas.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div><label class="hidden" id="ni-mensagem-wrap"><span>Mensagem apos rejeitar chamada</span><textarea id="ni-mensagem-rejeitar" placeholder="No momento nao consigo atender chamadas. Envie uma mensagem por aqui."></textarea></label><label class="so-qr"><span>Dias de historico ao conectar (0 = sem historico)</span><input type="number" id="ni-historico" min="0" max="90" value="0"></label></section><section data-passo="webhook" class="hidden"><h4>Webhook</h4><p class="helper-text">Receba os eventos desta instancia no seu sistema.</p><label class="dc-opcao"><input type="checkbox" id="ni-webhook-ativo"><span class="dc-opcao-texto"><strong>Ativar webhook</strong><small>Envia os eventos escolhidos para a URL abaixo.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-webhook-campos" class="dc-desativado"><label><span>URL <em>*</em></span><input type="url" id="ni-webhook-url" placeholder="https://seu-sistema.com/webhook" autocomplete="off"></label><p class="dc-rotulo">Eventos</p><div class="dc-opcoes"><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="mensagens" checked><span class="dc-opcao-texto"><strong>Mensagens</strong><small>Mensagens recebidas e enviadas.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="recibos"><span class="dc-opcao-texto"><strong>Recibos</strong><small>Entregue e lido.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="chamadas"><span class="dc-opcao-texto"><strong>Chamadas</strong><small>Recebida, aceita, recusada, encerrada.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="status"><span class="dc-opcao-texto"><strong>Status</strong><small>Conexao, QR e desconexao da instancia.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="digitando"><span class="dc-opcao-texto"><strong>Digitando</strong><small>Quando o contato esta digitando.</small></span><span class="dc-chave" aria-hidden="true"></span></label><label class="dc-opcao"><input type="checkbox" class="ni-evento" value="gravando_audio"><span class="dc-opcao-texto"><strong>Gravando audio</strong><small>Quando o contato esta gravando audio.</small></span><span class="dc-chave" aria-hidden="true"></span></label></div></div></section><section data-passo="proxy" class="hidden"><h4>Proxy</h4><p class="helper-text">Conecte esta instancia ao WhatsApp passando por um proxy.</p><label class="dc-opcao"><input type="checkbox" id="ni-proxy-ativo"><span class="dc-opcao-texto"><strong>Ativar proxy</strong><small>Desligado, usa o proxy global do sistema, se houver.</small></span><span class="dc-chave" aria-hidden="true"></span></label><div id="ni-proxy-campos" class="dc-desativado"><p class="dc-rotulo">Protocolo</p><div class="dc-segmentos" role="radiogroup"><label><input type="radio" name="ni-proxy-protocolo" value="http" checked><span>HTTP</span></label><label><input type="radio" name="ni-proxy-protocolo" value="socks5"><span>SOCKS5</span></label></div><div class="form-grid"><label><span>Host <em>*</em></span><input type="text" id="ni-proxy-host" placeholder="Ex.: 192.168.0.1" autocomplete="off"></label><label><span>Porta <em>*</em></span><input type="number" id="ni-proxy-porta" placeholder="Ex.: 1080"></label><label><span>Usuario</span><input type="text" id="ni-proxy-usuario" autocomplete="off"></label><label><span>Senha</span><input type="password" id="ni-proxy-senha" autocomplete="new-password"></label></div></div></section><div id="mf-feedback" class="modal-feedback hidden"></div></div><div class="dc-wizard-rodape"><span class="helper-text"><em>*</em> Obrigatorio</span><div><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Criar instancia</button></div></div></form>',
       init: function() {
         ['ni-webhook-ativo','ni-proxy-ativo','ni-rejeitar-chamadas'].forEach(id => document.getElementById(id).addEventListener('change', atualizarNovaInstancia));
         document.querySelectorAll('input[name="ni-tipo"]').forEach(el => el.addEventListener('change', atualizarNovaInstancia));
@@ -663,6 +676,8 @@ const paginaInicialHTML = `<!DOCTYPE html>
         document.getElementById('modal-form').addEventListener('input', () => { document.getElementById('mf-feedback').className = 'modal-feedback hidden'; });
         cadastroMetaUI.resultado = null; cadastroMetaUI.manual = false;
         carregarConfigCadastroMeta();
+        cadastroInstagramUI.code = '';
+        carregarConfigCadastroInstagram();
         atualizarNovaInstancia();
         document.getElementById('ni-nome').focus();
       },
@@ -750,6 +765,29 @@ const paginaInicialHTML = `<!DOCTYPE html>
             return;
           }
           mostrarToast(d.webhook_assinado ? 'Credenciais salvas e app inscrito nos webhooks da conta.' : 'Credenciais validadas e salvas. Informe o WABA ID para inscrever os webhooks.', 'success');
+          fecharModal();
+          await atualizarInstanciaSelecionada(true);
+        } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }
+        finally { btn.disabled = false; btn.textContent = 'Validar e salvar'; }
+      }
+    },
+    instagram: {
+      kicker: 'Instagram', titulo: 'Token do Instagram',
+      html: '<form id="modal-form" class="stack-form"><p class="helper-text">Cole o novo token (Meta for Developers &gt; Instagram &gt; Gere tokens de acesso). Em branco, so revalida o token salvo e inscreve de novo os webhooks.</p><label><span>Access token</span><input type="password" id="mf-ig-token" autocomplete="new-password"></label><div id="mf-feedback" class="modal-feedback hidden"></div><div class="modal-footer"><button type="button" class="ghost" onclick="fecharModal()">Cancelar</button><button type="submit" class="primary" id="mf-submit">Validar e salvar</button></div></form>',
+      init: function() { document.getElementById('mf-ig-token').focus(); },
+      submit: async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('mf-submit'), fb = document.getElementById('mf-feedback');
+        btn.disabled = true; btn.textContent = 'Validando...'; fb.className = 'modal-feedback hidden';
+        try {
+          const r = await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/instagram', { method:'PUT', body: JSON.stringify({ access_token: document.getElementById('mf-ig-token').value.trim() }) });
+          const d = r?.dados || {};
+          if (d.webhook_assinado === false) {
+            fb.className = 'modal-feedback error';
+            fb.textContent = 'Token salvo, mas o Instagram recusou inscrever o app nos webhooks da conta: ' + (d.webhook_assinatura_erro || '') + '. Sem isso as mensagens recebidas nao chegam.';
+            return;
+          }
+          mostrarToast('Conta do Instagram validada e inscrita nos webhooks.', 'success');
           fecharModal();
           await atualizarInstanciaSelecionada(true);
         } catch(err) { fb.className = 'modal-feedback error'; fb.textContent = 'Erro: ' + err.message; }
@@ -1474,7 +1512,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
       return '<button class="dc-instancia" onclick="selecionarInstancia(\''+textoSeguro(i.id)+'\')">' +
         '<span class="dc-instancia-topo"><span class="dc-avatar dc-avatar-p'+(i.status === 'conectada' ? ' online' : '')+'">'+avatarHTML(perfil, i.nome)+'</span>' +
           '<span class="mini-status '+classeStatus(i.status)+'">'+textoSeguro(rotuloStatus(i.status))+'</span></span>' +
-        '<strong>'+textoSeguro(i.nome)+(i.tipo === 'meta' ? ' <span class="dc-selo dc-selo-oficial">API oficial</span>' : perfil.business ? ' <span class="dc-selo">Business</span>' : '')+'</strong>' +
+        '<strong>'+textoSeguro(i.nome)+(i.tipo === 'meta' ? ' <span class="dc-selo dc-selo-oficial">API oficial</span>' : i.tipo === 'instagram' ? ' <span class="dc-selo dc-selo-instagram">Instagram</span>' : perfil.business ? ' <span class="dc-selo">Business</span>' : '')+'</strong>' +
         '<span class="dc-instancia-id">'+linha+'</span>' +
         '<span class="dc-instancia-rodape"><span>'+numeroUso(uso.envios)+' envios hoje</span><svg class="dc-ico"><use href="#i-seta"/></svg></span>' +
       '</button>';
@@ -1693,7 +1731,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
     return url ? '<img src="' + textoSeguro(url) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' + '<span>' + textoSeguro(rotulo) + '</span>' : '<span>' + textoSeguro(rotulo) + '</span>';
   }
   async function buscarAvatarChat(jid) {
-    if (!jid || chatUI.buscandoAvatar[jid] || instanciaChatEhMeta()) { if (instanciaChatEhMeta()) chatUI.avatares[jid] = ''; return; }
+    if (!jid || chatUI.buscandoAvatar[jid] || instanciaChatEhMeta() || instanciaChatEhInstagram()) { if (instanciaChatEhMeta() || instanciaChatEhInstagram()) chatUI.avatares[jid] = ''; return; }
     chatUI.buscandoAvatar[jid] = true;
     const grupo = jid.endsWith('@g.us');
     const p = new URLSearchParams({ chat_jid: jid }); if (grupo) p.set('grupo', '1');
@@ -1848,6 +1886,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
   function instanciaChatEhMeta() {
     const item = (estadoUI.instancias || []).find(i => i.id === estadoUI.instanciaSelecionada);
     return !!item && item.tipo === 'meta';
+  }
+  function instanciaChatEhInstagram() {
+    const item = (estadoUI.instancias || []).find(i => i.id === estadoUI.instanciaSelecionada);
+    return !!item && item.tipo === 'instagram';
   }
   // Na API oficial, texto livre so chega ate 24h depois da ultima mensagem do
   // contato; depois disso so modelo aprovado.
@@ -2169,6 +2211,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
   function auditoriaAberta() { return estadoUI.abaAtual === 'instancia' && estadoUI.abaInstancia === 'webhooks'; }
 
   function formatarTelefone(numero) {
+    if (String(numero || '').startsWith('@')) return String(numero);
     const n = String(numero || '').replace(/\D/g, '');
     if (n.startsWith('55') && (n.length === 12 || n.length === 13)) {
       const ddd = n.slice(2, 4), resto = n.slice(4);
@@ -2188,10 +2231,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const conectada = d.status === 'conectada';
     document.getElementById('inst-avatar').innerHTML = d.id ? avatarHTML(perfil, d.nome) : '<svg class="dc-ico"><use href="#i-pessoa"/></svg>';
     document.getElementById('inst-avatar').classList.toggle('online', conectada);
+    const instagram = d.tipo === 'instagram';
     const oficial = d.tipo === 'meta';
-    document.getElementById('inst-business').classList.toggle('hidden', !perfil.business || oficial);
+    document.getElementById('inst-business').classList.toggle('hidden', !perfil.business || oficial || instagram);
     document.getElementById('inst-oficial').classList.toggle('hidden', !oficial);
+    document.getElementById('inst-instagram').classList.toggle('hidden', !instagram);
     document.querySelector('.dc-inst').classList.toggle('eh-meta', oficial);
+    document.querySelector('.dc-inst').classList.toggle('eh-instagram', instagram);
     const partes = [perfil.nome_empresa || perfil.nome, formatarTelefone(perfil.numero)].filter(Boolean);
     document.getElementById('inst-perfil').textContent = partes.length ? partes.join(' · ') : 'Conecte para ver o perfil';
     const navAvatar = document.getElementById('nav-inst-avatar');
@@ -2201,9 +2247,17 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('nav-inst-sub').textContent = perfil.nome_empresa || perfil.nome || rotuloStatus(d.status);
     document.getElementById('botao-conectar').classList.toggle('hidden', conectada);
     document.getElementById('botao-desconectar').classList.toggle('hidden', !conectada || !d.id);
-    document.getElementById('botao-conectar').textContent = oficial ? 'Validar credenciais' : ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';
-    if (oficial) document.getElementById('botao-desconectar').classList.add('hidden');
+    document.getElementById('botao-conectar').textContent = (oficial || instagram) ? 'Validar credenciais' : ['aguardando_qrcode','conectando','pareada','autenticando','sincronizando_historico'].includes(d.status) ? 'Ver QR code' : 'Conectar';
+    if (oficial || instagram) document.getElementById('botao-desconectar').classList.add('hidden');
     if (oficial && d.webhook_url !== undefined) renderizarCartaoMeta(d);
+    estadoUI.instagramSelecionada = instagram ? d : null;
+    if (instagram) {
+      const definir = (id, valor) => { document.getElementById(id).textContent = valor || '-'; };
+      definir('ig-usuario', d.instagram_usuario ? '@' + d.instagram_usuario : '');
+      definir('ig-nome', d.instagram_nome);
+      definir('ig-conta-id', d.instagram_conta_id);
+      definir('ig-webhook-url', d.webhook_url);
+    }
     document.getElementById('config-proxy').textContent = d.proxy_configurado ? 'Proprio: ' + (d.proxy_url || '').replace(/\/\/[^@]*@/, '//***@') : 'Usa o proxy global do sistema (se houver).';
     document.getElementById('config-historico').textContent = d.historico_dias ? d.historico_dias + ' dias de historico ao conectar.' : 'Sem historico ao conectar.';
   }
@@ -2244,10 +2298,10 @@ const paginaInicialHTML = `<!DOCTYPE html>
   }
   async function abrirConexao() {
     if (!estadoUI.instanciaSelecionada) return;
-    if (estadoUI.metaSelecionada && estadoUI.metaSelecionada.id === estadoUI.instanciaSelecionada) {
+    if ([estadoUI.metaSelecionada, estadoUI.instagramSelecionada].some(x => x && x.id === estadoUI.instanciaSelecionada)) {
       try {
         await chamar('/api/v1/instancias/' + estadoUI.instanciaSelecionada + '/conectar', { method:'POST' });
-        mostrarToast('Credenciais validadas na Meta.', 'success');
+        mostrarToast('Credenciais validadas.', 'success');
       } catch (err) { mostrarToast(err.message, 'error'); }
       await atualizarInstanciaSelecionada(true);
       return;
@@ -2489,8 +2543,11 @@ const paginaInicialHTML = `<!DOCTYPE html>
     document.getElementById('ni-meta-es').classList.toggle('hidden', !incorporado);
     document.getElementById('ni-meta-manual').classList.toggle('hidden', incorporado);
     document.getElementById('ni-meta-voltar-es').classList.toggle('hidden', !(cadastroMetaUI.config && cadastroMetaUI.config.habilitado));
-    document.getElementById('modal-form').classList.toggle('eh-meta', meta);
-    document.getElementById('mf-submit').textContent = meta ? 'Validar e criar' : 'Criar instancia';
+    const instagram = tipoNovaInstancia() === 'instagram';
+    document.getElementById('ni-ig-campos').classList.toggle('hidden', !instagram);
+    document.getElementById('ni-ig-login').classList.toggle('hidden', !(cadastroInstagramUI.config && cadastroInstagramUI.config.habilitado));
+    document.getElementById('modal-form').classList.toggle('eh-meta', meta || instagram);
+    document.getElementById('mf-submit').textContent = (meta || instagram) ? 'Validar e criar' : 'Criar instancia';
   }
   // ── Cadastro incorporado da Meta ──────────────────────────────────────────────
   // O login da Meta abre num popup (SDK do Facebook). Ao terminar, o SDK devolve
@@ -2554,6 +2611,46 @@ const paginaInicialHTML = `<!DOCTYPE html>
     } finally { botao.disabled = false; }
   }
 
+  // ── Login do Instagram ────────────────────────────────────────────────────────
+  // Abre o login do Instagram num popup; a pagina /instagram/retorno devolve o
+  // code por postMessage (mesma origem) e o painel troca pelo token.
+  const cadastroInstagramUI = { config: null, code: '', espera: null };
+  async function carregarConfigCadastroInstagram() {
+    try {
+      const r = await fetch('/api/v1/instagram/cadastro', { headers:{'Content-Type':'application/json'} });
+      const d = await r.json().catch(() => null);
+      cadastroInstagramUI.config = r.ok ? (d && d.dados) : null;
+    } catch (e) { cadastroInstagramUI.config = null; }
+    if (document.getElementById('ni-ig-login')) atualizarNovaInstancia();
+  }
+  window.addEventListener('message', ev => {
+    if (ev.origin !== location.origin || !ev.data || ev.data.tipo !== 'instagram_login' || !cadastroInstagramUI.espera) return;
+    cadastroInstagramUI.espera(ev.data);
+  });
+  async function conectarComInstagram() {
+    const fb = document.getElementById('mf-feedback'), botao = document.getElementById('ni-ig-botao'), texto = document.getElementById('ni-ig-texto');
+    const nome = document.getElementById('ni-nome').value.trim();
+    if (!nome) { fb.className = 'modal-feedback error'; fb.textContent = 'Informe o nome da instancia antes de conectar.'; document.getElementById('ni-nome').focus(); return; }
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const state = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    const janela = window.open(cadastroInstagramUI.config.url_login + '&state=' + state, 'login-instagram', 'width=520,height=720');
+    if (!janela) { fb.className = 'modal-feedback error'; fb.textContent = 'O navegador bloqueou a janela de login. Libere popups para este site.'; return; }
+    botao.disabled = true;
+    try {
+      const retorno = await new Promise(ok => {
+        cadastroInstagramUI.espera = ok;
+        const vigia = setInterval(() => { if (janela.closed) { clearInterval(vigia); setTimeout(() => ok(null), 500); } }, 500);
+      });
+      cadastroInstagramUI.espera = null;
+      if (!retorno || retorno.erro || !retorno.code) { fb.className = 'modal-feedback error'; fb.textContent = 'Login do Instagram cancelado' + (retorno && retorno.erro ? ': ' + retorno.erro : '.'); return; }
+      if (retorno.state !== state) { fb.className = 'modal-feedback error'; fb.textContent = 'Resposta do login nao confere. Tente de novo.'; return; }
+      cadastroInstagramUI.code = retorno.code;
+      texto.textContent = 'Conta conectada. Criando a instancia...';
+      await criarNovaInstancia({ preventDefault() {} });
+    } finally { botao.disabled = false; }
+  }
+
   function tipoNovaInstancia() {
     return (document.querySelector('input[name="ni-tipo"]:checked') || {}).value || 'whatsapp';
   }
@@ -2574,13 +2671,16 @@ const paginaInicialHTML = `<!DOCTYPE html>
     const eventos = Array.from(document.querySelectorAll('.ni-evento:checked')).map(el => el.value);
     if (webhook && (!valor('ni-webhook-url') || !eventos.length)) return falhar('webhook', 'Informe a URL e ao menos um evento do webhook.');
     const meta = tipoNovaInstancia() === 'meta';
+    const instagram = tipoNovaInstancia() === 'instagram';
+    const loginInstagram = instagram && cadastroInstagramUI.code;
+    if (instagram && !loginInstagram && !document.getElementById('ni-ig-token').value.trim()) return falhar('geral', cadastroInstagramUI.config && cadastroInstagramUI.config.habilitado ? 'Clique em "Conectar com o Instagram" ou cole o access token.' : 'Cole o access token do Instagram.');
     const incorporado = meta && cadastroMetaUI.resultado;
     if (meta && !incorporado && !cadastroMetaUI.manual && cadastroMetaUI.config && cadastroMetaUI.config.habilitado) return falhar('geral', 'Clique em "Conectar com a Meta" ou escolha informar os dados manualmente.');
     if (meta && !incorporado && (!valor('ni-meta-phone') || !document.getElementById('ni-meta-token').value.trim())) return falhar('geral', 'Informe o Phone number ID e o access token da Meta.');
-    const proxy = !meta && marcado('ni-proxy-ativo');
+    const proxy = !meta && !instagram && marcado('ni-proxy-ativo');
     if (proxy && (!valor('ni-proxy-host') || !valor('ni-proxy-porta'))) return falhar('proxy', 'Informe host e porta do proxy.');
 
-    btn.disabled = true; btn.textContent = meta ? 'Validando na Meta...' : 'Criando...'; fb.className = 'modal-feedback hidden';
+    btn.disabled = true; btn.textContent = (meta || instagram) ? 'Validando...' : 'Criando...'; fb.className = 'modal-feedback hidden';
     let id = '';
     const pendencias = [];
     try {
@@ -2590,8 +2690,18 @@ const paginaInicialHTML = `<!DOCTYPE html>
         corpo.meta = { phone_number_id: valor('ni-meta-phone'), waba_id: valor('ni-meta-waba'),
           access_token: document.getElementById('ni-meta-token').value.trim(), app_secret: document.getElementById('ni-meta-secret').value.trim() };
       }
+      if (instagram) {
+        corpo.tipo = 'instagram';
+        corpo.instagram = { access_token: document.getElementById('ni-ig-token').value.trim() };
+      }
       let r;
-      if (incorporado) {
+      if (loginInstagram) {
+        // O code do Instagram vale uma vez so: usa assim que o login termina.
+        const code = cadastroInstagramUI.code;
+        cadastroInstagramUI.code = '';
+        r = await chamar('/api/v1/instagram/cadastro', { method:'POST', body: JSON.stringify({ nome, code }) });
+        if (r) (r.dados.avisos || []).forEach(a => pendencias.push(a));
+      } else if (incorporado) {
         // O code da Meta vale poucos segundos: usa assim que o login termina.
         const dadosMeta = cadastroMetaUI.resultado;
         cadastroMetaUI.resultado = null;
@@ -2599,6 +2709,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         if (r) (r.dados.avisos || []).forEach(a => pendencias.push(a));
       } else {
         r = await chamar('/api/v1/instancias', { method:'POST', body: JSON.stringify(corpo) });
+        if (r && r.dados.avisos) r.dados.avisos.forEach(a => pendencias.push(a));
       }
       if (!r) return;
       id = r.dados.id;
@@ -2613,7 +2724,7 @@ const paginaInicialHTML = `<!DOCTYPE html>
         manter_online: marcado('ni-manter-online'), rejeitar_chamadas: marcado('ni-rejeitar-chamadas'),
         mensagem_rejeitar_chamadas: valor('ni-mensagem-rejeitar'), marcar_lida_automatico: marcado('ni-marcar-lida'),
         ignorar_grupos: marcado('ni-ignorar-grupos'), ignorar_status: marcado('ni-ignorar-status') });
-      const dias = meta ? 0 : parseInt(valor('ni-historico')) || 0;
+      const dias = (meta || instagram) ? 0 : parseInt(valor('ni-historico')) || 0;
       if (dias > 0) await etapa('Historico', base + '/historico', 'PUT', { dias });
       if (webhook) await etapa('Webhook', base + '/webhooks', 'POST', { nome: 'Principal', url: valor('ni-webhook-url'), eventos });
       if (proxy) {
@@ -2625,13 +2736,13 @@ const paginaInicialHTML = `<!DOCTYPE html>
     } catch (err) {
       fb.className = 'modal-feedback error'; fb.textContent = 'Erro ao criar: ' + err.message;
       return;
-    } finally { btn.disabled = false; btn.textContent = meta ? 'Validar e criar' : 'Criar instancia'; }
+    } finally { btn.disabled = false; btn.textContent = (meta || instagram) ? 'Validar e criar' : 'Criar instancia'; }
     fecharModal();
     await carregarTudo(true);
     if (pendencias.length) mostrarToast('Instancia criada, mas falhou: ' + pendencias.join(' | ') + '. Ajuste na pagina da instancia.', 'error');
-    else mostrarToast(incorporado ? 'Instancia oficial conectada pela Meta.' : meta ? 'Instancia oficial criada. Cadastre a URL de webhook na Meta (aba Configuracoes).' : 'Instancia criada. Conecte para ler o QR code.', 'success');
+    else mostrarToast(instagram ? 'Instancia do Instagram conectada. Confira o webhook do app na aba Configuracoes.' : incorporado ? 'Instancia oficial conectada pela Meta.' : meta ? 'Instancia oficial criada. Cadastre a URL de webhook na Meta (aba Configuracoes).' : 'Instancia criada. Conecte para ler o QR code.', 'success');
     await selecionarInstancia(id);
-    if (meta) trocarAbaInstancia('config');
+    if (meta || instagram) trocarAbaInstancia('config');
   }
 
 

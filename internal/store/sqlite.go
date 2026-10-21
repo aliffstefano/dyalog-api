@@ -457,6 +457,18 @@ CREATE TABLE IF NOT EXISTS instancias_meta (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_meta_phone ON instancias_meta(phone_number_id) WHERE phone_number_id <> '';
 
+CREATE TABLE IF NOT EXISTS instancias_instagram (
+    instancia_id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    usuario TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    foto_url TEXT NOT NULL DEFAULT '',
+    access_token TEXT NOT NULL DEFAULT '',
+    atualizado_em DATETIME NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_instagram_conta ON instancias_instagram(conta_id) WHERE conta_id <> '';
+
 CREATE TABLE IF NOT EXISTS instancias_perfil (
     instancia_id TEXT PRIMARY KEY,
     dados TEXT NOT NULL DEFAULT '',
@@ -812,6 +824,18 @@ CREATE TABLE IF NOT EXISTS instancias_meta (
     FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_meta_phone ON instancias_meta(phone_number_id) WHERE phone_number_id <> '';
+
+CREATE TABLE IF NOT EXISTS instancias_instagram (
+    instancia_id TEXT PRIMARY KEY,
+    conta_id TEXT NOT NULL DEFAULT '',
+    usuario TEXT NOT NULL DEFAULT '',
+    nome TEXT NOT NULL DEFAULT '',
+    foto_url TEXT NOT NULL DEFAULT '',
+    access_token TEXT NOT NULL DEFAULT '',
+    atualizado_em TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(instancia_id) REFERENCES instancias(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_instancias_instagram_conta ON instancias_instagram(conta_id) WHERE conta_id <> '';
 
 CREATE TABLE IF NOT EXISTS instancias_perfil (
     instancia_id TEXT PRIMARY KEY,

@@ -48,6 +48,18 @@ type MetaWebhookService struct {
 	// de callback unica do app, /webhook/meta, que atende todas as instancias.
 	appSecret   string
 	verifyToken string
+	// Instagram: mesma fila de webhooks, URL /webhook/instagram.
+	igStore       store.InstagramStore
+	igCliente     *meta.ClienteInstagram
+	igAppSecret   string
+	igVerifyToken string
+}
+
+// UsarInstagram liga a URL de callback do Instagram (INSTAGRAM_APP_SECRET e
+// INSTAGRAM_WEBHOOK_VERIFY_TOKEN; sem este, vale o META_WEBHOOK_VERIFY_TOKEN).
+func (s *MetaWebhookService) UsarInstagram(igStore store.InstagramStore, cliente *meta.ClienteInstagram, appSecret, verifyToken string) {
+	s.igStore, s.igCliente = igStore, cliente
+	s.igAppSecret, s.igVerifyToken = strings.TrimSpace(appSecret), strings.TrimSpace(verifyToken)
 }
 
 func NovoMetaWebhookService(instancias store.InstanciaStore, metaStore store.MetaStore, entradas store.MetaWebhookStore, processadas store.MensagemProcessadaStore, cliente *meta.Cliente, dispatcher *webhookdispatch.Dispatcher, midias salvadorMidia) *MetaWebhookService {
@@ -102,6 +114,32 @@ func (s *MetaWebhookService) VerificarApp(modo, token, challenge string) (string
 		return "", ErrAssinaturaMetaInvalida
 	}
 	return challenge, nil
+}
+
+// VerificarInstagram e o GET de verificacao da URL do Instagram.
+func (s *MetaWebhookService) VerificarInstagram(modo, token, challenge string) (string, error) {
+	esperado := cmp.Or(s.igVerifyToken, s.verifyToken)
+	if s.igStore == nil || esperado == "" {
+		return "", ErrInstanciaNaoEncontrada
+	}
+	if modo != "subscribe" || token != esperado {
+		return "", ErrAssinaturaMetaInvalida
+	}
+	return challenge, nil
+}
+
+// ReceberInstagram confere a assinatura com a chave secreta do app do
+// Instagram (ou o META_APP_SECRET) e grava. A instancia sai do id da conta.
+func (s *MetaWebhookService) ReceberInstagram(ctx context.Context, corpo []byte, assinatura string) error {
+	if s.igStore == nil || (s.igAppSecret == "" && s.appSecret == "") {
+		return ErrInstanciaNaoEncontrada
+	}
+	if !meta.AssinaturaValida(corpo, assinatura, s.igAppSecret) && !meta.AssinaturaValida(corpo, assinatura, s.appSecret) {
+		fmt.Println("instagram: webhook recusado: assinatura nao confere com INSTAGRAM_APP_SECRET nem META_APP_SECRET")
+		return ErrAssinaturaMetaInvalida
+	}
+	fmt.Printf("instagram: webhook recebido (%d bytes)\n", len(corpo))
+	return s.guardar(ctx, "", corpo)
 }
 
 // Receber valida a assinatura, grava e responde. Sem App Secret salvo, a
@@ -225,6 +263,9 @@ func (s *MetaWebhookService) processar(instanciaFixa string, corpo []byte) error
 	}
 	ctx, cancelar := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancelar()
+	if webhook.Objeto == "instagram" {
+		return s.processarInstagram(ctx, corpo)
+	}
 	for _, entrada := range webhook.Entradas {
 		for _, mudanca := range entrada.Mudancas {
 			if mudanca.Campo != "messages" {
@@ -330,6 +371,88 @@ func (s *MetaWebhookService) anexarMidia(ctx context.Context, instanciaID string
 	}
 	jid := mensagem.De + "@s.whatsapp.net"
 	salva, err := s.midias.SalvarMidiaRecebidaExterna(instanciaID, mensagem.ID, jid, jid, tipo, cmp.Or(midia.MimeType, mimeType), midia.NomeArquivo, recebida, arquivo)
+	if err != nil {
+		return err
+	}
+	s.midias.AnexarMidiaAoPayload(dados, salva)
+	return nil
+}
+
+// processarInstagram trata o webhook do Direct: cada entry e uma conta
+// profissional, cada messaging um evento.
+func (s *MetaWebhookService) processarInstagram(ctx context.Context, corpo []byte) error {
+	if s.igStore == nil {
+		return nil
+	}
+	var webhook meta.WebhookInstagram
+	if err := json.Unmarshal(corpo, &webhook); err != nil {
+		return fmt.Errorf("corpo do webhook do Instagram invalido: %w", err)
+	}
+	for _, entrada := range webhook.Entradas {
+		cred, err := s.igStore.ObterCredenciaisInstagramPorConta(ctx, entrada.ID)
+		if err != nil {
+			fmt.Printf("instagram: webhook da conta %q ignorado: nenhuma instancia com essa conta\n", entrada.ID)
+			continue
+		}
+		instancia, err := s.instancias.BuscarPorID(ctx, cred.InstanciaID)
+		if err != nil {
+			continue
+		}
+		for _, evento := range entrada.Eventos {
+			s.processarEventoInstagram(ctx, instancia, cred, evento)
+		}
+	}
+	return nil
+}
+
+func (s *MetaWebhookService) processarEventoInstagram(ctx context.Context, instancia models.Instancia, cred models.CredenciaisInstagram, evento meta.EventoInstagram) {
+	if evento.Lida != nil {
+		s.dispatcher.DispararEvento(ctx, instancia.ID, models.EventoWebhookRecibos, meta.DadosReciboInstagram(evento))
+		return
+	}
+	eco := evento.Mensagem != nil && evento.Mensagem.Eco
+	nome, usuario := "", ""
+	if !eco {
+		nome, usuario = s.igCliente.NomeContato(ctx, cred.AccessToken, evento.Remetente.ID)
+	}
+	dados := meta.DadosMensagemInstagram(evento, nome, usuario)
+	if dados == nil {
+		return
+	}
+	id, _ := dados["mensagem_id"].(string)
+	recebida, _ := dados["recebida_em"].(time.Time)
+	jid := evento.Contato() + meta.SufixoInstagram
+	// A mensagem apagada vem com o mesmo mid da original: nao entra no
+	// controle de reentrega.
+	if s.processadas != nil && id != "" && dados["acao"] != "apagada" {
+		inserida, err := s.processadas.RegistrarMensagemProcessada(ctx, models.MensagemProcessada{
+			InstanciaID: instancia.ID, ChatJID: jid, MensagemID: id, RemetenteJID: jid,
+			RecebidaEm: recebida, Origem: "instagram", ProcessadaEm: time.Now().UTC(),
+		})
+		if err == nil && !inserida {
+			return // reentrega
+		}
+	}
+	fmt.Printf("instagram: %s %s de %s na instancia %s\n", dados["tipo"], id, evento.Contato(), instancia.ID)
+	if endereco, tipo := evento.AnexoInstagram(); endereco != "" && s.midias != nil {
+		if err := s.anexarMidiaInstagram(ctx, instancia.ID, id, jid, endereco, tipo, recebida, dados); err != nil {
+			dados["midia_erro"] = err.Error()
+		}
+	}
+	if instancia.MarcarLidaAutomatico && !eco && evento.Mensagem != nil {
+		if _, err := s.igCliente.Enviar(ctx, cred.AccessToken, evento.Remetente.ID, map[string]any{"sender_action": "mark_seen"}); err != nil {
+			fmt.Printf("instagram: erro ao marcar como vista na instancia %s: %v\n", instancia.ID, err)
+		}
+	}
+	s.dispatcher.DispararEvento(ctx, instancia.ID, models.EventoWebhookMensagens, dados)
+}
+
+func (s *MetaWebhookService) anexarMidiaInstagram(ctx context.Context, instanciaID, mensagemID, jid, endereco, tipo string, recebida time.Time, dados map[string]any) error {
+	arquivo, mimeType, err := s.igCliente.BaixarURL(ctx, endereco)
+	if err != nil {
+		return err
+	}
+	salva, err := s.midias.SalvarMidiaRecebidaExterna(instanciaID, mensagemID, jid, jid, tipo, mimeType, "", recebida, arquivo)
 	if err != nil {
 		return err
 	}

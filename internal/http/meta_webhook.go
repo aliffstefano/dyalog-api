@@ -130,3 +130,104 @@ func responderWebhookMeta(c *gin.Context, err error) {
 		c.Status(nethttp.StatusInternalServerError)
 	}
 }
+
+// VerificarWebhookInstagram e ReceberWebhookInstagram atendem a URL de
+// callback do Instagram (/webhook/instagram). Os eventos vao para a instancia
+// pelo id da conta.
+func (h *APIHandler) VerificarWebhookInstagram(c *gin.Context) {
+	if h.metaWebhook == nil {
+		c.Status(nethttp.StatusNotFound)
+		return
+	}
+	challenge, err := h.metaWebhook.VerificarInstagram(c.Query("hub.mode"), c.Query("hub.verify_token"), c.Query("hub.challenge"))
+	if err != nil {
+		c.String(nethttp.StatusForbidden, "verify_token invalido ou INSTAGRAM_WEBHOOK_VERIFY_TOKEN nao configurado")
+		return
+	}
+	c.String(nethttp.StatusOK, challenge)
+}
+
+func (h *APIHandler) ReceberWebhookInstagram(c *gin.Context) {
+	if h.metaWebhook == nil {
+		c.Status(nethttp.StatusNotFound)
+		return
+	}
+	corpo, err := io.ReadAll(io.LimitReader(c.Request.Body, 5<<20))
+	if err != nil {
+		c.Status(nethttp.StatusBadRequest)
+		return
+	}
+	responderWebhookMeta(c, h.metaWebhook.ReceberInstagram(c.Request.Context(), corpo, c.GetHeader("X-Hub-Signature-256")))
+}
+
+// RetornoLoginInstagram e a pagina para onde o Instagram volta depois do
+// login: entrega code e state ao painel que abriu o popup (mesma origem) e
+// fecha. A troca do code pelo token e feita pelo painel, ja autenticado.
+func (h *APIHandler) RetornoLoginInstagram(c *gin.Context) {
+	c.Header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'")
+	c.Data(nethttp.StatusOK, "text/html; charset=utf-8", []byte(`<!doctype html><meta charset="utf-8"><title>Instagram</title>
+<p id="t">Conectando o Instagram...</p>
+<script>
+var q = new URLSearchParams(location.search);
+var dados = { tipo: 'instagram_login', code: q.get('code') || '', state: q.get('state') || '', erro: q.get('error_description') || q.get('error') || '' };
+if (window.opener) { window.opener.postMessage(dados, location.origin); window.close(); }
+else document.getElementById('t').textContent = 'Volte para o painel e tente de novo (a janela de login precisa ser aberta pelo painel).';
+</script>`))
+}
+
+// ConfigCadastroInstagram entrega ao painel o endereco do login do Instagram.
+func (h *APIHandler) ConfigCadastroInstagram(c *gin.Context) {
+	if !h.garantirCriarInstancia(c) {
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Configuracao do login do Instagram", h.instanciaService.ConfigCadastroInstagram()))
+}
+
+// CadastrarViaInstagram troca o code do login e cria a instancia do Instagram.
+func (h *APIHandler) CadastrarViaInstagram(c *gin.Context) {
+	if !h.garantirCriarInstancia(c) {
+		return
+	}
+	var req struct {
+		Nome    string `json:"nome"`
+		Code    string `json:"code"`
+		ContaID string `json:"conta_id"`
+	}
+	if !h.lerJSON(c, &req, nil, "Informe nome e code") {
+		return
+	}
+	contaID, ok := h.contaDaNovaInstancia(c, req.ContaID)
+	if !ok {
+		return
+	}
+	instancia, avisos, err := h.instanciaService.CadastrarViaInstagram(c.Request.Context(), req.Nome, req.Code)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	if !h.atribuirConta(c, &instancia, contaID) {
+		return
+	}
+	marcarInstanciaAuditoria(c, instancia.ID)
+	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia do Instagram criada pelo login", gin.H{
+		"id": instancia.ID, "instancia": instancia, "avisos": avisos,
+	}))
+}
+
+// ConfigurarInstagramInstancia troca o token da conta (vazio revalida).
+func (h *APIHandler) ConfigurarInstagramInstancia(c *gin.Context) {
+	if !h.garantirInstanciaGerenciar(c, c.Param("id")) {
+		return
+	}
+	var req models.ConfigurarInstagramRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", "JSON invalido: "+err.Error())
+		return
+	}
+	resumo, err := h.instanciaService.ConfigurarInstagram(c.Request.Context(), c.Param("id"), req)
+	if err != nil {
+		h.tratarErro(c, err)
+		return
+	}
+	c.JSON(nethttp.StatusOK, models.NovaRespostaSucesso("Conta do Instagram validada e salva", resumo))
+}

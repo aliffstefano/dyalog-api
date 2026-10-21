@@ -1208,6 +1208,67 @@ Contato novo e a primeira mensagem para quem nunca conversou com o numero
 `retencao_dias`). O historico de envios e guardado por `USO_RETENTION_DAYS`
 dias (padrao 30).
 
+## Instagram (Direct)
+
+Instancia do tipo `instagram` conversa pelo Direct de uma conta profissional
+(empresa ou criador) usando a API do Instagram com login do Instagram. As
+rotas de envio sao as mesmas (`/batepapo/...`), e os eventos saem nos mesmos
+webhooks da instancia com `origem: "instagram"`.
+
+- `chat_jid` das conversas: `<IGSID>@instagram` (IGSID e o id do contato no
+  Instagram, que chega no webhook). Em `numero` tambem vale o IGSID puro.
+- Envia: texto, imagem, audio, video e documento (so por `arquivo_url`
+  publica; a legenda vai como texto logo depois), botoes (respostas rapidas,
+  ate 13), reacao (so coracao; `emoji` vazio tira), presenca (digitando) e
+  marcar como vista.
+- Nao tem: lista, enquete, localizacao, contato, figurinha, editar/apagar,
+  template, grupos. Esses envios voltam `422 nao_suportado_api_oficial`.
+- Janela de 24h: texto livre so chega ate 24h depois da ultima mensagem do
+  contato (fora dela volta `422 fora_janela_24h`).
+- Recebe: texto, anexos (baixados e guardados como as midias do WhatsApp;
+  a URL original vai em `anexo_url`), respostas a story (`story`), reacoes,
+  cliques em botao, mensagens apagadas, leituras (evento `recibos`) e o eco
+  do que a propria conta enviou (`enviado_por_mim: true`, inclusive pelo app
+  do Instagram).
+- O token vale 60 dias e e renovado sozinho uma vez por semana.
+
+### Criar a instancia
+
+Com token (Meta for Developers > Instagram > Configuracao da API com login do
+Instagram > Gere tokens de acesso > Adicionar conta):
+
+```json
+POST /api/v1/instancias
+{ "nome": "Instagram da loja", "tipo": "instagram", "instagram": { "access_token": "IGAA..." } }
+```
+
+Pelo login do Instagram (botao **Conectar com o Instagram** no painel):
+`GET /api/v1/instagram/cadastro` devolve `url_login` (acrescente `&state=`),
+o login volta em `/instagram/retorno`, que entrega o `code` ao painel, e
+`POST /api/v1/instagram/cadastro` com `nome` e `code` cria a instancia.
+
+`PUT /api/v1/instancias/:id/instagram` com `access_token` troca o token (em
+branco, revalida o salvo e inscreve de novo os webhooks da conta).
+
+### Configurar no app da Meta
+
+Variaveis: `INSTAGRAM_APP_ID` e `INSTAGRAM_APP_SECRET` (ID e chave secreta
+**do app do Instagram**, na tela "Configuracao da API com login do
+Instagram") e `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` (vazio usa o
+`META_WEBHOOK_VERIFY_TOKEN`).
+
+1. Configure webhooks: URL de callback `https://SEU_DOMINIO/webhook/instagram`,
+   o token de verificacao acima, e assine `messages`, `messaging_seen`,
+   `messaging_postbacks` e `message_reactions`. A URL unica atende todas as
+   contas: cada evento vai para a instancia pelo id da conta. A Meta so manda
+   webhooks com o app em modo **Publicado**.
+2. Configure o login da empresa no Instagram: URI de redirecionamento
+   `https://SEU_DOMINIO/instagram/retorno`. Abra o painel por esse mesmo
+   dominio (o login devolve o code so para a mesma origem).
+3. Para contas fora do app (clientes), a Meta exige analise do app com
+   acesso avancado a `instagram_business_basic` e
+   `instagram_business_manage_messages`.
+
 ## Chat do painel
 
 A aba **Chat** da instancia mostra as conversas e permite responder, para

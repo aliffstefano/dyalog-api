@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"dyalog-api-go/internal/meta"
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/store"
 )
@@ -178,7 +179,7 @@ func (s *ChatService) IniciarLimpeza(ctx context.Context, retencaoDias int) {
 // enviado pelo numero: com o numero conhecido, a chave e numero@s.whatsapp.net.
 func jidConversa(jid, numero string) string {
 	jid = strings.TrimSpace(jid)
-	if strings.HasSuffix(jid, "@g.us") || strings.HasSuffix(jid, "@s.whatsapp.net") || strings.HasSuffix(jid, "@broadcast") {
+	if strings.HasSuffix(jid, "@g.us") || strings.HasSuffix(jid, "@s.whatsapp.net") || strings.HasSuffix(jid, "@broadcast") || strings.HasSuffix(jid, meta.SufixoInstagram) {
 		return jid
 	}
 	if digitos := soDigitos(numero); digitos != "" {

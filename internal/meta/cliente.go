@@ -72,11 +72,12 @@ func (e *Erro) Error() string {
 	return fmt.Sprintf("Meta respondeu erro %d: %s", e.Codigo, texto)
 }
 
-// ErroJanela24h indica mensagem livre fora da janela de 24h: so template e
-// aceito.
+// ErroJanela24h indica mensagem livre fora da janela de 24h: no WhatsApp so
+// template e aceito; no Instagram (10/2534022) so depois que o contato
+// escrever de novo.
 func ErroJanela24h(err error) bool {
 	var e *Erro
-	return errors.As(err, &e) && e.Codigo == 131047
+	return errors.As(err, &e) && (e.Codigo == 131047 || (e.Codigo == 10 && e.Subcodigo == 2534022))
 }
 
 // ErroCredenciais indica token invalido, expirado ou sem permissao.

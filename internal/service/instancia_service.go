@@ -27,6 +27,11 @@ type InstanciaService struct {
 	metaStore store.MetaStore
 	baseURL   string
 	appMeta   AppMeta
+	// instagram e igStore atendem as instancias do Instagram (ver
+	// instancia_instagram.go).
+	instagram    *meta.EnviadorInstagram
+	igStore      store.InstagramStore
+	appInstagram AppInstagram
 }
 
 func NovoInstanciaService(instanciaStore store.InstanciaStore, gerenciador *whatsapp.GerenciadorInstancias) *InstanciaService {
@@ -42,7 +47,7 @@ func (s *InstanciaService) RestaurarSessoes(ctx context.Context) {
 		return
 	}
 	for _, instancia := range instancias {
-		if instancia.EhMeta() || !deveRestaurarSessaoNoStartup(instancia.Status) {
+		if instancia.SemSessao() || !deveRestaurarSessaoNoStartup(instancia.Status) {
 			continue
 		}
 		instanciaID := instancia.ID
@@ -200,6 +205,10 @@ func (s *InstanciaService) Listar(ctx context.Context) ([]models.Instancia, erro
 	for i := range instancias {
 		if instancias[i].EhMeta() {
 			s.preencherPerfilMeta(ctx, &instancias[i])
+			continue
+		}
+		if instancias[i].EhInstagram() {
+			s.preencherPerfilInstagram(ctx, &instancias[i])
 			continue
 		}
 		instancias[i].Perfil = s.perfilWhatsApp(ctx, instancias[i].ID, salvos)
@@ -363,7 +372,7 @@ func (s *InstanciaService) Excluir(ctx context.Context, id string) error {
 	if err != nil {
 		return s.mapearErro(err)
 	}
-	if instancia.EhMeta() {
+	if instancia.SemSessao() {
 		// Sem sessao whatsmeow; as credenciais saem junto (ON DELETE CASCADE).
 		return s.mapearErro(s.store.Excluir(ctx, id))
 	}
@@ -380,6 +389,14 @@ func (s *InstanciaService) Conectar(ctx context.Context, id string) (models.Inst
 	instanciaSalva, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return models.Instancia{}, "", s.mapearErro(err)
+	}
+	if instanciaSalva.EhInstagram() {
+		// No Instagram "conectar" e revalidar o token salvo.
+		if _, err := s.ConfigurarInstagram(ctx, id, models.ConfigurarInstagramRequest{}); err != nil {
+			return models.Instancia{}, "", err
+		}
+		instancia, err := s.store.BuscarPorID(ctx, id)
+		return instancia, "", s.mapearErro(err)
 	}
 	if instanciaSalva.EhMeta() {
 		// Na API oficial "conectar" e revalidar o token na Meta.
@@ -414,8 +431,8 @@ func (s *InstanciaService) SolicitarCodigoPareamento(ctx context.Context, id, nu
 	if err != nil {
 		return models.Instancia{}, nil, s.mapearErro(err)
 	}
-	if instanciaSalva.EhMeta() {
-		return models.Instancia{}, nil, fmt.Errorf("%w: instancia da API oficial nao usa codigo de pareamento", ErrEntradaInvalida)
+	if instanciaSalva.SemSessao() {
+		return models.Instancia{}, nil, fmt.Errorf("%w: instancia da API oficial ou do Instagram nao usa codigo de pareamento", ErrEntradaInvalida)
 	}
 	s.gerenciador.ConfigurarHistorico(id, instanciaSalva.HistoricoDias)
 	if _, err := s.store.AtualizarStatus(ctx, id, models.StatusInstanciaConectando); err != nil {
@@ -450,8 +467,9 @@ func (s *InstanciaService) Desconectar(ctx context.Context, id string) (models.I
 	if err != nil {
 		return models.Instancia{}, s.mapearErro(err)
 	}
-	if instancia.EhMeta() {
-		// Na API oficial nao ha sessao para derrubar; so marca como desligada.
+	if instancia.SemSessao() {
+		// Na API oficial e no Instagram nao ha sessao para derrubar; so marca
+		// como desligada.
 		return s.store.AtualizarStatus(ctx, id, models.StatusInstanciaDesconectada)
 	}
 	if err := s.gerenciador.Desconectar(ctx, id); err != nil {
@@ -465,6 +483,13 @@ func (s *InstanciaService) Status(ctx context.Context, id string) (map[string]in
 	instancia, err := s.store.BuscarPorID(ctx, id)
 	if err != nil {
 		return nil, s.mapearErro(err)
+	}
+	if instancia.EhInstagram() && s.instagram != nil {
+		resumo := s.StatusInstagram(ctx, instancia)
+		s.preencherPerfilInstagram(ctx, &instancia)
+		resumo["perfil"] = instancia.Perfil
+		resumo["configuracao_avancada"] = configuracaoAvancada(instancia)
+		return resumo, nil
 	}
 	if instancia.EhMeta() && s.meta != nil {
 		resumo, err := s.StatusMeta(ctx, instancia)
@@ -524,8 +549,8 @@ func (s *InstanciaService) QRCode(ctx context.Context, id string) (map[string]in
 	if err != nil {
 		return nil, s.mapearErro(err)
 	}
-	if instancia.EhMeta() {
-		return nil, fmt.Errorf("%w: instancia da API oficial nao usa QR code", ErrEntradaInvalida)
+	if instancia.SemSessao() {
+		return nil, fmt.Errorf("%w: instancia da API oficial ou do Instagram nao usa QR code", ErrEntradaInvalida)
 	}
 	info, err := s.gerenciador.Info(ctx, id)
 	if err != nil {

@@ -82,6 +82,12 @@ type Config struct {
 	MetaAppSecret          string
 	MetaConfigID           string
 	MetaWebhookVerifyToken string
+	// App do Instagram (produto "API do Instagram com login do Instagram"):
+	// ID e chave secreta do app do Instagram, e o token de verificacao da URL
+	// /webhook/instagram (vazio usa META_WEBHOOK_VERIFY_TOKEN).
+	InstagramAppID              string
+	InstagramAppSecret          string
+	InstagramWebhookVerifyToken string
 	// E-mails do painel (convites, redefinir senha) pela Resend.
 	ResendAPIKey   string
 	EmailRemetente string
@@ -173,6 +179,9 @@ func Carregar() (*Config, error) {
 		MetaAppSecret:                 obter("META_APP_SECRET", ""),
 		MetaConfigID:                  obter("META_CONFIG_ID", ""),
 		MetaWebhookVerifyToken:        obter("META_WEBHOOK_VERIFY_TOKEN", ""),
+		InstagramAppID:                obter("INSTAGRAM_APP_ID", ""),
+		InstagramAppSecret:            obter("INSTAGRAM_APP_SECRET", ""),
+		InstagramWebhookVerifyToken:   obter("INSTAGRAM_WEBHOOK_VERIFY_TOKEN", ""),
 		ResendAPIKey:                  obter("RESEND_API_KEY", ""),
 		EmailRemetente:                obter("EMAIL_REMETENTE", ""),
 		ResendBaseURL:                 obter("RESEND_BASE_URL", ""),

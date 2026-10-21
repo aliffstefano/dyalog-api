@@ -2998,6 +2998,30 @@ body::before {
   display: none;
 }
 
+/* Instancia do Instagram: mesma ideia, com o cartao da conta. */
+.eh-instagram .so-qr,
+.eh-instagram .so-meta {
+  display: none !important;
+}
+
+.dc-inst:not(.eh-instagram) .so-instagram {
+  display: none;
+}
+
+.dc-selo.dc-selo-instagram {
+  color: #d62976;
+  border-color: rgba(214, 41, 118, 0.45);
+  background: rgba(214, 41, 118, 0.12);
+}
+
+.dc-botao-meta.dc-botao-instagram {
+  background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af);
+}
+
+.dc-botao-meta.dc-botao-instagram:not(:disabled):hover {
+  filter: brightness(0.92);
+}
+
 .dc-selo.dc-selo-oficial {
   color: #3b82f6;
   border-color: rgba(59, 130, 246, 0.45);

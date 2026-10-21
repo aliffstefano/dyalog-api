@@ -26,6 +26,10 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 	engine.GET("/webhook/meta", apiHandler.VerificarWebhookMetaApp)
 	engine.POST("/webhook/meta", apiHandler.ReceberWebhookMetaApp)
 	engine.GET("/webhook/meta/:id", apiHandler.VerificarWebhookMeta)
+	engine.GET("/webhook/instagram", apiHandler.VerificarWebhookInstagram)
+	engine.POST("/webhook/instagram", apiHandler.ReceberWebhookInstagram)
+	// Retorno do login do Instagram (abre no popup e devolve o code ao painel).
+	engine.GET("/instagram/retorno", apiHandler.RetornoLoginInstagram)
 	engine.POST("/webhook/meta/:id", apiHandler.ReceberWebhookMeta)
 
 	engine.POST("/api/v1/auth/login", apiHandler.LoginDashboard)
@@ -73,6 +77,8 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/instancias", apiHandler.CriarInstancia)
 		apiAuth.GET("/meta/cadastro", apiHandler.ConfigCadastroMeta)
 		apiAuth.POST("/meta/cadastro", apiHandler.CadastrarViaMeta)
+		apiAuth.GET("/instagram/cadastro", apiHandler.ConfigCadastroInstagram)
+		apiAuth.POST("/instagram/cadastro", apiHandler.CadastrarViaInstagram)
 		apiAuth.GET("/instancias", apiHandler.ListarInstancias)
 		apiAuth.GET("/instancias/:id", apiHandler.BuscarInstancia)
 		apiAuth.DELETE("/instancias/:id", apiHandler.ExcluirInstancia)
@@ -85,6 +91,7 @@ func registrarRotas(engine *gin.Engine, cfg *config.Config, apiHandler *APIHandl
 		apiAuth.POST("/instancias/:id/pairing-code", apiHandler.SolicitarCodigoPareamentoInstancia)
 		apiAuth.POST("/instancias/:id/desconectar", apiHandler.DesconectarInstancia)
 		apiAuth.PUT("/instancias/:id/meta", apiHandler.ConfigurarMetaInstancia)
+		apiAuth.PUT("/instancias/:id/instagram", apiHandler.ConfigurarInstagramInstancia)
 		apiAuth.GET("/instancias/:id/meta/modelos", apiHandler.ListarModelosMeta)
 		apiAuth.GET("/instancias/:id/status", apiHandler.StatusInstancia)
 		apiAuth.GET("/instancias/:id/qrcode", apiHandler.QRCodeInstancia)

@@ -19,6 +19,7 @@ type MensagemService struct {
 	usoStore       store.UsoStore
 	gerenciador    *whatsapp.GerenciadorInstancias
 	meta           *meta.Enviador
+	instagram      *meta.EnviadorInstagram
 	chat           *ChatService
 }
 
@@ -54,17 +55,25 @@ type enviador interface {
 var (
 	_ enviador = (*whatsapp.GerenciadorInstancias)(nil)
 	_ enviador = (*meta.Enviador)(nil)
+	_ enviador = (*meta.EnviadorInstagram)(nil)
 )
 
 // UsarMeta liga o envio pela API oficial para as instancias do tipo meta.
 func (s *MensagemService) UsarMeta(e *meta.Enviador) { s.meta = e }
 
+// UsarInstagram liga o envio pelo Direct para as instancias do Instagram.
+func (s *MensagemService) UsarInstagram(e *meta.EnviadorInstagram) { s.instagram = e }
+
 // enviadorPara escolhe por onde a instancia envia. Instancia que nao existe
 // segue para o whatsmeow, que ja responde com o erro certo.
 func (s *MensagemService) enviadorPara(ctx context.Context, instanciaID string) enviador {
-	if s.meta != nil {
-		if instancia, err := s.instanciaStore.BuscarPorID(ctx, instanciaID); err == nil && instancia.EhMeta() {
+	if s.meta != nil || s.instagram != nil {
+		instancia, err := s.instanciaStore.BuscarPorID(ctx, instanciaID)
+		switch {
+		case err == nil && instancia.EhMeta() && s.meta != nil:
 			return s.meta
+		case err == nil && instancia.EhInstagram() && s.instagram != nil:
+			return s.instagram
 		}
 	}
 	return s.gerenciador

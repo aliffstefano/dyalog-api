@@ -124,3 +124,45 @@ func TestClienteEnviarEErro(t *testing.T) {
 		t.Fatalf("erro de janela 24h nao reconhecido: %v", err)
 	}
 }
+
+func TestWebhookInstagram(t *testing.T) {
+	corpo := `{"object":"instagram","entry":[{"id":"conta1","messaging":[
+		{"sender":{"id":"igsid1"},"recipient":{"id":"conta1"},"timestamp":1700000000000,"message":{"mid":"m1","text":"oi","reply_to":{"mid":"m0"}}},
+		{"sender":{"id":"conta1"},"recipient":{"id":"igsid1"},"timestamp":1700000001000,"message":{"mid":"m2","text":"ola","is_echo":true}},
+		{"sender":{"id":"igsid1"},"recipient":{"id":"conta1"},"timestamp":1700000002000,"reaction":{"mid":"m2","action":"react","reaction":"love"}},
+		{"sender":{"id":"igsid1"},"recipient":{"id":"conta1"},"timestamp":1700000003000,"message":{"mid":"m1","is_deleted":true}},
+		{"sender":{"id":"igsid1"},"recipient":{"id":"conta1"},"timestamp":1700000004000,"message":{"mid":"m3","attachments":[{"type":"image","payload":{"url":"https://cdn/x.jpg"}}]}},
+		{"sender":{"id":"igsid1"},"recipient":{"id":"conta1"},"timestamp":1700000005000,"read":{"mid":"m2"}}
+	]}]}`
+	var w WebhookInstagram
+	if err := json.Unmarshal([]byte(corpo), &w); err != nil {
+		t.Fatal(err)
+	}
+	ev := w.Entradas[0].Eventos
+	recebida := DadosMensagemInstagram(ev[0], "Ana", "ana")
+	if recebida["chat_jid"] != "igsid1@instagram" || recebida["conteudo"] != "oi" || recebida["direcao"] != "entrada" || recebida["nome_remetente"] != "Ana" || recebida["resposta_mensagem_id"] != "m0" {
+		t.Fatalf("recebida: %v", recebida)
+	}
+	eco := DadosMensagemInstagram(ev[1], "", "")
+	if eco["chat_jid"] != "igsid1@instagram" || eco["enviado_por_mim"] != true || eco["direcao"] != "saida" {
+		t.Fatalf("eco: %v", eco)
+	}
+	if r := DadosMensagemInstagram(ev[2], "", ""); r["tipo"] != "reacao" || r["conteudo"] != "❤️" || r["mensagem_reagida_id"] != "m2" {
+		t.Fatalf("reacao: %v", r)
+	}
+	if a := DadosMensagemInstagram(ev[3], "", ""); a["acao"] != "apagada" || a["mensagem_id"] != "m1" {
+		t.Fatalf("apagada: %v", a)
+	}
+	if url, tipo := ev[4].AnexoInstagram(); url != "https://cdn/x.jpg" || tipo != "imagem" {
+		t.Fatalf("anexo: %s %s", url, tipo)
+	}
+	if DadosMensagemInstagram(ev[5], "", "") != nil || DadosReciboInstagram(ev[5])["status"] != "lida" {
+		t.Fatal("leitura deveria virar so recibo")
+	}
+	if para, err := DestinatarioInstagram("", "igsid1@instagram"); err != nil || para != "igsid1" {
+		t.Fatalf("destinatario: %q %v", para, err)
+	}
+	if _, err := DestinatarioInstagram("", "5511999999999@s.whatsapp.net"); !errors.Is(err, ErrEntradaInvalidaInstagram) {
+		t.Fatalf("jid do WhatsApp deveria ser recusado: %v", err)
+	}
+}

@@ -61,8 +61,9 @@ type criarInstanciaRequest struct {
 	// ContaID: so o superadmin escolhe; usuario cria na propria conta.
 	ContaID string `json:"conta_id"`
 	// Tipo: "whatsapp" (QR code, padrao) ou "meta" (API oficial).
-	Tipo string                        `json:"tipo"`
-	Meta *models.ConfigurarMetaRequest `json:"meta"`
+	Tipo      string                             `json:"tipo"`
+	Meta      *models.ConfigurarMetaRequest      `json:"meta"`
+	Instagram *models.ConfigurarInstagramRequest `json:"instagram"`
 }
 
 type webhookRequest struct {
@@ -349,7 +350,18 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 	if !ok {
 		return
 	}
-	instancia, err := h.instanciaService.CriarComTipo(c.Request.Context(), req.Nome, req.Tipo, req.Meta)
+	var instancia models.Instancia
+	var avisos []string
+	var err error
+	if strings.EqualFold(strings.TrimSpace(req.Tipo), models.TipoInstanciaInstagram) {
+		token := ""
+		if req.Instagram != nil {
+			token = req.Instagram.AccessToken
+		}
+		instancia, avisos, err = h.instanciaService.CriarInstagram(c.Request.Context(), req.Nome, token)
+	} else {
+		instancia, err = h.instanciaService.CriarComTipo(c.Request.Context(), req.Nome, req.Tipo, req.Meta)
+	}
 	if err != nil {
 		h.tratarErro(c, err)
 		return
@@ -359,6 +371,10 @@ func (h *APIHandler) CriarInstancia(c *gin.Context) {
 	}
 	marcarInstanciaAuditoria(c, instancia.ID)
 	h.descreverAuditoria(c, "Instancia criada: "+instancia.Nome)
+	if len(avisos) > 0 {
+		c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia criada com sucesso", gin.H{"id": instancia.ID, "instancia": instancia, "avisos": avisos}))
+		return
+	}
 	c.JSON(nethttp.StatusCreated, models.NovaRespostaSucesso("Instancia criada com sucesso", instancia))
 }
 
@@ -1405,6 +1421,8 @@ func (h *APIHandler) tratarErro(c *gin.Context, err error) {
 		h.responderErro(c, nethttp.StatusConflict, "modo_atualizacao_invalido", "O sistema esta em modo aviso; troque para modo preparo para gerar artefato")
 	case errors.Is(err, meta.ErrSemWABA):
 		h.responderErro(c, nethttp.StatusUnprocessableEntity, "sem_waba_id", err.Error())
+	case errors.Is(err, meta.ErrEntradaInvalidaInstagram):
+		h.responderErro(c, nethttp.StatusBadRequest, "entrada_invalida", err.Error())
 	case errors.Is(err, meta.ErrNaoSuportado):
 		h.responderErro(c, nethttp.StatusUnprocessableEntity, "nao_suportado_api_oficial", err.Error())
 	case meta.ErroJanela24h(err):
