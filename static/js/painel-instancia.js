@@ -457,8 +457,45 @@
       el.className = 'dc-chamada-entrando hidden';
       el.setAttribute('role', 'alertdialog');
       document.body.appendChild(el);
+      tornarArrastavel(el);
     }
     return el;
+  }
+
+  // Arrasta o card (voz ou video) por qualquer lugar da tela; lembra a posicao.
+  function tornarArrastavel(el) {
+    const limitar = (x, y) => [
+      Math.max(0, Math.min(x, window.innerWidth - el.offsetWidth)),
+      Math.max(0, Math.min(y, window.innerHeight - el.offsetHeight)),
+    ];
+    const posicionar = (x, y) => {
+      [x, y] = limitar(x, y);
+      Object.assign(el.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto' });
+    };
+    try {
+      const salva = JSON.parse(localStorage.getItem('posCardChamada') || 'null');
+      if (salva) requestAnimationFrame(() => posicionar(salva.x, salva.y));
+    } catch (e) {}
+    let inicio = null;
+    el.addEventListener('pointerdown', ev => {
+      if (ev.button !== 0 || ev.target.closest('button, video, a, input')) return;
+      const r = el.getBoundingClientRect();
+      inicio = { dx: ev.clientX - r.left, dy: ev.clientY - r.top };
+      el.setPointerCapture(ev.pointerId);
+      el.classList.add('arrastando');
+    });
+    el.addEventListener('pointermove', ev => { if (inicio) posicionar(ev.clientX - inicio.dx, ev.clientY - inicio.dy); });
+    const soltar = () => {
+      if (!inicio) return;
+      inicio = null;
+      el.classList.remove('arrastando');
+      const r = el.getBoundingClientRect();
+      try { localStorage.setItem('posCardChamada', JSON.stringify({ x: r.left, y: r.top })); } catch (e) {}
+    };
+    el.addEventListener('pointerup', soltar);
+    el.addEventListener('pointercancel', soltar);
+    // Tela redimensionada: o card nao fica fora da vista.
+    window.addEventListener('resize', () => { if (el.style.left) posicionar(parseFloat(el.style.left), parseFloat(el.style.top)); });
   }
 
   function mostrarChamada(c) {

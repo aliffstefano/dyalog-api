@@ -4055,6 +4055,16 @@ select option:disabled {
   display: none;
 }
 
+.dc-chamada-entrando {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.dc-chamada-entrando.arrastando {
+  cursor: grabbing;
+}
+
 .dc-chamada-anel {
   display: grid;
   place-items: center;
