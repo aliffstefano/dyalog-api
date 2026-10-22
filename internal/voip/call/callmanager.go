@@ -37,6 +37,7 @@ type CallManager struct {
 	acceptedByJid         string
 	debeEnabled           bool
 	naoAudioLogados       atomic.Int32 // diagnostico de video (VOIP_DEBUG_XML)
+	videoLogados          atomic.Int32
 
 	encodeBuf    []float32
 	encodeBufPos int
@@ -48,6 +49,8 @@ type CallManager struct {
 	OnIncoming    func(*CallInfo)
 	OnEnded       func(*CallInfo)
 	OnPeerAudio   func([]float32)
+	// OnPeerVideo recebe o RTP de video ja descriptografado (H.264, RFC 6184).
+	OnPeerVideo func(pkt *media.RtpPacket)
 }
 
 func NewCallManager(sock core.VoipSocket, log *slog.Logger) *CallManager {

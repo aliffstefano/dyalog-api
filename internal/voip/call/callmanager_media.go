@@ -5,6 +5,7 @@ import (
 	"dyalog-api-go/internal/voip/media"
 	"dyalog-api-go/internal/voip/transport"
 	"dyalog-api-go/internal/voip/wanode"
+	"fmt"
 	"time"
 )
 
@@ -107,6 +108,33 @@ func (m *CallManager) startSilenceKeepaliveLocked() {
 	}()
 }
 
+// onRelayVideo descriptografa o video do peer (mesmas chaves do audio, contexto por
+// SSRC) e entrega o RTP H.264 a quem estiver consumindo.
+func (m *CallManager) onRelayVideo(data []byte) {
+	m.mu.Lock()
+	srtp := m.srtpSession
+	m.mu.Unlock()
+	if srtp == nil || m.OnPeerVideo == nil {
+		return
+	}
+	pkt, err := srtp.UnprotectStream(data)
+	if err != nil {
+		if wanode.DebugXMLEnabled() && m.videoLogados.Add(1) <= 20 {
+			m.log.Info("video srtp unprotect falhou", "err", err, "len", len(data))
+		}
+		return
+	}
+	if len(pkt.Payload) == 0 {
+		return
+	}
+	// Confirma o empacotamento: RFC 6184 comeca com o header de NAL (tipo em &0x1f).
+	if wanode.DebugXMLEnabled() && m.videoLogados.Add(1) <= 20 {
+		n := min(len(pkt.Payload), 8)
+		m.log.Info("video rtp descriptografado", "seq", pkt.Header.SequenceNumber, "ts", pkt.Header.Timestamp, "marker", pkt.Header.Marker, "payload_ini", fmt.Sprintf("%x", pkt.Payload[:n]))
+	}
+	m.OnPeerVideo(pkt)
+}
+
 func (m *CallManager) onRelayData(data []byte) {
 	if transport.IsStunPacket(data) {
 		return
@@ -117,7 +145,15 @@ func (m *CallManager) onRelayData(data []byte) {
 	if len(data) < 12 {
 		return
 	}
+	// RTCP (SR/SDES) passa pelo filtro de RTP; o PT dele nao e de midia.
+	if transport.IsRtcpPacket(data) {
+		return
+	}
 	pt := data[1] & 0x7f
+	if pt == core.PayloadTypeWhatsAppVideoH264 {
+		m.onRelayVideo(data)
+		return
+	}
 	if pt != core.PayloadTypeWhatsAppOpus {
 		// Diagnostico de video (VOIP_DEBUG_XML=1): payload type e ssrc do que o
 		// relay entrega e nao e audio. So os primeiros 40 por chamada.

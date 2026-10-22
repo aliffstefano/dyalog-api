@@ -4,6 +4,8 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"strings"
+	"sync"
 	"sync/atomic"
 
 	"dyalog-api-go/internal/voip/media"
@@ -24,6 +26,10 @@ type Bridge struct {
 	dc         atomic.Pointer[webrtc.DataChannel]
 	audioTrack *webrtc.TrackLocalStaticRTP
 	log        *slog.Logger
+
+	videoTrack    *webrtc.TrackLocalStaticRTP
+	videoMu       sync.Mutex
+	aguardandoIDR bool // descarta ate o primeiro SPS/IDR: sem ele o navegador fica preto
 
 	pcmuSeq       uint16
 	pcmuTimestamp uint32
@@ -61,6 +67,25 @@ func NovoBridge(sdpOferta string, servidoresICE []webrtc.ICEServer, log *slog.Lo
 	if _, err := pc.AddTrack(audioTrack); err != nil {
 		_ = pc.Close()
 		return nil, "", err
+	}
+
+	// So chamada de video: o painel oferece m=video recvonly.
+	if strings.Contains(sdpOferta, "m=video") {
+		videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{
+			MimeType:    webrtc.MimeTypeH264,
+			ClockRate:   90000,
+			SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+		}, "dyalog-video", "dyalog-call")
+		if err != nil {
+			_ = pc.Close()
+			return nil, "", err
+		}
+		if _, err := pc.AddTrack(videoTrack); err != nil {
+			_ = pc.Close()
+			return nil, "", err
+		}
+		br.videoTrack = videoTrack
+		br.aguardandoIDR = true
 	}
 
 	pc.OnTrack(func(track *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
