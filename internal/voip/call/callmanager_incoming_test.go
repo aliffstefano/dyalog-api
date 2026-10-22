@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"dyalog-api-go/internal/voip/core"
+
+	waBinary "go.mau.fi/whatsmeow/binary"
 )
 
 // Incoming media path: once a relay connects for an accepted incoming call
@@ -45,5 +47,39 @@ func TestOnRelayConnectedOnlyPromotesConnecting(t *testing.T) {
 	if m2 := (&CallManager{log: slog.Default()}); m2.currentCall == nil {
 		// nil currentCall must not panic.
 		m2.onRelayConnected()
+	}
+}
+
+func terminateNode(from, reason string) *waBinary.Node {
+	return &waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"from": from}, Content: []waBinary.Node{
+		{Tag: "reject", Attrs: waBinary.Attrs{"call-id": "CID", "reason": reason}},
+	}}
+}
+
+// Reject uncallable de outro device (hosted.lid da nossa conta) nao encerra;
+// o do proprio peer, e qualquer outro reason, encerram.
+func TestTerminateUncallableFromNonPeerIgnored(t *testing.T) {
+	novo := func() *CallManager {
+		m := NewCallManager(nil, slog.Default())
+		m.currentCall = NewIncomingCall("CID", "225408540778703@lid", "225408540778703@lid", "", core.CallMediaTypeAudio)
+		return m
+	}
+
+	m := novo()
+	m.HandleCallTerminate(terminateNode("64720979652716:99@hosted.lid", "uncallable"))
+	if m.currentCall.IsEnded() {
+		t.Fatal("uncallable de device hosted nao deveria encerrar")
+	}
+
+	m = novo()
+	m.HandleCallTerminate(terminateNode("64720979652716:99@hosted.lid", "declined"))
+	if !m.currentCall.IsEnded() {
+		t.Fatal("declined de outro device deveria encerrar")
+	}
+
+	m = novo()
+	m.HandleCallTerminate(terminateNode("225408540778703@lid", "uncallable"))
+	if !m.currentCall.IsEnded() {
+		t.Fatal("uncallable do peer deveria encerrar")
 	}
 }

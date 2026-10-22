@@ -37,6 +37,7 @@ const (
 	EndCallReasonFailed       EndCallReason = "failed"
 	EndCallReasonDoNotDisturb EndCallReason = "do_not_disturb"
 	EndCallReasonUnknown      EndCallReason = "unknown"
+	EndCallReasonUncallable   EndCallReason = "uncallable"
 )
 
 const (

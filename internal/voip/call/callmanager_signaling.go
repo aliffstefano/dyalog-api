@@ -276,6 +276,15 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 			reason = core.EndCallReason(r)
 		}
 	}
+	if reason == core.EndCallReasonUncallable && !fromCallPeer(wanode.AttrString(node.Attrs, "from"), call.PeerJid) {
+		// Outro device da conta de quem liga (ex.: device hosted da Cloud API)
+		// recusa com uncallable porque nao atende chamadas; os demais devices
+		// continuam tocando, entao a chamada nao acabou.
+		m.log.Info("ignoring uncallable from non-peer device", "call_id", call.CallID,
+			"from", wanode.AttrString(node.Attrs, "from"), "peer", call.PeerJid)
+		m.mu.Unlock()
+		return
+	}
 	m.log.Info("call terminated by peer", "call_id", call.CallID, "reason", string(reason))
 	if wanode.DebugXMLEnabled() && info != nil {
 		m.log.Info("voip xml terminate recebido", "call_id", call.CallID,
@@ -290,4 +299,15 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 		m.OnEnded(ended)
 	}
 	m.cleanupMedia()
+}
+
+// fromCallPeer diz se o JID de origem do terminate/reject pertence ao peer da
+// chamada, ignorando sufixo de device e servidor (lid/hosted.lid).
+func fromCallPeer(from, peer string) bool {
+	f, err1 := types.ParseJID(from)
+	p, err2 := types.ParseJID(peer)
+	if err1 != nil || err2 != nil {
+		return true // sem dados para comparar: mantem o comportamento antigo
+	}
+	return f.User == p.User
 }
