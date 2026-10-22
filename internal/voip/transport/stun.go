@@ -167,6 +167,12 @@ func IsStunPacket(data []byte) bool {
 	return data[0]&0xc0 == 0
 }
 
+// IsRtcpPacket separa RTCP de RTP (RFC 5761): o byte 1 de RTCP vai de 192 a 223
+// (SR=200, SDES=202...), o que em RTP seria o payload type 64-95 com o marker ligado.
+func IsRtcpPacket(data []byte) bool {
+	return len(data) >= 2 && data[0]&0xc0 == 0x80 && data[1] >= 192 && data[1] <= 223
+}
+
 func IsRtpPacket(data []byte) bool {
 	if len(data) < 2 {
 		return false

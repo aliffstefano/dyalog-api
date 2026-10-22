@@ -463,7 +463,7 @@
 
   function mostrarChamada(c) {
     if (toqueUI.atual && toqueUI.atual.id === c.chamada_id) return;
-    toqueUI.atual = { id: c.chamada_id, numero: c.numero, atendida: false };
+    toqueUI.atual = { id: c.chamada_id, numero: c.numero, atendida: false, video: c.tipo === 'video' };
     const el = caixa();
     const numero = formatarTelefone(c.numero) || c.peer_jid || 'Numero desconhecido';
     el.innerHTML = '<div class="dc-chamada-anel"><svg class="dc-ico"><use href="#i-telefone"/></svg></div>' +
@@ -476,6 +476,8 @@
   function esconderChamada() {
     pararToque();
     toqueUI.atual = null;
+    const v = document.getElementById('dc-chamada-video');
+    if (v) { v.srcObject = null; v.remove(); }
     caixa().classList.add('hidden');
   }
 
@@ -534,7 +536,19 @@
       const audioEl = new Audio(); audioEl.autoplay = true; audioEl.playsInline = true; audioEl.srcObject = remoto;
       estadoUI.chamadaPainel = { chamadaID: atual.id, pc, stream, remoteStream: remoto, audioEl, nodes: [] };
       stream.getAudioTracks().forEach(t => pc.addTrack(t, stream));
-      pc.ontrack = evt => { (evt.streams?.[0]?.getTracks() || [evt.track]).forEach(t => remoto.addTrack(t)); audioEl.play().catch(() => {}); };
+      // Video do celular para o painel (so recebimento; a camera daqui nao e enviada).
+      let videoEl = null;
+      if (atual.video) {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        videoEl = document.createElement('video');
+        videoEl.id = 'dc-chamada-video'; videoEl.autoplay = true; videoEl.playsInline = true; videoEl.muted = true;
+        videoEl.style.cssText = 'width:100%;max-height:60vh;background:#000;border-radius:8px;flex-basis:100%';
+        caixa().appendChild(videoEl);
+      }
+      pc.ontrack = evt => {
+        if (evt.track.kind === 'video' && videoEl) { videoEl.srcObject = new MediaStream([evt.track]); videoEl.play().catch(() => {}); return; }
+        (evt.streams?.[0]?.getTracks() || [evt.track]).forEach(t => remoto.addTrack(t)); audioEl.play().catch(() => {});
+      };
       pc.oniceconnectionstatechange = () => { if (['failed', 'closed', 'disconnected'].includes(pc.iceConnectionState)) { encerrarChamadaPainel(false); esconderChamada(); } };
       const oferta = await pc.createOffer();
       await pc.setLocalDescription(oferta);

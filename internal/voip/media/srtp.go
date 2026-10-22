@@ -8,6 +8,7 @@ import (
 	"dyalog-api-go/internal/voip/core"
 	"encoding/binary"
 	"fmt"
+	"sync"
 )
 
 type SrtpErrorType string
@@ -162,6 +163,13 @@ func (c *SrtpContext) computeAuthTag(data []byte, roc uint32, tagLen int) []byte
 type SrtpSession struct {
 	sendCtx *SrtpContext
 	recvCtx *SrtpContext
+
+	// Video usa as chaves de recepcao do audio, mas um contexto (ROC/seq) por SSRC:
+	// compartilhar o do audio embaralharia o ROC com a numeracao de sequencia do video.
+	recvKey     core.SrtpKeyingMaterial
+	recvAuthLen int
+	mu          sync.Mutex
+	streams     map[uint32]*SrtpContext
 }
 
 func NewSrtpSession(sendKey, recvKey core.SrtpKeyingMaterial, sendAuthLen, recvAuthLen int) (*SrtpSession, error) {
@@ -173,7 +181,30 @@ func NewSrtpSession(sendKey, recvKey core.SrtpKeyingMaterial, sendAuthLen, recvA
 	if err != nil {
 		return nil, err
 	}
-	return &SrtpSession{sendCtx: sc, recvCtx: rc}, nil
+	return &SrtpSession{sendCtx: sc, recvCtx: rc, recvKey: recvKey, recvAuthLen: recvAuthLen}, nil
+}
+
+// UnprotectStream descriptografa um pacote de recepcao com contexto proprio do SSRC.
+func (s *SrtpSession) UnprotectStream(data []byte) (*RtpPacket, error) {
+	if len(data) < rtpMinHeaderSize {
+		return nil, &SrtpError{SrtpErrPacketTooShort, "packet too short"}
+	}
+	ssrc := binary.BigEndian.Uint32(data[8:])
+	s.mu.Lock()
+	ctx := s.streams[ssrc]
+	if ctx == nil {
+		var err error
+		if ctx, err = NewSrtpContext(s.recvKey, s.recvAuthLen); err != nil {
+			s.mu.Unlock()
+			return nil, err
+		}
+		if s.streams == nil {
+			s.streams = make(map[uint32]*SrtpContext)
+		}
+		s.streams[ssrc] = ctx
+	}
+	s.mu.Unlock()
+	return ctx.Unprotect(data)
 }
 
 func (s *SrtpSession) Protect(packet *RtpPacket) ([]byte, error) { return s.sendCtx.Protect(packet) }

@@ -45,6 +45,8 @@ const (
 
 const (
 	PayloadTypeWhatsAppOpus = 120
+	// Video H.264 do peer, observado no relay em chamadas reais.
+	PayloadTypeWhatsAppVideoH264 = 97
 )
 
 const (

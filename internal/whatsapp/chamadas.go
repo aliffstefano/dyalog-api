@@ -11,6 +11,7 @@ import (
 	"dyalog-api-go/internal/models"
 	"dyalog-api-go/internal/voip/call"
 	"dyalog-api-go/internal/voip/core"
+	"dyalog-api-go/internal/voip/media"
 	"dyalog-api-go/internal/voip/signaling"
 	"dyalog-api-go/internal/wa"
 
@@ -230,6 +231,14 @@ func (g *GerenciadorInstancias) novoCallManager(instanciaID string, runtime *run
 		g.mu.RUnlock()
 		if ativa != nil && ativa.bridge != nil {
 			_ = ativa.bridge.WritePCM(pcm)
+		}
+	}
+	cm.OnPeerVideo = func(pkt *media.RtpPacket) {
+		g.mu.RLock()
+		ativa := runtime.chamadas[callID]
+		g.mu.RUnlock()
+		if ativa != nil && ativa.bridge != nil {
+			ativa.bridge.WriteVideoRTP(pkt)
 		}
 	}
 	return cm
