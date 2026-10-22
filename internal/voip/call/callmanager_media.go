@@ -118,6 +118,9 @@ func (m *CallManager) onRelayData(data []byte) {
 	}
 	pt := data[1] & 0x7f
 	if pt != core.PayloadTypeWhatsAppOpus {
+		// Diagnostico de video: mostra o payload type e o ssrc do que o relay entrega e
+		// que nao e audio. Debug para nao inundar o log em chamada de video.
+		m.log.Debug("rtp nao-audio descartado", "pt", pt, "ssrc", uint32(data[8])<<24|uint32(data[9])<<16|uint32(data[10])<<8|uint32(data[11]), "len", len(data), "marker", data[1]&0x80 != 0)
 		return
 	}
 
