@@ -9,6 +9,7 @@ import (
 	"dyalog-api-go/internal/voip/wanode"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.mau.fi/whatsmeow/types"
@@ -35,6 +36,7 @@ type CallManager struct {
 	outgoingPreacceptSent bool
 	acceptedByJid         string
 	debeEnabled           bool
+	naoAudioLogados       atomic.Int32 // diagnostico de video (VOIP_DEBUG_XML)
 
 	encodeBuf    []float32
 	encodeBufPos int
