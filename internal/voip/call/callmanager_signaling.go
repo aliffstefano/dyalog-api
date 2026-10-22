@@ -54,7 +54,8 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 	}
 
 	m.mu.Lock()
-	call := NewIncomingCall(callID, peerJid.String(), creator, "", mediaType)
+	// caller_pn: o numero de quem liga quando o from vem como LID.
+	call := NewIncomingCall(callID, peerJid.String(), creator, wanode.AttrString(info.InnerNode.Attrs, "caller_pn"), mediaType)
 	if callKey != nil {
 		call.EncryptionKey = callKey
 	}
