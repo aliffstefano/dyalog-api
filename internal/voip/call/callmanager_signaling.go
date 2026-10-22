@@ -102,6 +102,13 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 func (m *CallManager) HandleCallAccept(ctx context.Context, node *waBinary.Node, peerJid types.JID) {
 	m.mu.Lock()
 	call := m.currentCall
+	if call != nil && call.CanAccept() {
+		// Chamada recebida ainda tocando aqui e alguem aceitou: foi outro device
+		// da conta (o nosso accept move o estado para connecting antes).
+		m.log.Info("call accepted on another device", "call_id", call.CallID, "from", peerJid.String())
+		m.endRemoteLocked(call, core.EndCallReasonAcceptedElsewhere)
+		return
+	}
 	m.mu.Unlock()
 	if call == nil {
 		return
@@ -291,13 +298,18 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 		m.log.Info("voip xml terminate recebido", "call_id", call.CallID,
 			"from", wanode.AttrString(node.Attrs, "from"), "xml", wanode.DumpNode(info.InnerNode))
 	}
+	m.endRemoteLocked(call, reason)
+}
+
+// endRemoteLocked encerra a chamada por iniciativa remota. Recebe m.mu travado
+// e o libera antes de chamar os callbacks.
+func (m *CallManager) endRemoteLocked(call *CallInfo, reason core.EndCallReason) {
 	_ = call.ApplyTransition(Transition{Type: TransitionTerminated, Reason: reason})
-	ended := call
 	m.emitState()
 	m.mu.Unlock()
 
 	if m.OnEnded != nil {
-		m.OnEnded(ended)
+		m.OnEnded(call)
 	}
 	m.cleanupMedia()
 }

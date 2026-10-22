@@ -1,12 +1,14 @@
 package call
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
 	"dyalog-api-go/internal/voip/core"
 
 	waBinary "go.mau.fi/whatsmeow/binary"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // Incoming media path: once a relay connects for an accepted incoming call
@@ -81,5 +83,36 @@ func TestTerminateUncallableFromNonPeerIgnored(t *testing.T) {
 	m.HandleCallTerminate(terminateNode("225408540778703@lid", "uncallable"))
 	if !m.currentCall.IsEnded() {
 		t.Fatal("uncallable do peer deveria encerrar")
+	}
+}
+
+// Atendida em outro device: o terminate com accepted_elsewhere (de device proprio)
+// encerra e expoe o motivo; um accept recebido com a chamada ainda tocando
+// tambem encerra com o mesmo motivo, sem responder ao peer.
+func TestAcceptedElsewhereEncerraComMotivo(t *testing.T) {
+	novo := func() *CallManager {
+		m := NewCallManager(nil, slog.Default())
+		m.currentCall = NewIncomingCall("CID", "225408540778703@lid", "225408540778703@lid", "", core.CallMediaTypeAudio)
+		return m
+	}
+
+	m := novo()
+	var encerrada *CallInfo
+	m.OnEnded = func(i *CallInfo) { encerrada = i }
+	m.HandleCallTerminate(terminateNode("64720979652716:99@lid", "accepted_elsewhere"))
+	if !m.currentCall.IsEnded() || m.currentCall.StateData.EndReason != core.EndCallReasonAcceptedElsewhere {
+		t.Fatalf("terminate accepted_elsewhere deveria encerrar com o motivo, got %s/%s", m.currentCall.StateData.State, m.currentCall.StateData.EndReason)
+	}
+	if encerrada == nil {
+		t.Fatal("OnEnded nao disparou")
+	}
+
+	m = novo()
+	acceptNode := &waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"from": "64720979652716:99@lid"}, Content: []waBinary.Node{
+		{Tag: "accept", Attrs: waBinary.Attrs{"call-id": "CID"}},
+	}}
+	m.HandleCallAccept(context.Background(), acceptNode, types.NewADJID("64720979652716", 99, 0))
+	if !m.currentCall.IsEnded() || m.currentCall.StateData.EndReason != core.EndCallReasonAcceptedElsewhere {
+		t.Fatalf("accept de outro device deveria encerrar com accepted_elsewhere, got %s/%s", m.currentCall.StateData.State, m.currentCall.StateData.EndReason)
 	}
 }

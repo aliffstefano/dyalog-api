@@ -333,8 +333,11 @@ func (g *GerenciadorInstancias) dispararEventoChamada(instanciaID, acao string, 
 		"call_creator": info.CallCreator,
 		"direcao":      string(info.Direction),
 		"estado":       string(info.StateData.State),
-		"tipo":         string(info.MediaType),
-		"criada_em":    info.CreatedAt,
+		// Preenchido quando a chamada acabou; "accepted_elsewhere" = atendida em outro aparelho.
+		"motivo":                     string(info.StateData.EndReason),
+		"atendida_em_outro_aparelho": info.StateData.EndReason == core.EndCallReasonAcceptedElsewhere,
+		"tipo":                       string(info.MediaType),
+		"criada_em":                  info.CreatedAt,
 		"api": map[string]string{
 			"aceitar":  apiBase + "/aceitar",
 			"rejeitar": apiBase + "/rejeitar",

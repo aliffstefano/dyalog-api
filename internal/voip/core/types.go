@@ -38,6 +38,9 @@ const (
 	EndCallReasonDoNotDisturb EndCallReason = "do_not_disturb"
 	EndCallReasonUnknown      EndCallReason = "unknown"
 	EndCallReasonUncallable   EndCallReason = "uncallable"
+	// Atendida em outro device da conta (celular, web). O WhatsApp manda como
+	// reason do terminate/reject; tambem e usado quando vem so um accept.
+	EndCallReasonAcceptedElsewhere EndCallReason = "accepted_elsewhere"
 )
 
 const (
