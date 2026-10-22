@@ -2,10 +2,12 @@ package wa
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"dyalog-api-go/internal/voip/core"
 	"dyalog-api-go/internal/voip/signaling"
+	"dyalog-api-go/internal/voip/wanode"
 
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
@@ -34,6 +36,9 @@ func (s *Socket) AccountDeviceIdentityNode() (waBinary.Node, bool) {
 }
 
 func (s *Socket) SendNode(ctx context.Context, node waBinary.Node) error {
+	if wanode.DebugXMLEnabled() && (node.Tag == "call" || node.Tag == "receipt") {
+		slog.Info("voip xml enviado", "xml", wanode.DumpNode(&node))
+	}
 	return s.di().SendNode(ctx, node)
 }
 

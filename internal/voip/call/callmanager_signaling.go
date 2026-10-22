@@ -17,6 +17,10 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 		return
 	}
 	callID := info.CallID
+	if wanode.DebugXMLEnabled() {
+		m.log.Info("voip xml offer recebido", "call_id", callID, "from", peerJid.String(),
+			"platform", info.PeerPlatform, "version", info.PeerAppVersion, "xml", wanode.DumpNode(info.InnerNode))
+	}
 	creator := wanode.AttrString(info.InnerNode.Attrs, "call-creator")
 	if creator == "" {
 		creator = peerJid.String()
@@ -273,6 +277,10 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 		}
 	}
 	m.log.Info("call terminated by peer", "call_id", call.CallID, "reason", string(reason))
+	if wanode.DebugXMLEnabled() && info != nil {
+		m.log.Info("voip xml terminate recebido", "call_id", call.CallID,
+			"from", wanode.AttrString(node.Attrs, "from"), "xml", wanode.DumpNode(info.InnerNode))
+	}
 	_ = call.ApplyTransition(Transition{Type: TransitionTerminated, Reason: reason})
 	ended := call
 	m.emitState()
