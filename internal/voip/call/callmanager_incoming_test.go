@@ -116,3 +116,21 @@ func TestAcceptedElsewhereEncerraComMotivo(t *testing.T) {
 		t.Fatalf("accept de outro device deveria encerrar com accepted_elsewhere, got %s/%s", m.currentCall.StateData.State, m.currentCall.StateData.EndReason)
 	}
 }
+
+// O WhatsApp devolve o offer da nossa propria ligacao de saida. Ele nao pode
+// virar chamada recebida: a de saida tem de continuar sendo a atual.
+func TestOfferEcoDaPropriaLigacaoEIgnorado(t *testing.T) {
+	m := &CallManager{log: slog.Default()}
+	saida := NewOutgoingCall("CID", "peer@lid", "nos@lid", core.CallMediaTypeAudio)
+	m.currentCall = saida
+
+	offer := &waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"from": "nos:4@lid"}, Content: []waBinary.Node{
+		{Tag: "offer", Attrs: waBinary.Attrs{"call-id": "CID", "call-creator": "nos:4@lid"}},
+	}}
+	// m.sock e nil: se o eco nao fosse ignorado, o teste quebraria ao decifrar a chave.
+	m.HandleCallOffer(context.Background(), offer, types.NewJID("nos", types.HiddenUserServer))
+
+	if m.currentCall != saida || !saida.IsInitiator() {
+		t.Fatalf("a chamada de saida deveria continuar a atual, veio %+v", m.currentCall)
+	}
+}

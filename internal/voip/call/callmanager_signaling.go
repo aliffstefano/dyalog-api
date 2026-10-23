@@ -21,6 +21,17 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 		m.log.Info("voip xml offer recebido", "call_id", callID, "from", peerJid.String(),
 			"platform", info.PeerPlatform, "version", info.PeerAppVersion, "xml", wanode.DumpNode(info.InnerNode))
 	}
+	// Eco da nossa propria ligacao: o WhatsApp devolve o offer que acabamos de
+	// mandar. Tratar como chamada recebida trocava a chamada de saida por uma
+	// recebida e mandava preaccept ao destino, que recusava (reason=enc) ou
+	// tinha o atendimento encerrado como "accepted_elsewhere".
+	m.mu.Lock()
+	eco := m.currentCall != nil && m.currentCall.IsInitiator() && m.currentCall.CallID == callID
+	m.mu.Unlock()
+	if eco {
+		m.log.Info("offer ignorado: eco da propria ligacao", "call_id", callID, "from", peerJid.String())
+		return
+	}
 	creator := wanode.AttrString(info.InnerNode.Attrs, "call-creator")
 	if creator == "" {
 		creator = peerJid.String()
