@@ -114,6 +114,23 @@ func BuildAcceptStanza(ctx context.Context, sock core.VoipSocket, callID string,
 	}, nil
 }
 
+// BuildAcceptOwnDevicesStanza avisa os outros devices da propria conta que a
+// chamada foi atendida aqui, para pararem de tocar.
+func BuildAcceptOwnDevicesStanza(ownJid types.JID, callID string, callCreator types.JID) waBinary.Node {
+	return waBinary.Node{
+		Tag:   "call",
+		Attrs: waBinary.Attrs{"to": ownJid, "id": GenerateCallStanzaID()},
+		Content: []waBinary.Node{{
+			Tag:   "accept",
+			Attrs: waBinary.Attrs{"call-id": callID, "call-creator": callCreator},
+			Content: []waBinary.Node{
+				{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}},
+				{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
+			},
+		}},
+	}
+}
+
 func extractEncFromParticipant(nodes []waBinary.Node) *waBinary.Node {
 	for _, n := range nodes {
 		n := n

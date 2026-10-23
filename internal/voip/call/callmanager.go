@@ -161,6 +161,18 @@ func (m *CallManager) AcceptCall(ctx context.Context, callID string) error {
 		} else if err := m.sock.SendNode(ctx, acceptNode); err != nil {
 			m.log.Error("accept send error", "err", err)
 		}
+		// Os outros devices da conta (o celular) nao sabem do accept enviado ao
+		// peer e seguiam tocando; o celular, ao atender, manda o accept tambem
+		// para a propria conta. Fazemos o mesmo.
+		own := m.sock.OwnLID()
+		if own.IsEmpty() {
+			own = m.sock.OwnPN()
+		}
+		if !own.IsEmpty() {
+			if err := m.sock.SendNode(ctx, signaling.BuildAcceptOwnDevicesStanza(own.ToNonAD(), callID, creator)); err != nil {
+				m.log.Warn("accept para os proprios devices falhou", "err", err)
+			}
+		}
 	}
 
 	if relayData != nil {

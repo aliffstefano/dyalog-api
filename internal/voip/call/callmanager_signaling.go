@@ -106,6 +106,9 @@ func (m *CallManager) HandleCallAccept(ctx context.Context, node *waBinary.Node,
 		// Chamada recebida ainda tocando aqui e alguem aceitou: foi outro device
 		// da conta (o nosso accept move o estado para connecting antes).
 		m.log.Info("call accepted on another device", "call_id", call.CallID, "from", peerJid.String())
+		if wanode.DebugXMLEnabled() {
+			m.log.Info("voip xml accept de outro device", "call_id", call.CallID, "xml", wanode.DumpNode(node))
+		}
 		m.endRemoteLocked(call, core.EndCallReasonAcceptedElsewhere)
 		return
 	}
